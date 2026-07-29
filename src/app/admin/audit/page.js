@@ -26,8 +26,8 @@ const logsData = [
     actionColor: '#c62828',
     actionBg: '#fdecea'
   },
-  { ts: '2023-11-24\n13:05:12', actor: 'system.automator', action: 'BATCH_PAYMENT_INIT', actionColor: '#05264E', actionBg: '#f0f0f0',    session_id: 'SES-77821', entity: 'Payroll #402', ip: '10.0.0.8' },
-  { ts: '2023-11-24\n11:45:55', actor: 'mike.finance@skillbridge.io', action: 'DATA_EXPORT_DPDP', actionColor: '#1565c0', actionBg: '#e8f4fd',    session_id: 'SES-77821', entity: 'Q3 Revenue Report', ip: '172.16.254.1' },
+  { ts: '2023-11-24\n13:05:12', actor: 'system.automator', action: 'BATCH_PAYMENT_INIT', actionColor: '#122359', actionBg: '#f0f0f0',    session_id: 'SES-77821', entity: 'Payroll #402', ip: '10.0.0.8' },
+  { ts: '2023-11-24\n11:45:55', actor: 'mike.finance@skillbridge.io', action: 'DATA_EXPORT_DPDP', actionColor: '#ffa300', actionBg: '#ffc151',    session_id: 'SES-77821', entity: 'Q3 Revenue Report', ip: '172.16.254.1' },
   { ts: '2023-11-24\n09:12:30', actor: 'admin.super', action: 'CONFIG_CHANGE', actionColor: '#2e7d32', actionBg: '#e8f5e9',    session_id: 'SES-77821', entity: 'Global Registration Fee', ip: '192.168.5.112' },
   { ts: '2023-11-24\n08:30:00', actor: 'sarah.admin@skillbridge.io', action: 'LOGIN_SUCCESS', actionColor: '#555', actionBg: '#f5f5f5',    session_id: 'SES-77821', entity: 'Admin Session', ip: '192.168.1.45' },
 ]
@@ -42,7 +42,7 @@ const inspections = [
   {
     id: 'LOG-8294-D', title: 'System Configuration Update',
     level: 'Info', actor: 'admin.super',
-    levelColor: '#1565c0', levelBg: '#e8f4fd',
+    levelColor: '#ffa300', levelBg: '#ffc151',
     detail: 'admin.super modified the Global Registration Fee configuration. Change recorded at 09:12:30. All changes are immutable and hashed. IP: 192.168.5.112.',
   },
 ]
@@ -301,10 +301,10 @@ export default function AuditLogsPage() {
                       <>
                         <tr key={i} className="hover-up" style={{ borderBottom: '1px solid #f5f5f5' }}>
                           <td style={{ padding: '14px 10px', verticalAlign: 'top', whiteSpace: 'pre', lineHeight: 1.6 }}>
-                            <span className="font-xs" style={{ color: '#05264E', fontWeight: 500 }}>{row.ts}</span>
+                            <span className="font-xs" style={{ color: '#122359', fontWeight: 500 }}>{row.ts}</span>
                           </td>
                           <td style={{ padding: '14px 10px', verticalAlign: 'top' }}>
-                            <span className="font-xs" style={{ fontWeight: 600, color: '#05264E', wordBreak: 'break-all' }}>{row.actor}</span>
+                            <span className="font-xs" style={{ fontWeight: 600, color: '#122359', wordBreak: 'break-all' }}>{row.actor}</span>
                           </td>
                           {/* Action */}
                           <td style={{ padding: '14px 10px' }}>
@@ -416,7 +416,7 @@ export default function AuditLogsPage() {
             <div className="panel-white">
               <div className="panel-head">
                 <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-                  <span style={{ fontSize: '16px', color: '#3C65F5' }}>&#9658;</span>
+                  <span style={{ fontSize: '16px', color: '#ffa300' }}>&#9658;</span>
                   <h5 className="mb-0">Recent Detail Inspections</h5>
                 </div>
               </div>
@@ -442,7 +442,7 @@ export default function AuditLogsPage() {
                       }}>{item.level}</span>
 
                       <div style={{ flex: 1 }}>
-                        <span className="font-sm" style={{ fontWeight: 600, color: '#05264E' }}>
+                        <span className="font-sm" style={{ fontWeight: 600, color: '#122359' }}>
                           {item.title}: {item.id}
                         </span>
                         <span className="font-xs color-text-paragraph-2" style={{ marginLeft: '8px' }}>
@@ -491,7 +491,7 @@ export default function AuditLogsPage() {
                     <div key={item.rule} className="hover-up mb-15"
                       style={{ paddingBottom: '15px', borderBottom: '1px solid #f5f5f5' }}>
                       <div className="d-flex align-items-center justify-content-between mb-5">
-                        <span className="font-sm" style={{ fontWeight: 600, color: '#05264E' }}>{item.rule}</span>
+                        <span className="font-sm" style={{ fontWeight: 600, color: '#122359' }}>{item.rule}</span>
                         <span style={{
                           fontSize: '10px', fontWeight: 700, padding: '2px 8px',
                           borderRadius: '20px', whiteSpace: 'nowrap',

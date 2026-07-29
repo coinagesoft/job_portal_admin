@@ -14,7 +14,7 @@ export default function EmployerDetailsPage() {
       width: '42px',
       height: '42px',
       borderRadius: '8px',
-      background: '#3C65F5',
+      background: '#ffa300',
       color: '#fff',
       flexShrink: 0,
       display: 'flex',
@@ -167,7 +167,7 @@ export default function EmployerDetailsPage() {
                                                 style={{ textTransform: 'uppercase', letterSpacing: '0.4px', fontSize: '10px' }}>
                                                 {item.label}
                                             </p>
-                                            <p className="font-sm mb-0" style={{ fontWeight: 600, color: '#05264E' }}>
+                                            <p className="font-sm mb-0" style={{ fontWeight: 600, color: '#122359' }}>
                                                 {item.value}
                                             </p>
                                         </div>
@@ -186,7 +186,7 @@ export default function EmployerDetailsPage() {
 
       {[
         { label: 'Document Validity', val: '1 Expired', color: '#c62828' },
-        { label: 'AI Confidence', val: '86%', color: '#1565c0' },
+        { label: 'AI Confidence', val: '86%', color: '#ffa300' },
         { label: 'Duplicate Company', val: 'No Match', color: '#2e7d32' },
         { label: 'Sanctions Check', val: 'Clear', color: '#2e7d32' },
       ].map(item => (
@@ -285,7 +285,7 @@ export default function EmployerDetailsPage() {
                                                 {/* Card body */}
                                                 <div className="card-block-info" style={{ padding: '12px' }}>
                                                     <div className="d-flex align-items-start justify-content-between mb-5">
-                                                        <p className="font-sm mb-0" style={{ fontWeight: 600, color: '#05264E', lineHeight: 1.3 }}>
+                                                        <p className="font-sm mb-0" style={{ fontWeight: 600, color: '#122359', lineHeight: 1.3 }}>
                                                             {doc.title}
                                                         </p>
                                                         <span style={{
@@ -315,14 +315,14 @@ export default function EmployerDetailsPage() {
                                                                 <div className="col-6">
                                                                     <p className="font-xs color-text-paragraph-2 mb-0"
                                                                         style={{ fontSize: '9px', textTransform: 'uppercase' }}>License No.</p>
-                                                                    <p className="font-xs mb-0" style={{ fontWeight: 600, color: '#05264E' }}>
+                                                                    <p className="font-xs mb-0" style={{ fontWeight: 600, color: '#122359' }}>
                                                                         {doc.meta.licenseNo}
                                                                     </p>
                                                                 </div>
                                                                 <div className="col-6">
                                                                     <p className="font-xs color-text-paragraph-2 mb-0"
                                                                         style={{ fontSize: '9px', textTransform: 'uppercase' }}>Valid Till</p>
-                                                                    <p className="font-xs mb-0" style={{ fontWeight: 600, color: '#05264E' }}>
+                                                                    <p className="font-xs mb-0" style={{ fontWeight: 600, color: '#122359' }}>
                                                                         {doc.meta.validTill}
                                                                     </p>
                                                                 </div>
@@ -388,10 +388,10 @@ export default function EmployerDetailsPage() {
                                 <div className="d-flex align-items-center" style={{ gap: '8px', flexWrap: 'wrap' }}>
                                     {[
                                         { label: 'GST Verified', active: true, color: '#2e7d32', bg: '#e8f5e9', border: '#a5d6a7' },
-                                        { label: 'PAN Verified', active: true, color: '#1565c0', bg: '#e3f2fd', border: '#90caf9' },
-                                        { label: 'Blue-Tick Verified', active: true, color: '#1565c0', bg: '#e3f2fd', border: '#90caf9' },
-                                        { label: 'POE Licensed', active: false, color: '#66789C', bg: '#F2F6FD', border: '#E0E6F7' },
-                                        { label: 'RPSL Certified', active: false, color: '#66789C', bg: '#F2F6FD', border: '#E0E6F7' },
+                                        { label: 'PAN Verified', active: true, color: '#ffa300', bg: '#ffc151', border: '#90caf9' },
+                                        { label: 'Blue-Tick Verified', active: true, color: '#ffa300', bg: '#ffc151', border: '#90caf9' },
+                                        { label: 'POE Licensed', active: false, color: '#66789C', bg: '#F2F6FD', border: '#ffc151' },
+                                        { label: 'RPSL Certified', active: false, color: '#66789C', bg: '#F2F6FD', border: '#ffc151' },
                                     ].map((badge) => (
                                         <span key={badge.label} style={{
                                             display: 'inline-flex', alignItems: 'center', gap: '5px',
@@ -421,16 +421,16 @@ export default function EmployerDetailsPage() {
                             <div className="panel-body">
                                 {[
                                     {
-                                        dot: '#3C65F5', title: 'RPSL Document Uploaded',
+                                        dot: '#ffa300', title: 'RPSL Document Uploaded',
                                         by: 'Sarah Jenkins', time: 'Today, 10:45 AM', note: null,
                                     },
                                     {
-                                        dot: '#3C65F5', title: 'GST Verified Automatically',
+                                        dot: '#ffa300', title: 'GST Verified Automatically',
                                         by: 'System AI', time: 'Yesterday, 04:20 PM',
                                         note: '"GSTIN check successful via government portal API."',
                                     },
                                     {
-                                        dot: '#3C65F5', title: 'Badge Assigned: Blue Tick',
+                                        dot: '#ffa300', title: 'Badge Assigned: Blue Tick',
                                         by: 'Admin User', time: '2 days ago',
                                         note: '"Trust verification completed manually."',
                                     },
@@ -450,7 +450,7 @@ export default function EmployerDetailsPage() {
                                         <div style={{ flex: 1 }}>
                                             <div className="d-flex align-items-center justify-content-between"
                                                 style={{ flexWrap: 'wrap', gap: '4px' }}>
-                                                <p className="font-sm mb-0" style={{ fontWeight: 600, color: '#05264E' }}>
+                                                <p className="font-sm mb-0" style={{ fontWeight: 600, color: '#122359' }}>
                                                     {item.title}
                                                 </p>
                                                 <span className="font-xs color-text-paragraph-2">{item.time}</span>
@@ -458,7 +458,7 @@ export default function EmployerDetailsPage() {
                                             <p className="font-xs color-text-paragraph-2 mb-5">by {item.by}</p>
                                             {item.note && (
                                                 <div style={{
-                                                    background: '#F8FAFF', border: '1px solid #E0E6F7',
+                                                    background: '#F8FAFF', border: '1px solid #ffc151',
                                                     borderRadius: '4px', padding: '8px 12px',
                                                 }}>
                                                     <p className="font-xs color-text-paragraph-2 mb-0">{item.note}</p>
@@ -594,7 +594,7 @@ export default function EmployerDetailsPage() {
                                     <div className="progress">
                                         <div className="progress-bar bg-brand-2"
                                             role="progressbar"
-                                            style={{ width: '85%', borderRadius: '5px', background: '#3C65F5' }}>
+                                            style={{ width: '85%', borderRadius: '5px', background: '#ffa300' }}>
                                         </div>
                                     </div>
                                 </div>
@@ -617,7 +617,7 @@ export default function EmployerDetailsPage() {
                             <div className="panel-body text-center">
                                 <div style={{
                                     width: '56px', height: '56px', borderRadius: '50%',
-                                    background: '#3C65F5', color: '#fff',
+                                    background: '#ffa300', color: '#fff',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     fontWeight: 700, fontSize: '18px', margin: '0 auto 10px',
                                 }}>SJ</div>
@@ -676,7 +676,7 @@ export default function EmployerDetailsPage() {
       <p style={{
         marginTop: '10px',
         fontWeight: 600,
-        color: '#05264E'
+        color: '#122359'
       }}>
         {previewDoc.title}
       </p>

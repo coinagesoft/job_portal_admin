@@ -282,7 +282,7 @@
         percent: 67,
         percentageTextSize: 20,
         textStyle: "font-size: 20px; font-weight: bold; font-family: 'Plus Jakarta Sans', sans-serif",
-        fontColor: "#05264E",
+        fontColor: "#122359",
         fillColor: "#d8e0fd",
         backgroundColor: "#d8e0fd",
         multiPercentage: 0,

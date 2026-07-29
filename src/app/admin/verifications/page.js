@@ -200,8 +200,8 @@ records = records.filter((r) => {
   <div onClick={() => setActiveTab('candidate')} style={{
     padding: '12px 16px',
     cursor: 'pointer',
-    borderBottom: activeTab === 'candidate' ? '2px solid #1565c0' : '2px solid transparent',
-    color: activeTab === 'candidate' ? '#1565c0' : '#888',
+    borderBottom: activeTab === 'candidate' ? '2px solid #ffa300' : '2px solid transparent',
+    color: activeTab === 'candidate' ? '#ffa300' : '#888',
     fontWeight: 600,
     fontSize: '14px'
   }}>
@@ -210,8 +210,8 @@ records = records.filter((r) => {
       marginLeft: '8px',
       fontSize: '11px',
       fontWeight: 700,
-      background: activeTab === 'candidate' ? '#e8f4fd' : '#f5f5f5',
-      color: activeTab === 'candidate' ? '#1565c0' : '#888',
+      background: activeTab === 'candidate' ? '#ffc151' : '#f5f5f5',
+      color: activeTab === 'candidate' ? '#ffa300' : '#888',
       padding: '2px 8px',
       borderRadius: '10px'
     }}>
@@ -223,8 +223,8 @@ records = records.filter((r) => {
   <div onClick={() => setActiveTab('recruiter')} style={{
     padding: '12px 16px',
     cursor: 'pointer',
-    borderBottom: activeTab === 'recruiter' ? '2px solid #1565c0' : '2px solid transparent',
-    color: activeTab === 'recruiter' ? '#1565c0' : '#888',
+    borderBottom: activeTab === 'recruiter' ? '2px solid #ffa300' : '2px solid transparent',
+    color: activeTab === 'recruiter' ? '#ffa300' : '#888',
     fontWeight: 600,
     fontSize: '14px'
   }}>
@@ -233,8 +233,8 @@ records = records.filter((r) => {
       marginLeft: '8px',
       fontSize: '11px',
       fontWeight: 700,
-      background: activeTab === 'recruiter' ? '#e8f4fd' : '#f5f5f5',
-      color: activeTab === 'recruiter' ? '#1565c0' : '#888',
+      background: activeTab === 'recruiter' ? '#ffc151' : '#f5f5f5',
+      color: activeTab === 'recruiter' ? '#ffa300' : '#888',
       padding: '2px 8px',
       borderRadius: '10px'
     }}>
@@ -284,7 +284,7 @@ records = records.filter((r) => {
                     'Normal': { color: '#555',    bg: '#f5f5f5', border: '#ddd'    },
                   }[row.priority]
 
-                  const confColor = row.confidence >= 90 ? '#2e7d32' : row.confidence >= 80 ? '#1565c0' : '#e65100'
+                  const confColor = row.confidence >= 90 ? '#2e7d32' : row.confidence >= 80 ? '#ffa300' : '#e65100'
 
                   return (
                     <tr key={row.id} className="hover-up" style={{ borderBottom: '1px solid #f5f5f5' }}>
@@ -402,7 +402,7 @@ records = records.filter((r) => {
             <div className="panel-white" style={{ background: '#f0f6ff', border: '1px solid #bdd4f5' }}>
               <div className="panel-body">
                 <div className="d-flex align-items-center mb-15" style={{ gap: '10px' }}>
-                  <h5 className="mb-0" style={{ color: '#1565c0' }}>Compliance Reminder</h5>
+                  <h5 className="mb-0" style={{ color: '#ffa300' }}>Compliance Reminder</h5>
                 </div>
                 <p className="font-sm color-text-paragraph-2 mb-15" style={{ lineHeight: 1.7 }}>
                   All verification decisions are logged for audit purposes. Ensure you have

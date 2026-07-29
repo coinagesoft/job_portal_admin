@@ -57,7 +57,7 @@ function InlineField({ label, icon, value, name, type = 'text', onSave, readonly
         </div>
       ) : (
         <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-          <p className="font-sm mb-0" style={{ fontWeight: 600, color: '#05264E', flex: 1 }}>
+          <p className="font-sm mb-0" style={{ fontWeight: 600, color: '#122359', flex: 1 }}>
             {value || <span className="color-text-mutted">—</span>}
           </p>
           {!readonly && (
@@ -293,7 +293,7 @@ export default function UserVerificationPage() {
                           width: '24px',
                           height: '24px',
                           borderRadius: '50%',
-                          background: '#3C65F5',
+                          background: '#ffa300',
                           border: '2px solid #fff',
                           display: 'flex',
                           alignItems: 'center',
@@ -329,7 +329,7 @@ export default function UserVerificationPage() {
                 </div>
 
                 {/* Divider */}
-                <hr style={{ borderColor: '#E0E6F7', margin: '20px 0' }} />
+                <hr style={{ borderColor: '#ffc151', margin: '20px 0' }} />
 
                 {/* Contact Info */}
                 <div className="row">
@@ -393,7 +393,7 @@ export default function UserVerificationPage() {
                 </div>
                 <span style={{
                   fontSize: '11px', fontWeight: 700, padding: '3px 10px',
-                  borderRadius: '20px', background: '#e3f2fd', color: '#1565c0',
+                  borderRadius: '20px', background: '#ffc151', color: '#ffa300',
                 }}>OCR Processed</span>
               </div>
 
@@ -418,7 +418,7 @@ export default function UserVerificationPage() {
                         </button>
                       </div>
                       <div style={{
-                        border: '1px solid #E0E6F7', borderRadius: '8px',
+                        border: '1px solid #ffc151', borderRadius: '8px',
                         overflow: 'hidden', background: '#F8FAFF',
                         height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>
@@ -436,7 +436,7 @@ export default function UserVerificationPage() {
                       <tr>
                         {['Data Field', 'User Provided', 'AI Extracted (OCR)', 'Status'].map((h) => (
                           <th key={h} className="font-xs color-text-paragraph-2"
-                            style={{ padding: '10px 14px', borderBottom: '1px solid #E0E6F7', textAlign: 'left', fontWeight: 600 }}>
+                            style={{ padding: '10px 14px', borderBottom: '1px solid #ffc151', textAlign: 'left', fontWeight: 600 }}>
                             {h}
                           </th>
                         ))}
@@ -446,7 +446,7 @@ export default function UserVerificationPage() {
                       {ocrFields.map((row) => (
                         <tr key={row.field} className="hover-up">
                           <td style={{ padding: '10px 14px', borderBottom: '1px solid #f5f5f5' }}>
-                            <span className="font-sm" style={{ fontWeight: 600, color: '#05264E' }}>{row.field}</span>
+                            <span className="font-sm" style={{ fontWeight: 600, color: '#122359' }}>{row.field}</span>
                           </td>
                           {/* User Provided — inline editable */}
                           <td style={{ padding: '6px 14px', borderBottom: '1px solid #f5f5f5', minWidth: '140px' }}>
@@ -492,7 +492,7 @@ export default function UserVerificationPage() {
                     }}>
                       <div style={{
                         width: '100px', height: '100px', borderRadius: '50%',
-                        overflow: 'hidden', border: '3px solid #E0E6F7',
+                        overflow: 'hidden', border: '3px solid #ffc151',
                       }}>
                         <img src="/assets/imgs/page/candidates/user1.png" alt="Document Photo"
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -522,7 +522,7 @@ export default function UserVerificationPage() {
                     <div style={{ position: 'relative', width: '100px', margin: '0 auto 8px' }}>
                       <div style={{
                         width: '100px', height: '100px', borderRadius: '50%',
-                        overflow: 'hidden', border: '3px solid #3C65F5',
+                        overflow: 'hidden', border: '3px solid #ffa300',
                       }}>
                         <img src="/assets/imgs/page/candidates/user2.png" alt="Live Capture"
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -530,7 +530,7 @@ export default function UserVerificationPage() {
                       <span style={{
                         position: 'absolute', bottom: '-4px', left: '50%', transform: 'translateX(-50%)',
                         fontSize: '9px', fontWeight: 700, padding: '2px 8px',
-                        borderRadius: '20px', background: '#3C65F5', color: '#fff', whiteSpace: 'nowrap',
+                        borderRadius: '20px', background: '#ffa300', color: '#fff', whiteSpace: 'nowrap',
                       }}>LIVE CAPTURE</span>
                     </div>
                     <p className="font-xs color-text-paragraph-2 mb-0 mt-10"
@@ -548,7 +548,7 @@ export default function UserVerificationPage() {
                     <div className="box-progress-bar mb-15">
                       <div className="progress">
                         <div className="progress-bar" role="progressbar"
-                          style={{ width: '98%', borderRadius: '5px', background: '#3C65F5' }}>
+                          style={{ width: '98%', borderRadius: '5px', background: '#ffa300' }}>
                         </div>
                       </div>
                     </div>
@@ -578,12 +578,12 @@ export default function UserVerificationPage() {
             <div className="panel-white">
                   {/* Queue meta */}
         <div className="d-flex align-items-center" style={{ gap: '10px', flexShrink: 0 }}>
-          <div style={{ border: '1px solid #3C65F5', borderRadius: '8px', padding: '8px 16px', textAlign: 'center', background: '#fff' }}>
+          <div style={{ border: '1px solid #ffa300', borderRadius: '8px', padding: '8px 16px', textAlign: 'center', background: '#fff' }}>
             <p className="font-xs color-text-paragraph-2 mb-2"
               style={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: '9px' }}>Queue Priority</p>
             <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px', background: '#fdecea', color: '#c62828' }}>High</span>
           </div>
-          <div style={{ border: '1px solid #3C65F5', borderRadius: '8px', padding: '8px 16px', textAlign: 'center', background: '#fff' }}>
+          <div style={{ border: '1px solid #ffa300', borderRadius: '8px', padding: '8px 16px', textAlign: 'center', background: '#fff' }}>
             <p className="font-xs color-text-paragraph-2 mb-2"
               style={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: '9px' }}>Time in Queue</p>
             <h6 className="mb-0">42 mins</h6>
@@ -599,24 +599,24 @@ export default function UserVerificationPage() {
               </div>
               <div className="panel-body text-center">
                 <div style={{ margin: '0 auto 10px', width: '110px' }}>
-                  <h2 style={{ fontSize: '40px', fontWeight: 800, color: '#05264E', marginBottom: 0 }}>94%</h2>
-                  <div style={{ height: '6px', background: '#E0E6F7', borderRadius: '5px', overflow: 'hidden', marginTop: '8px' }}>
-                    <div style={{ width: '94%', height: '100%', background: '#3C65F5', borderRadius: '5px' }}></div>
+                  <h2 style={{ fontSize: '40px', fontWeight: 800, color: '#122359', marginBottom: 0 }}>94%</h2>
+                  <div style={{ height: '6px', background: '#ffc151', borderRadius: '5px', overflow: 'hidden', marginTop: '8px' }}>
+                    <div style={{ width: '94%', height: '100%', background: '#ffa300', borderRadius: '5px' }}></div>
                   </div>
                 </div>
                 <div className="row mt-20">
                   <div className="col-12">
-                    <div style={{ background: '#F8FAFF', border: '1px solid #E0E6F7', borderRadius: '8px', padding: '10px' }}>
+                    <div style={{ background: '#F8FAFF', border: '1px solid #ffc151', borderRadius: '8px', padding: '10px' }}>
                       <p className="font-xs color-text-paragraph-2 mb-5"
                         style={{ textTransform: 'uppercase', fontSize: '9px', letterSpacing: '0.4px' }}>Risk Level</p>
                       <p className="font-sm mb-0" style={{ fontWeight: 700, color: '#2e7d32' }}>Very Low</p>
                     </div>
                   </div>
                   {/* <div className="col-6">
-                    <div style={{ background: '#F8FAFF', border: '1px solid #E0E6F7', borderRadius: '8px', padding: '10px' }}>
+                    <div style={{ background: '#F8FAFF', border: '1px solid #ffc151', borderRadius: '8px', padding: '10px' }}>
                       <p className="font-xs color-text-paragraph-2 mb-5"
                         style={{ textTransform: 'uppercase', fontSize: '9px', letterSpacing: '0.4px' }}>Anomaly</p>
-                      <p className="font-sm mb-0" style={{ fontWeight: 700, color: '#05264E' }}>None detected</p>
+                      <p className="font-sm mb-0" style={{ fontWeight: 700, color: '#122359' }}>None detected</p>
                     </div>
                   </div> */}
                 </div>
@@ -685,7 +685,7 @@ export default function UserVerificationPage() {
                 {auditHistory.map((item, i) => (
                   
                     <div style={{ flex: 1 }} className='my-2'>
-                      <p className="font-sm mb-0" style={{ fontWeight: 600, color: '#05264E', lineHeight: 1.3 }}>
+                      <p className="font-sm mb-0" style={{ fontWeight: 600, color: '#122359', lineHeight: 1.3 }}>
                         {item.label}
                       </p>
                       <span className="font-xs color-text-paragraph-2">

@@ -138,7 +138,7 @@ export default function DashboardPage() {
           <p className="font-sm color-text-paragraph-2 mb-3">Welcome back, Admin. Here&apos;s what&apos;s happening on the platform today.</p>
         </div>
         <div className="box-breadcrumb">
-          <div className="breadcrumbs">
+          <div className="breadcrumbs" style={{border:"none" ,  backgroundColor:"none"}}>
             <ul>
               <li><a className="icon-home" href="/admin/dashboard">Admin</a></li>
               <li><span>Dashboard</span></li>
@@ -403,8 +403,8 @@ export default function DashboardPage() {
                           <td style={{ padding: '10px 8px', borderBottom: '1px solid #f5f5f5' }}>
                             <span style={{
                               fontSize: '10px', fontWeight: 700, letterSpacing: '0.4px', padding: '3px 7px', borderRadius: '4px', whiteSpace: 'nowrap',
-                              background: u.type === 'CANDIDATE' ? '#e8f4fd' : '#e8f5e9',
-                              color: u.type === 'CANDIDATE' ? '#1565c0' : '#2e7d32'
+                              background: u.type === 'CANDIDATE' ? '#ffc151' : '#e8f5e9',
+                              color: u.type === 'CANDIDATE' ? '#ffa300' : '#2e7d32'
                             }}>{u.type}</span>
                           </td>
                           <td style={{ padding: '10px 0', borderBottom: '1px solid #f5f5f5' }}>
@@ -452,9 +452,9 @@ export default function DashboardPage() {
                     <tbody>
                       {[
                         { name: 'Liam Johnson', wait: '12h', priority: 'High', score: 92, color: '#2e7d32' },
-                        { name: 'Emma Wilson', wait: '18h', priority: 'Medium', score: 85, color: '#1565c0' },
+                        { name: 'Emma Wilson', wait: '18h', priority: 'Medium', score: 85, color: '#ffa300' },
                         { name: 'Noah Brown', wait: '1d', priority: 'Critical', score: 45, color: '#c62828' },
-                        { name: 'Olivia Garcia', wait: '1d', priority: 'Medium', score: 88, color: '#1565c0' },
+                        { name: 'Olivia Garcia', wait: '1d', priority: 'Medium', score: 88, color: '#ffa300' },
                         { name: 'James Davis', wait: '2d', priority: 'Low', score: 96, color: '#2e7d32' },
                       ].map((v) => (
                         <tr key={v.name} className="hover-up">

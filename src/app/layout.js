@@ -9,12 +9,12 @@ export default function RootLayout({ children }) {
         {/* CSS */}
         <link
           rel="stylesheet"
-          href="/assets/css/style.css?version=4.1"
+          href="/assets/css/style.css?version=4.2"
         />
 
         <link
           rel="stylesheet"
-          href="/assets2/css/style.css?version=4.1"
+          href="/assets2/css/style.css?version=4.2"
         />
 
         <link

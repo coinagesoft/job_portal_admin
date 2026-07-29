@@ -3,10 +3,10 @@
 <rect x="2" y="2" width="30" height="30" rx="4" fill="white"/>
 <rect x="2.5" y="2.5" width="29" height="29" rx="3.5" stroke="#A0ABB8"/>
 </g>
-<rect x="10.5" y="10.5" width="5" height="5" rx="1.5" fill="#E0E6F7" stroke="#E0E6F7"/>
-<rect x="10.5" y="18.5" width="5" height="5" rx="1.5" fill="#E0E6F7" stroke="#E0E6F7"/>
-<rect x="18.5" y="10.5" width="5" height="5" rx="1.5" fill="#E0E6F7" stroke="#E0E6F7"/>
-<rect x="18.5" y="18.5" width="5" height="5" rx="1.5" fill="#E0E6F7" stroke="#E0E6F7"/>
+<rect x="10.5" y="10.5" width="5" height="5" rx="1.5" fill="#ffc151" stroke="#ffc151"/>
+<rect x="10.5" y="18.5" width="5" height="5" rx="1.5" fill="#ffc151" stroke="#ffc151"/>
+<rect x="18.5" y="10.5" width="5" height="5" rx="1.5" fill="#ffc151" stroke="#ffc151"/>
+<rect x="18.5" y="18.5" width="5" height="5" rx="1.5" fill="#ffc151" stroke="#ffc151"/>
 <defs>
 <filter id="filter0_d_1956_5839" x="0" y="0" width="38" height="38" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
 <feFlood flood-opacity="0" result="BackgroundImageFix"/>

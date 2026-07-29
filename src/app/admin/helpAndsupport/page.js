@@ -77,8 +77,8 @@ const filteredData = data.filter((r) => {
                   padding: '12px 16px',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
-                  borderBottom: activeTab === tab ? '2px solid #1565c0' : '2px solid transparent',
-                  color: activeTab === tab ? '#1565c0' : '#888',
+                  borderBottom: activeTab === tab ? '2px solid #ffa300' : '2px solid transparent',
+                  color: activeTab === tab ? '#ffa300' : '#888',
                   fontWeight: activeTab === tab ? 600 : 500,
                   fontSize: '14px'
                 }}
@@ -89,8 +89,8 @@ const filteredData = data.filter((r) => {
                   marginLeft: '8px',
                   fontSize: '11px',
                   fontWeight: 700,
-                  background: activeTab === tab ? '#e8f4fd' : '#f5f5f5',
-                  color: activeTab === tab ? '#1565c0' : '#888',
+                  background: activeTab === tab ? '#ffc151' : '#f5f5f5',
+                  color: activeTab === tab ? '#ffa300' : '#888',
                   padding: '2px 8px',
                   borderRadius: '10px'
                 }}>
@@ -177,7 +177,7 @@ const filteredData = data.filter((r) => {
                 const statusStyle = {
                   'Pending': { color: '#e65100', bg: '#fff3e0' },
                   'Resolved': { color: '#2e7d32', bg: '#e8f5e9' },
-                  'In Progress': { color: '#1565c0', bg: '#e3f2fd' }
+                  'In Progress': { color: '#ffa300', bg: '#ffc151' }
                 }[row.status]
 
                 return (

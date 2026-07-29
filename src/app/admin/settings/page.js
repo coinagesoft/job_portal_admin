@@ -51,7 +51,7 @@ const addPack = () => {
       onClick={() => { onChange(!value); changed() }}
       style={{
         width: '44px', height: '24px', borderRadius: '12px', flexShrink: 0,
-        background: value ? '#3C65F5' : '#ccc',
+        background: value ? '#ffa300' : '#ccc',
         position: 'relative', cursor: 'pointer', transition: 'background .2s',
       }}
     >
@@ -120,12 +120,12 @@ const addPack = () => {
 
                 {/* Enable New Registrations toggle */}
                 <div className="hover-up mb-10" style={{
-                  border: '1px solid #E0E6F7', borderRadius: '10px',
+                  border: '1px solid #ffc151', borderRadius: '10px',
                   padding: '14px 16px', display: 'flex',
                   alignItems: 'center', justifyContent: 'space-between', gap: '12px',
                 }}>
                   <div>
-                    <p className="font-sm mb-3" style={{ fontWeight: 600, color: '#05264E' }}>Enable New Registrations</p>
+                    <p className="font-sm mb-3" style={{ fontWeight: 600, color: '#122359' }}>Enable New Registrations</p>
                     <p className="font-xs color-text-paragraph-2 mb-0">Allow new candidates and employers to create accounts.</p>
                   </div>
                   <Toggle value={enableRegistrations} onChange={setEnableRegistrations} />
@@ -133,12 +133,12 @@ const addPack = () => {
 
                 {/* Registration Verification toggle */}
                 <div className="hover-up mb-20" style={{
-                  border: '1px solid #E0E6F7', borderRadius: '10px',
+                  border: '1px solid #ffc151', borderRadius: '10px',
                   padding: '14px 16px', display: 'flex',
                   alignItems: 'center', justifyContent: 'space-between', gap: '12px',
                 }}>
                   <div>
-                    <p className="font-sm mb-3" style={{ fontWeight: 600, color: '#05264E' }}>Registration Verification</p>
+                    <p className="font-sm mb-3" style={{ fontWeight: 600, color: '#122359' }}>Registration Verification</p>
                     <p className="font-xs color-text-paragraph-2 mb-0">Mandate manual approval for all new employer accounts.</p>
                   </div>
                   <Toggle value={registrationVerification} onChange={setRegistrationVerification} />
@@ -314,7 +314,7 @@ const addPack = () => {
           {editingPack !== pk.id && (
             <strong
               className="font-sm"
-              style={{ color: '#3C65F5', minWidth: '80px', textAlign: 'right' }}
+              style={{ color: '#ffa300', minWidth: '80px', textAlign: 'right' }}
             >
               ₹{pk.price}
             </strong>
@@ -397,7 +397,7 @@ const addPack = () => {
             width: '120px',
             textAlign: 'right',
             fontWeight: 600,
-            color: '#3C65F5'
+            color: '#ffa300'
           }}
         />
       </div>
@@ -461,19 +461,19 @@ const addPack = () => {
 
                 {/* Geo-Fencing toggle */}
                 <div className="hover-up" style={{
-                  border: '1px solid #E0E6F7', borderRadius: '10px',
+                  border: '1px solid #ffc151', borderRadius: '10px',
                   padding: '14px 16px', display: 'flex',
                   alignItems: 'center', justifyContent: 'space-between', gap: '12px',
                 }}>
                   <div>
-                    <p className="font-sm mb-3" style={{ fontWeight: 600, color: '#05264E' }}>Geo-Fencing</p>
+                    <p className="font-sm mb-3" style={{ fontWeight: 600, color: '#122359' }}>Geo-Fencing</p>
                     <p className="font-xs color-text-paragraph-2 mb-0">Restrict platform access by region.</p>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     {geoFencing && (
                       <span style={{
                         fontSize: '11px', fontWeight: 700, padding: '3px 10px',
-                        borderRadius: '20px', background: '#e8f4fd', color: '#1565c0',
+                        borderRadius: '20px', background: '#ffc151', color: '#ffa300',
                         border: '1px solid #90caf9',
                       }}>Active</span>
                     )}
@@ -518,13 +518,13 @@ const addPack = () => {
 
                 {/* Enforce Admin MFA toggle */}
                 <div className="hover-up mb-10" style={{
-                  border: `1px solid ${enforceMFA ? '#90caf9' : '#E0E6F7'}`,
+                  border: `1px solid ${enforceMFA ? '#90caf9' : '#ffc151'}`,
                   borderRadius: '10px', padding: '14px 16px',
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
                   background: enforceMFA ? '#F0F6FF' : '#fff',
                 }}>
                   <div>
-                    <p className="font-sm mb-3" style={{ fontWeight: 600, color: enforceMFA ? '#1565c0' : '#05264E' }}>
+                    <p className="font-sm mb-3" style={{ fontWeight: 600, color: enforceMFA ? '#ffa300' : '#122359' }}>
                       Enforce Admin MFA
                     </p>
                     <p className="font-xs color-text-paragraph-2 mb-0">Requires 2FA for all panel access.</p>
@@ -534,13 +534,13 @@ const addPack = () => {
 
                 {/* Maintenance Mode toggle */}
                 <div className="hover-up" style={{
-                  border: `1px solid ${maintenanceMode ? '#ffcc80' : '#E0E6F7'}`,
+                  border: `1px solid ${maintenanceMode ? '#ffcc80' : '#ffc151'}`,
                   borderRadius: '10px', padding: '14px 16px',
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
                   background: maintenanceMode ? '#FFFDE7' : '#fff',
                 }}>
                   <div>
-                    <p className="font-sm mb-3" style={{ fontWeight: 600, color: '#05264E' }}>Maintenance Mode</p>
+                    <p className="font-sm mb-3" style={{ fontWeight: 600, color: '#122359' }}>Maintenance Mode</p>
                     <p className="font-xs color-text-paragraph-2 mb-0">Redirect public users to maintenance page.</p>
                   </div>
                   <Toggle value={maintenanceMode} onChange={setMaintenanceMode} />
@@ -573,7 +573,7 @@ const addPack = () => {
                     <img src={`/assets/imgs/page/dashboard/${entry.img}.png`} alt={entry.name}
                       style={{ width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0, marginTop: '2px' }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p className="font-xs mb-3" style={{ color: '#05264E', lineHeight: 1.5 }}>
+                      <p className="font-xs mb-3" style={{ color: '#122359', lineHeight: 1.5 }}>
                         <strong>{entry.name}</strong> {entry.action}
                       </p>
                       <span className="font-xs color-text-paragraph-2">

@@ -95,8 +95,8 @@ function DocumentReviewModal({ doc, onClose, onApprove, onReject }) {
                   Expiry: {doc.expiry}
                 </span>
                 <span style={{
-                  fontSize: '11px', fontWeight: 700, color: '#1565c0',
-                  background: '#e3f2fd', padding: '2px 7px', borderRadius: '4px'
+                  fontSize: '11px', fontWeight: 700, color: '#ffa300',
+                  background: '#ffc151', padding: '2px 7px', borderRadius: '4px'
                 }}>
                   AI: {doc.aiScore}%
                 </span>
@@ -159,9 +159,9 @@ function DocumentReviewModal({ doc, onClose, onApprove, onReject }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
-                      fontSize: '12px', color: '#1565c0', fontWeight: 600,
+                      fontSize: '12px', color: '#ffa300', fontWeight: 600,
                       textDecoration: 'none', padding: '5px 12px',
-                      background: '#e3f2fd', borderRadius: '6px',
+                      background: '#ffc151', borderRadius: '6px',
                       border: '1px solid #bbdefb',
                     }}
                   >
@@ -240,7 +240,7 @@ function DocumentReviewModal({ doc, onClose, onApprove, onReject }) {
                           </div>
                           <div style={{
                             width: '48px', height: '48px', borderRadius: '50%',
-                            background: '#e3f2fd', display: 'flex', alignItems: 'center',
+                            background: '#ffc151', display: 'flex', alignItems: 'center',
                             justifyContent: 'center', fontSize: '22px',
                           }}>🏛</div>
                         </div>
@@ -274,9 +274,9 @@ function DocumentReviewModal({ doc, onClose, onApprove, onReject }) {
             {activeTab === 'extracted' && (
               <div style={{ padding: '24px' }}>
                 <div style={{
-                  background: '#e3f2fd', border: '1px solid #bbdefb',
+                  background: '#ffc151', border: '1px solid #bbdefb',
                   borderRadius: '8px', padding: '10px 14px', marginBottom: '20px',
-                  fontSize: '12px', color: '#1565c0', fontWeight: 500,
+                  fontSize: '12px', color: '#ffa300', fontWeight: 500,
                 }}>
                   🤖 Fields below were extracted by AWS Textract. Amber = low confidence. Correct if needed before approving.
                 </div>
@@ -773,7 +773,7 @@ export default function RecruiterEditPage() {
                             </span>
                           </td>
                           <td style={{ padding: '14px 8px' }}>
-                            <span style={{ fontWeight: 600, color: '#1565c0' }}>{doc.aiScore}%</span>
+                            <span style={{ fontWeight: 600, color: '#ffa300' }}>{doc.aiScore}%</span>
                           </td>
                           <td style={{ padding: '14px 8px' }}>
                             {/* ✅ THE KEY CHANGE: onClick opens the modal */}
@@ -782,13 +782,13 @@ export default function RecruiterEditPage() {
                               onClick={() => setReviewDoc(doc)}
                               style={{
                                 cursor: 'pointer', border: 'none',
-                                background: '#e3f2fd', color: '#1565c0',
+                                background: '#ffc151', color: '#ffa300',
                                 fontWeight: 600, fontSize: '12px',
                                 padding: '5px 12px', borderRadius: '6px',
                                 transition: 'background 0.15s',
                               }}
                               onMouseEnter={e => e.target.style.background = '#bbdefb'}
-                              onMouseLeave={e => e.target.style.background = '#e3f2fd'}
+                              onMouseLeave={e => e.target.style.background = '#ffc151'}
                             >
                               🔍 Review
                             </button>
@@ -838,10 +838,10 @@ export default function RecruiterEditPage() {
                 <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '4px', background: '#7c3aed', color: '#fff' }}>Premium</span>
               </div>
               <div className="panel-body">
-                <h3 style={{ color: '#1565c0' }}>12,450 <span className="font-xs" style={{ color: '#888', fontWeight: 400 }}>Credits</span></h3>
+                <h3 style={{ color: '#ffa300' }}>12,450 <span className="font-xs" style={{ color: '#888', fontWeight: 400 }}>Credits</span></h3>
                 <div className="d-flex justify-content-between mb-5"><span className="font-xs color-text-paragraph-2">Monthly Usage</span><span className="font-xs" style={{ fontWeight: 600 }}>85%</span></div>
                 <div className="progress mb-20" style={{ height: '6px', borderRadius: '3px', background: '#eee' }}>
-                  <div className="progress-bar" style={{ width: '85%', background: '#1565c0', borderRadius: '3px' }}></div>
+                  <div className="progress-bar" style={{ width: '85%', background: '#ffa300', borderRadius: '3px' }}></div>
                 </div>
                 <p className="font-xs color-text-paragraph-2 mb-5" style={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Adjust Balance (Admin Only)</p>
                 <div className="d-flex" style={{ gap: '8px' }}>
@@ -877,7 +877,7 @@ export default function RecruiterEditPage() {
                 <p className="font-xs color-text-paragraph-2 mb-8" style={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Recent History Logs</p>
                 {[
                   { action: 'Verified PAN Details', by: 'Sarah L', when: '3 days ago', color: '#2e7d32' },
-                  { action: 'POE Expiry Extracted', by: 'AI Bot', when: '5 days ago', color: '#1565c0' },
+                  { action: 'POE Expiry Extracted', by: 'AI Bot', when: '5 days ago', color: '#ffa300' },
                   { action: 'Credits Adjusted (+500)', by: 'Admin Alex', when: '1 week ago', color: '#e65100' },
                 ].map((log) => (
                   <div key={log.action} className="mb-10" style={{ borderLeft: `3px solid ${log.color}`, paddingLeft: '10px' }}>

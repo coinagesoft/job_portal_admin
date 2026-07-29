@@ -149,7 +149,7 @@ function Toggle({ value, onChange }) {
   return (
     <div onClick={onChange} style={{
       width: '38px', height: '20px', borderRadius: '10px', flexShrink: 0,
-      background: value ? '#3C65F5' : '#ddd',
+      background: value ? '#ffa300' : '#ddd',
       position: 'relative', cursor: 'pointer', transition: 'background .2s',
     }}>
       <div style={{
@@ -375,7 +375,7 @@ const openEdit = (a) => {
 
                       {/* Role */}
                       <td >
-                        <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', background: '#EEF3FE', color: '#3C65F5', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', background: '#ffc151', color: '#ffa300', whiteSpace: 'nowrap' }}>
                           {admin.role}
                         </span>
                       </td>
@@ -383,7 +383,7 @@ const openEdit = (a) => {
                       {/* Access count — click to expand */}
                       <td >
                         <button onClick={() => setViewId(viewId === admin.id ? null : admin.id)}
-                          style={{ background: 'none', border: '1px solid #E0E6F7', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: '#3C65F5' }}>
+                          style={{ background: 'none', border: '1px solid #ffc151', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: '#ffa300' }}>
                           {admin.access.length} / {ALL_KEYS.length} features &#8964;
                         </button>
                       </td>
@@ -464,7 +464,7 @@ const openEdit = (a) => {
                               if (!granted.length) return null
                               return (
                                 <div key={module.group} className="col-xl-3 col-lg-4 col-md-6 col-sm-12 mb-15">
-                                 <p className="font-xs mb-8" style={{ fontWeight: 700, color: '#05264E', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                 <p className="font-xs mb-8" style={{ fontWeight: 700, color: '#122359', display: 'flex', alignItems: 'center', gap: '5px' }}>
   {React.createElement(module.icon, { size: 13, strokeWidth: 2.2 })}
   {module.group}
 </p>
@@ -623,9 +623,9 @@ const openEdit = (a) => {
                     style={{
                       padding: '6px 14px', borderRadius: '20px', cursor: 'pointer',
                       fontWeight: 600, fontSize: '12px',
-                      background: form.role === preset ? '#3C65F5' : '#f5f5f5',
+                      background: form.role === preset ? '#ffa300' : '#f5f5f5',
                       color: form.role === preset ? '#fff' : '#444',
-                      border: form.role === preset ? '1px solid #3C65F5' : '1px solid #ddd',
+                      border: form.role === preset ? '1px solid #ffa300' : '1px solid #ddd',
                     }}>
                     {preset}
                   </button>
@@ -644,7 +644,7 @@ const openEdit = (a) => {
                   Page & Feature Access
                 </p>
                 <button onClick={toggleAll}
-                  style={{ background: 'none', border: '1px solid #ddd', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#3C65F5' }}>
+                  style={{ background: 'none', border: '1px solid #ddd', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#ffa300' }}>
                   {ALL_KEYS.every(k => form.access.includes(k)) ? 'Deselect All' : 'Select All'}
                 </button>
               </div>
@@ -655,13 +655,13 @@ const openEdit = (a) => {
                   const allOn = keys.every(k => form.access.includes(k))
                   const someOn = keys.some(k => form.access.includes(k))
                   return (
-                    <div key={module.group} style={{ border: '1px solid #E0E6F7', borderRadius: '10px', overflow: 'hidden' }}>
+                    <div key={module.group} style={{ border: '1px solid #ffc151', borderRadius: '10px', overflow: 'hidden' }}>
 
                       {/* Group header */}
                       <div style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         padding: '12px 16px',
-                        background: allOn ? '#EEF3FE' : someOn ? '#FAFBFF' : '#fff',
+                        background: allOn ? '#ffc151' : someOn ? '#FAFBFF' : '#fff',
                         cursor: 'pointer',
                       }} onClick={() => toggleGroup(module)}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -670,7 +670,7 @@ const openEdit = (a) => {
     return <Icon size={16} strokeWidth={2.2} />;
   })()}
 
-  <span className="font-sm" style={{ fontWeight: 700, color: '#05264E' }}>
+  <span className="font-sm" style={{ fontWeight: 700, color: '#122359' }}>
     {module.group}
   </span>
 
@@ -682,14 +682,14 @@ const openEdit = (a) => {
                       </div>
 
                       {/* Individual items */}
-                      <div style={{ padding: '8px 16px 12px', borderTop: '1px solid #E0E6F7', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ padding: '8px 16px 12px', borderTop: '1px solid #ffc151', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {module.items.map(item => {
                           const on = form.access.includes(item.key)
                           return (
                             <div key={item.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: on ? '#3C65F5' : '#ddd', flexShrink: 0 }}></span>
-                                <span className="font-xs" style={{ color: on ? '#05264E' : '#888', fontWeight: on ? 600 : 400 }}>{item.label}</span>
+                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: on ? '#ffa300' : '#ddd', flexShrink: 0 }}></span>
+                                <span className="font-xs" style={{ color: on ? '#122359' : '#888', fontWeight: on ? 600 : 400 }}>{item.label}</span>
                               </div>
                               <Toggle value={on} onChange={() => toggleKey(item.key)} />
                             </div>
@@ -703,8 +703,8 @@ const openEdit = (a) => {
               </div>
 
               {/* Access summary */}
-              <div style={{ marginTop: '20px', padding: '12px 16px', background: '#F8FAFF', borderRadius: '8px', border: '1px solid #E0E6F7' }}>
-                <p className="font-xs mb-0" style={{ color: '#3C65F5', fontWeight: 600 }}>
+              <div style={{ marginTop: '20px', padding: '12px 16px', background: '#F8FAFF', borderRadius: '8px', border: '1px solid #ffc151' }}>
+                <p className="font-xs mb-0" style={{ color: '#ffa300', fontWeight: 600 }}>
                   ✓ {form.access.length} of {ALL_KEYS.length} features selected
                 </p>
               </div>

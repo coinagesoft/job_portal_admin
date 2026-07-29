@@ -14,7 +14,7 @@ export default function Header() {
           <div className="header-left">
             <div className="header-logo">
               <Link className="d-flex" href="/admin/dashboard">
-                <img alt="jobBox" src="/assets/imgs/page/dashboard/logo.svg" />
+                <img alt="jobBox" src="/assets/imgs/page/dashboard/jobhub-logo.svg" />
               </Link>
             </div>
             <span className="btn btn-grey-small ml-10">Admin area</span>

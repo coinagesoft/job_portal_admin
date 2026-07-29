@@ -425,9 +425,9 @@ export default function FinancePage() {
                                   padding: "2px 8px",
                                   borderRadius: "10px",
                                   background:
-                                    row.candidate_type === "fresher" ? "#e3f2fd" : "#f1f8e9",
+                                    row.candidate_type === "fresher" ? "#ffc151" : "#f1f8e9",
                                   color:
-                                    row.candidate_type === "fresher" ? "#1565c0" : "#2e7d32"
+                                    row.candidate_type === "fresher" ? "#ffa300" : "#2e7d32"
                                 }}
                               >
                                 {row.candidate_type}

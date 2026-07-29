@@ -1,10 +1,28 @@
 .btn-brand-1:hover {
-    background-color: #3C65F5 !important;
+    background-color: #ffa300 !important;
     color: #ffffff !important;
 }
+.btn-primary {
+    background-color: #ffa300 !important;
+    border-color: #ffa300 !important;
+    color: #ffffff !important;
+}
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active,
+.btn-primary.active,
+.btn-primary:first-child:active,
+.show > .btn-primary.dropdown-toggle {
+    background-color: #122359 !important;
+    border-color: #122359 !important;
+    color: #ffffff !important;
+}
+.hover-up {
+    transition: all 0.35s ease !important;
+}
 .hover-up:hover {
-    transform: translateY(-3px) !important;
-    transition: all 0.25s cubic-bezier(0.02, 0.01, 0.47, 1) !important;
+    transform: translateY(-8px) !important;
+    transition: all 0.35s ease !important;
 }
 /* =========================
    DASHBOARD RESPONSIVE FIX
@@ -50,11 +68,86 @@ visibility: hidden;
     padding: 10px !important;
 }
 /* card compact */
+.card-style-1,
+.card-grid-1,
+.card-grid-2,
+.card-grid-3,
+.card-grid-4,
+.card-review-1,
+.panel-white,
+.box-border,
+.box-border-single,
+.sidebar-border,
+.sidebar-border-bg,
+.candidate-profile-v2-sidebar-card,
+.candidate-profile-v2-section-card,
+.candidate-profile-v2-entry-card,
+.candidate-profile-v2-doc-card,
+.candidate-settings-card,
+.candidate-support-card,
+.candidate-status-overview-card,
+.candidate-inner-panel {
+  border: 1px solid transparent !important;
+  transition: all 0.35s ease !important;
+  box-shadow: 0 4px 14px rgba(18, 35, 89, 0.04) !important;
+}
+.panel-head {
+  border-bottom: 1px solid transparent !important;
+  transition: all 0.35s ease !important;
+}
 .card-style-1 {
+  display: flex !important;
+  align-items: center !important;
   min-height: 130px !important;
   padding: 18px !important;
   border-radius: 16px;
   margin-bottom: 0px !important;
+}
+.card-style-1 .card-image {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 48px !important;
+  height: 48px !important;
+  padding-right: 0 !important;
+  margin-right: 16px !important;
+}
+.card-style-1 .card-info {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  height: auto !important;
+  padding: 0 !important;
+  width: 100% !important;
+}
+/* Hover styles for cards and panels (lift + orange shadow + border) */
+.card-style-1:hover,
+.card-grid-1:hover,
+.card-grid-2:hover,
+.card-grid-3:hover,
+.card-grid-4:hover,
+.card-review-1:hover,
+.panel-white:hover,
+.box-border:hover,
+.box-border-single:hover,
+.sidebar-border:hover,
+.sidebar-border-bg:hover,
+.candidate-profile-v2-sidebar-card:hover,
+.candidate-profile-v2-section-card:hover,
+.candidate-profile-v2-entry-card:hover,
+.candidate-profile-v2-doc-card:hover,
+.candidate-settings-card:hover,
+.candidate-support-card:hover,
+.candidate-status-overview-card:hover,
+.candidate-inner-panel:hover {
+  transform: translateY(-8px) !important;
+  border-color: rgba(255, 153, 0, 0.32) !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 153, 0, 0.18),
+    0 20px 40px rgba(255, 153, 0, 0.12) !important;
+}
+.panel-white:hover .panel-head {
+  border-bottom-color: rgba(255, 153, 0, 0.32) !important;
 }
 .header.stick {
     padding: 14px 20px !important;
@@ -66,7 +159,7 @@ visibility: hidden;
   gap:14px;
 }
 .card-info {
-height: 100px;
+  height: auto;
 }
 .dashboard2 {
   display: flex;
@@ -99,9 +192,9 @@ height: 100px;
 }
 
 .primary-fill{
-  background:#3c65f5;
+  background:#ffa300;
   color:#fff;
-  border-color:#3c65f5;
+  border-color:#ffa300;
 }
 
 .panel-head {
@@ -110,7 +203,7 @@ height: 100px;
 }
 
 .primary-fill:hover{
-  background:#244fe7;
+  background:#122359;
 }
 
 .danger-outline{
@@ -275,4 +368,44 @@ margin-top: 0px !important;
   .panel-white {
     padding: 14px !important;
   }
+}
+
+/* Global input field overrides: gray border on idle, brand orange on focus */
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="number"],
+input[type="tel"],
+input[type="url"],
+input[type="search"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="file"],
+select,
+textarea,
+.form-control,
+.form-select {
+  border: 1px solid #d2d8ea !important;
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out !important;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+input[type="number"]:focus,
+input[type="tel"]:focus,
+input[type="url"]:focus,
+input[type="search"]:focus,
+input[type="date"]:focus,
+input[type="time"]:focus,
+input[type="datetime-local"]:focus,
+input[type="file"]:focus,
+select:focus,
+textarea:focus,
+.form-control:focus,
+.form-select:focus {
+  border-color: #ffa300 !important;
+  box-shadow: 0 0 0 3px rgba(255, 163, 0, 0.15) !important;
+  outline: 0 !important;
 }
