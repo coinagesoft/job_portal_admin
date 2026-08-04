@@ -10,7 +10,7 @@ export default function ProfilePage() {
           <h3 className="mb-35">My Profile</h3>
         </div>
         <div className="box-breadcrumb">
-          <div className="breadcrumbs">
+          <div className="breadcrumbs" style={{border:"none" ,  backgroundColor:"revert"}}>
             <ul>
               <li> <a className="icon-home" href="/dashboard">Admin</a></li>
               <li><span>My Profile</span></li>

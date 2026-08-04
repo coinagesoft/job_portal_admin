@@ -34,7 +34,7 @@ export default function EditCandidatePage() {
         </div>
 
         <div className="box-breadcrumb">
-          <div className="breadcrumbs">
+          <div className="breadcrumbs" style={{border:"none" ,  backgroundColor:"revert"}}>
             <ul>
               <li><a className="icon-home" href="/admin/dashboard">Admin</a></li>
               <li><a href="/admin/candidates">Candidates</a></li>

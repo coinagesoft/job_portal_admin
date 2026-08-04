@@ -103,7 +103,7 @@ const filteredCandidates = candidates.filter((c) => {
         </div>
 
         <div className="box-breadcrumb">
-          <div className="breadcrumbs">
+          <div className="breadcrumbs" style={{border:"none" ,  backgroundColor:"revert"}}>
             <ul>
               <li><a className="icon-home" href="/admin/dashboard">Admin</a></li>
               <li><span>Candidates</span></li>

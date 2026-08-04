@@ -7,7 +7,7 @@ export default function CandidateDetailsPage() {
   const [preview, setPreview] = useState(null)
   return (
     <>
-      <div className="box-heading">
+      <div className="box-heading"> 
         <div className="box-title">
           <h3 className="mb-5">Candidate Profile</h3>
           <p className="font-sm color-text-paragraph-2">
@@ -16,7 +16,7 @@ export default function CandidateDetailsPage() {
         </div>
 
         <div className="box-breadcrumb">
-          <div className="breadcrumbs">
+          <div className="breadcrumbs" style={{border:"none" ,  backgroundColor:"revert"}}>
             <ul>
               <li><a className="icon-home" href="/admin/dashboard">Admin</a></li>
               <li><a href="/admin/candidates">Candidates</a></li>

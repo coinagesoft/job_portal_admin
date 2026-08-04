@@ -108,7 +108,7 @@ export default function RecruiterPage() {
         </div>
 
         <div className="box-breadcrumb">
-          <div className="breadcrumbs mb-15">
+          <div className="breadcrumbs mb-15" style={{border:"none" ,  backgroundColor:"revert"}}>
             <ul>
               <li>
                 <a className="icon-home" href="/admin/dashboard">

@@ -61,7 +61,7 @@ records = records.filter((r) => {
           <p className="font-sm color-text-paragraph-2">Manage and process pending identity and business verifications.</p>
         </div>
         <div className="box-breadcrumb">
-          <div className="breadcrumbs">
+          <div className="breadcrumbs" style={{border:"none" ,  backgroundColor:"revert"}}>
             <ul>
               <li><a className="icon-home" href="/dashboard">Admin</a></li>
               <li><span>Verifications</span></li>

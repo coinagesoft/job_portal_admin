@@ -234,7 +234,7 @@ export default function FinancePage() {
         <div className="d-flex align-items-center  flex-wrap gap-2">
 
           <div className="box-breadcrumb w-100">
-            <div className="breadcrumbs">
+            <div className="breadcrumbs" style={{border:"none" ,  backgroundColor:"revert"}}>
               <ul>
                 <li><a className="icon-home" href="/admin/dashboard">Admin</a></li>
                 {/* <li><a href="/admin/finance">Candidates</a></li> */}

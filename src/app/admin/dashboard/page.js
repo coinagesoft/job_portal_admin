@@ -138,7 +138,7 @@ export default function DashboardPage() {
           <p className="font-sm color-text-paragraph-2 mb-3">Welcome back, Admin. Here&apos;s what&apos;s happening on the platform today.</p>
         </div>
         <div className="box-breadcrumb">
-          <div className="breadcrumbs" style={{border:"none" ,  backgroundColor:"none"}}>
+          <div className="breadcrumbs" style={{border:"none" ,  backgroundColor:"revert"}}>
             <ul>
               <li><a className="icon-home" href="/admin/dashboard">Admin</a></li>
               <li><span>Dashboard</span></li>
