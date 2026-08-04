@@ -19,7 +19,7 @@ const navItems = [
   { href: '/admin/dashboard', icon: '/assets/imgs/page/dashboard/dashboard.svg', name: 'Dashboard' },
   { href: '/admin/candidates', icon: '/assets/imgs/page/dashboard/candidates.svg', name: 'Candidates' },
   { href: '/admin/recruiters', icon: '/assets/imgs/page/dashboard/recruiters.svg', name: 'Recruiters' },
-  { href: '/admin/verifications', icon: '/assets/imgs/page/dashboard/jobs.svg', name: 'Verifications' },
+  // { href: '/admin/verifications', icon: '/assets/imgs/page/dashboard/jobs.svg', name: 'Verifications' },
   { href: '/admin/finance', icon: '/assets/imgs/page/dashboard/tasks.svg', name: 'Finance' },
   { href: '/admin/subadmin', icon: '/assets/imgs/page/dashboard/profiles.svg', name: 'Sub-Admin' },
   { href: '/admin/helpAndsupport', icon:Headphones, name: 'Help & Support' },

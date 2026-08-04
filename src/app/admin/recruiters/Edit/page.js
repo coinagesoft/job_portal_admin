@@ -675,10 +675,10 @@ export default function RecruiterEditPage() {
       <div className="row mt-5">
 
         {/* ── LEFT COLUMN ── */}
-        <div className="col-xxl-8 col-xl-8 col-lg-8 col-md-12 mt-5">
+        <div className="col-xxl-8 col-xl-12 col-lg-12 col-md-12 mt-5">
 
           {/* Corporate Identity — unchanged */}
-          <div className="section-box mt-5">
+          {/* <div className="section-box mt-5">
             <div className="panel-white">
               <div className="panel-head d-flex justify-content-between align-items-center">
                 <div>
@@ -725,7 +725,7 @@ export default function RecruiterEditPage() {
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* ── SECTION 4: Compliance & Documents ── with clickable Review ── */}
           <div className="section-box">
@@ -830,65 +830,7 @@ export default function RecruiterEditPage() {
 
         </div>
 
-        {/* ── RIGHT COLUMN — unchanged ── */}
-        <div className="col-xxl-4 col-xl-4 col-lg-4 col-md-12">
-          <div className="section-box">
-            <div className="panel-white">
-              <div className="panel-head"><h5>Financial &amp; Credits</h5>
-                <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '4px', background: '#7c3aed', color: '#fff' }}>Premium</span>
-              </div>
-              <div className="panel-body">
-                <h3 style={{ color: '#ffa300' }}>12,450 <span className="font-xs" style={{ color: '#888', fontWeight: 400 }}>Credits</span></h3>
-                <div className="d-flex justify-content-between mb-5"><span className="font-xs color-text-paragraph-2">Monthly Usage</span><span className="font-xs" style={{ fontWeight: 600 }}>85%</span></div>
-                <div className="progress mb-20" style={{ height: '6px', borderRadius: '3px', background: '#eee' }}>
-                  <div className="progress-bar" style={{ width: '85%', background: '#ffa300', borderRadius: '3px' }}></div>
-                </div>
-                <p className="font-xs color-text-paragraph-2 mb-5" style={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Adjust Balance (Admin Only)</p>
-                <div className="d-flex" style={{ gap: '8px' }}>
-                  <input className="form-control" type="number" defaultValue="12450" style={{ flex: 1 }} />
-                  <button className="btn btn-default hover-up" style={{ whiteSpace: 'nowrap' }}>Apply</button>
-                </div>
-                {/* <div className="mt-15"><a className="font-sm color-brand-1" href="#">View Billing History ↗</a></div> */}
-              </div>
-            </div>
-          </div>
-
-          <div className="section-box">
-            <div className="panel-white">
-              <div className="panel-head"><h5 className="mb-0">System Provenance</h5></div>
-              <div className="panel-body">
-                <div className="row mb-15">
-                  <div className="col-6">
-                    <p className="font-xs color-text-paragraph-2 mb-3" style={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Created At</p>
-                    <p className="font-sm mb-0" style={{ fontWeight: 600 }}>May 14, 2018</p>
-                    <span className="font-xs color-text-paragraph-2">by system_core</span>
-                  </div>
-                  <div className="col-6">
-                    <p className="font-xs color-text-paragraph-2 mb-3" style={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Operating Hours</p>
-                    <p className="font-sm mb-0" style={{ fontWeight: 600 }}>09:00 - 18:00 IST</p>
-                  </div>
-                </div>
-                <p className="font-xs color-text-paragraph-2 mb-8" style={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Strategic Labels</p>
-                <div className="d-flex flex-wrap mb-15" style={{ gap: '6px' }}>
-                  {['#TopTier', '#MaritimeExpert', '#HighRetention', '#GoldVerified'].map(tag => (
-                    <span key={tag} className="btn btn-tag" style={{ fontSize: '11px', padding: '3px 8px' }}>{tag}</span>
-                  ))}
-                </div>
-                <p className="font-xs color-text-paragraph-2 mb-8" style={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Recent History Logs</p>
-                {[
-                  { action: 'Verified PAN Details', by: 'Sarah L', when: '3 days ago', color: '#2e7d32' },
-                  { action: 'POE Expiry Extracted', by: 'AI Bot', when: '5 days ago', color: '#ffa300' },
-                  { action: 'Credits Adjusted (+500)', by: 'Admin Alex', when: '1 week ago', color: '#e65100' },
-                ].map((log) => (
-                  <div key={log.action} className="mb-10" style={{ borderLeft: `3px solid ${log.color}`, paddingLeft: '10px' }}>
-                    <p className="font-sm mb-0" style={{ fontWeight: 600, color: log.color }}>{log.action}</p>
-                    <span className="font-xs color-text-paragraph-2">{log.by} · {log.when}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+     
       </div>
 
       {/* STICKY FOOTER */}
