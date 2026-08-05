@@ -1,19 +1,41 @@
 'use client'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Footer from '../../../components/Footer'
 import {
   Monitor,
   AlertTriangle,
   ShieldCheck,
-  Download
-} from "lucide-react";
+  Download,
+  Search,
+  ChevronDown,
+  Copy,
+  Check,
+  X
+} from "lucide-react"
+
+// ── Severity → color mapping (single source of truth, used everywhere) ──
+const SEVERITY_STYLES = {
+  critical: { color: '#c62828', bg: '#fdecea', label: 'Critical' },
+  warning: { color: '#e65100', bg: '#fff3e0', label: 'Warning' },
+  info: { color: '#2e7d32', bg: '#e8f5e9', label: 'Info' },
+}
+
+const ACTION_STYLES = {
+  USER_SUSPENDED: { color: '#c62828', bg: '#fdecea' },
+  BATCH_PAYMENT_INIT: { color: '#122359', bg: '#f0f0f0' },
+  DATA_EXPORT_DPDP: { color: '#b36b00', bg: '#fff3e0' },
+  CONFIG_CHANGE: { color: '#2e7d32', bg: '#e8f5e9' },
+  LOGIN_SUCCESS: { color: '#555', bg: '#f5f5f5' },
+}
+
+// ── Mock data — every row now carries the full field set so the detail
+//    drawer is consistent regardless of which row is expanded ──
 const logsData = [
   {
     ts: '2023-11-24\n14:22:01',
     actor: 'sarah.admin@skillbridge.io',
     actor_id: 'ADM-001',
     action: 'USER_SUSPENDED',
-    action_tag: 'USER_ACTION',
     severity: 'critical',
     session_id: 'SES-77821',
     entity: 'John Doe',
@@ -23,26 +45,78 @@ const logsData = [
     old_value: 'Active',
     new_value: 'Suspended',
     hash: 'a8f5f167f44f4964e6c998dee827110c',
-    actionColor: '#c62828',
-    actionBg: '#fdecea'
   },
-  { ts: '2023-11-24\n13:05:12', actor: 'system.automator', action: 'BATCH_PAYMENT_INIT', actionColor: '#122359', actionBg: '#f0f0f0',    session_id: 'SES-77821', entity: 'Payroll #402', ip: '10.0.0.8' },
-  { ts: '2023-11-24\n11:45:55', actor: 'mike.finance@skillbridge.io', action: 'DATA_EXPORT_DPDP', actionColor: '#ffa300', actionBg: '#ffc151',    session_id: 'SES-77821', entity: 'Q3 Revenue Report', ip: '172.16.254.1' },
-  { ts: '2023-11-24\n09:12:30', actor: 'admin.super', action: 'CONFIG_CHANGE', actionColor: '#2e7d32', actionBg: '#e8f5e9',    session_id: 'SES-77821', entity: 'Global Registration Fee', ip: '192.168.5.112' },
-  { ts: '2023-11-24\n08:30:00', actor: 'sarah.admin@skillbridge.io', action: 'LOGIN_SUCCESS', actionColor: '#555', actionBg: '#f5f5f5',    session_id: 'SES-77821', entity: 'Admin Session', ip: '192.168.1.45' },
+  {
+    ts: '2023-11-24\n13:05:12',
+    actor: 'system.automator',
+    actor_id: 'SYS-000',
+    action: 'BATCH_PAYMENT_INIT',
+    severity: 'info',
+    session_id: 'SES-77821',
+    entity: 'Payroll #402',
+    target_id: 'PAY-402',
+    ip: '10.0.0.8',
+    change_reason: 'Scheduled payroll run',
+    old_value: 'Pending',
+    new_value: 'Processing',
+    hash: 'e3b0c44298fc1c149afbf4c8996fb924',
+  },
+  {
+    ts: '2023-11-24\n11:45:55',
+    actor: 'mike.finance@skillbridge.io',
+    actor_id: 'ADM-014',
+    action: 'DATA_EXPORT_DPDP',
+    severity: 'warning',
+    session_id: 'SES-77821',
+    entity: 'Q3 Revenue Report',
+    target_id: 'RPT-Q3-2023',
+    ip: '172.16.254.1',
+    change_reason: 'Quarterly compliance export',
+    old_value: '—',
+    new_value: 'Exported',
+    hash: '9f86d081884c7d659a2feaa0c55ad015',
+  },
+  {
+    ts: '2023-11-24\n09:12:30',
+    actor: 'admin.super',
+    actor_id: 'ADM-000',
+    action: 'CONFIG_CHANGE',
+    severity: 'warning',
+    session_id: 'SES-77821',
+    entity: 'Global Registration Fee',
+    target_id: 'CFG-REG-FEE',
+    ip: '192.168.5.112',
+    change_reason: 'Pricing update approved by finance',
+    old_value: '₹499',
+    new_value: '₹599',
+    hash: '2c624232cdd221771294dfbb310aca00',
+  },
+  {
+    ts: '2023-11-24\n08:30:00',
+    actor: 'sarah.admin@skillbridge.io',
+    actor_id: 'ADM-001',
+    action: 'LOGIN_SUCCESS',
+    severity: 'info',
+    session_id: 'SES-77821',
+    entity: 'Admin Session',
+    target_id: 'SES-77821',
+    ip: '192.168.1.45',
+    change_reason: '—',
+    old_value: '—',
+    new_value: '—',
+    hash: 'd4735e3a265e16eee03f59718b9b5d03',
+  },
 ]
 
 const inspections = [
   {
     id: 'LOG-8291-A', title: 'User Suspension Investigation',
-    level: 'Critical', actor: 'sarah.admin@skillbridge.io',
-    levelColor: '#c62828', levelBg: '#fdecea',
+    level: 'critical', actor: 'sarah.admin@skillbridge.io',
     detail: 'Admin sarah.admin@skillbridge.io suspended user John Doe (ID: 1293) citing repeated policy violations. Suspension logged at 14:22:01. IP: 192.168.1.45. No prior warnings issued. Action flagged for compliance review.',
   },
   {
     id: 'LOG-8294-D', title: 'System Configuration Update',
-    level: 'Info', actor: 'admin.super',
-    levelColor: '#ffa300', levelBg: '#ffc151',
+    level: 'warning', actor: 'admin.super',
     detail: 'admin.super modified the Global Registration Fee configuration. Change recorded at 09:12:30. All changes are immutable and hashed. IP: 192.168.5.112.',
   },
 ]
@@ -54,19 +128,73 @@ const dpdpRules = [
   { rule: 'Auditability', status: 'Compliant', statusColor: '#2e7d32', statusBg: '#e8f5e9', desc: 'System logs are hashed and non-repudiable.' },
 ]
 
+// Small badge helper — keeps table markup readable
+function Badge({ color, bg, children, pill = true }) {
+  return (
+    <span style={{
+      fontSize: '10px',
+      fontWeight: 700,
+      padding: pill ? '3px 10px' : '4px 10px',
+      borderRadius: pill ? '20px' : '4px',
+      color,
+      background: bg,
+      whiteSpace: 'nowrap',
+      display: 'inline-block',
+    }}>
+      {children}
+    </span>
+  )
+}
+
+function CopyHash({ hash }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation()
+        navigator.clipboard?.writeText(hash)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1200)
+      }}
+      className="font-xs"
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: '6px',
+        border: '1px solid #eee', background: '#fafafa', borderRadius: '4px',
+        padding: '4px 8px', cursor: 'pointer', color: '#555',
+        fontFamily: 'monospace', fontSize: '11px',
+      }}
+      title="Copy full hash"
+    >
+      {hash.slice(0, 10)}…
+      {copied ? <Check size={12} color="#2e7d32" /> : <Copy size={12} />}
+    </button>
+  )
+}
+
 export default function AuditLogsPage() {
   const [actorFilter, setActorFilter] = useState('')
   const [actionFilter, setActionFilter] = useState('')
   const [dateFilter, setDateFilter] = useState('')
-  const [openInspection, setOpenInspection] = useState(null)
-  const [page, setPage] = useState(1)
-  const [openRow, setOpenRow] = useState(null)
   const [severityFilter, setSeverityFilter] = useState('')
-  const filtered = logsData.filter(l =>
-    l.actor.toLowerCase().includes(actorFilter.toLowerCase()) &&
-    l.action.toLowerCase().includes(actionFilter.toLowerCase()) &&
-    (severityFilter === '' || l.severity === severityFilter)
-  )
+  const [openInspection, setOpenInspection] = useState(null)
+  const [openRow, setOpenRow] = useState(null)
+  const [exportMsg, setExportMsg] = useState('')
+
+  const filtered = useMemo(() => logsData.filter(l => {
+    const matchesActor = l.actor.toLowerCase().includes(actorFilter.toLowerCase())
+    const matchesAction = l.action.toLowerCase().includes(actionFilter.toLowerCase())
+    const matchesSeverity = severityFilter === '' || l.severity === severityFilter
+    const matchesDate = dateFilter === '' || l.ts.startsWith(dateFilter)
+    return matchesActor && matchesAction && matchesSeverity && matchesDate
+  }), [actorFilter, actionFilter, severityFilter, dateFilter])
+
+  const criticalCount = logsData.filter(l => l.severity === 'critical').length
+  const hasActiveFilters = actorFilter || actionFilter || dateFilter || severityFilter
+
+  function handleExport(kind) {
+    setExportMsg(kind === 'csv' ? 'CSV export started…' : 'Preparing DPDP-compliant export…')
+    setTimeout(() => setExportMsg(''), 2500)
+  }
 
   return (
     <>
@@ -91,28 +219,33 @@ export default function AuditLogsPage() {
             </ul>
           </div>
         </div>
-
       </div>
+
+      {/* ── EXPORT TOOLBAR ── */}
       <div className="d-flex align-items-center mb-5 justify-content-end" style={{ gap: '10px', flexShrink: 0, flexWrap: 'wrap' }}>
-        {/* <a className="btn btn-secondary hover-up" href="#"
-          style={{ padding: '9px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-          Export CSV
-        </a>
-        <a className="btn btn-primary hover-up" href="#"
-          style={{ padding: '9px 16px', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
-          Export for DPDP
-        </a> */}
-
+        {exportMsg && (
+          <span className="font-xs" style={{ color: '#2e7d32', fontWeight: 600 }}>{exportMsg}</span>
+        )}
+        <button
+          onClick={() => handleExport('csv')}
+          className="btn btn-secondary hover-up"
+          style={{ padding: '9px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', border: 'none', cursor: 'pointer' }}>
+          <Download size={14} /> Export CSV
+        </button>
+        <button
+          onClick={() => handleExport('dpdp')}
+          className="btn btn-primary hover-up"
+          style={{ padding: '9px 16px', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', border: 'none', cursor: 'pointer' }}>
+          <ShieldCheck size={14} /> Export for DPDP
+        </button>
       </div>
-      {/* ✅ FIXED: FULL WIDTH WIDGETS */}
+
+      {/* ── STAT WIDGETS ── */}
       <div className="section-box mt-2">
         <div className="row">
-
           <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6">
             <div className="card-style-1 hover-up">
-              <div className="card-image">
-                <Monitor size={28} strokeWidth={2.2} />
-              </div>
+              <div className="card-image"><Monitor size={28} strokeWidth={2.2} /></div>
               <div className="card-info">
                 <h3>14,202</h3>
                 <p>Total Logs (24h)</p>
@@ -122,9 +255,7 @@ export default function AuditLogsPage() {
 
           <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6">
             <div className="card-style-1 hover-up">
-              <div className="card-image">
-                <AlertTriangle size={28} strokeWidth={2.2} />
-              </div>
+              <div className="card-image"><AlertTriangle size={28} strokeWidth={2.2} /></div>
               <div className="card-info">
                 <h3>24</h3>
                 <p>Critical Actions</p>
@@ -134,9 +265,7 @@ export default function AuditLogsPage() {
 
           <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6">
             <div className="card-style-1 hover-up">
-              <div className="card-image">
-                <ShieldCheck size={28} strokeWidth={2.2} />
-              </div>
+              <div className="card-image"><ShieldCheck size={28} strokeWidth={2.2} /></div>
               <div className="card-info">
                 <h3>98.2%</h3>
                 <p>DPDP Status</p>
@@ -146,25 +275,18 @@ export default function AuditLogsPage() {
 
           <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6">
             <div className="card-style-1 hover-up">
-              <div className="card-image">
-                <Download size={28} strokeWidth={2.2} />
-              </div>
+              <div className="card-image"><Download size={28} strokeWidth={2.2} /></div>
               <div className="card-info">
                 <h3>2h ago</h3>
                 <p>Last Export</p>
               </div>
             </div>
           </div>
-
         </div>
       </div>
+
       <div className="row">
-
-        {/* ════ LEFT COLUMN — stat cards + table + inspections ════ */}
         <div className="col-xxl-12 col-xl-12 col-lg-12 col-md-12">
-
-          {/* ── 4 STAT CARDS — inside left col only ── */}
-
 
           {/* ── AUDIT LOG TABLE ── */}
           <div className="section-box">
@@ -177,70 +299,42 @@ export default function AuditLogsPage() {
                   padding: '12px 20px',
                   borderBottom: '1px solid #eee',
                   gap: '8px',
-                  flexWrap: 'nowrap',   // 🔥 IMPORTANT
-                  overflowX: 'auto'     // 🔥 prevents breaking
+                  flexWrap: 'nowrap',
+                  overflowX: 'auto'
                 }}
               >
-
-                {/* Actor */}
-                <div style={{ position: 'relative', minWidth: '150px' }}>
-                  <span style={{
-                    position: 'absolute',
-                    left: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: '#aaa',
-                    fontSize: '12px'
-                  }}>
-                    
-                  </span>
+                <div style={{ position: 'relative', minWidth: '160px' }}>
+                  <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#aaa' }} />
                   <input
                     className="form-control font-xs"
                     placeholder="Actor"
                     value={actorFilter}
                     onChange={(e) => setActorFilter(e.target.value)}
-                    style={{ paddingLeft: '26px', height: '42px' }}
+                    style={{ paddingLeft: '30px', height: '42px' }}
                   />
                 </div>
 
-                {/* Action */}
-                <div style={{ position: 'relative', minWidth: '160px' }}>
-                  <span style={{
-                    position: 'absolute',
-                    left: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: '#aaa',
-                    fontSize: '12px'
-                  }}>
-                    
-                  </span>
+                <div style={{ position: 'relative', minWidth: '170px' }}>
+                  <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#aaa' }} />
                   <input
                     className="form-control font-xs"
                     placeholder="Action"
                     value={actionFilter}
                     onChange={(e) => setActionFilter(e.target.value)}
-                    style={{ paddingLeft: '26px', height: '42px' }}
+                    style={{ paddingLeft: '30px', height: '42px' }}
                   />
                 </div>
 
-                {/* Date */}
-                {/* Date */}
-                <div style={{ minWidth: '190px', maxWidth: '190px' }}>
+                <div style={{ minWidth: '170px', maxWidth: '170px' }}>
                   <input
                     type="date"
                     className="form-control font-xs"
                     value={dateFilter}
                     onChange={(e) => setDateFilter(e.target.value)}
-                    style={{
-                      height: '42px',
-                      fontSize: '11px',   // 🔥 smaller text
-                      padding: '4px 6px'
-                    }}
+                    style={{ height: '42px', fontSize: '12px', padding: '4px 10px' }}
                   />
                 </div>
 
-                {/* Severity */}
                 <div style={{ minWidth: '150px' }}>
                   <select
                     className="form-control font-xs"
@@ -255,7 +349,6 @@ export default function AuditLogsPage() {
                   </select>
                 </div>
 
-                {/* Reset Button */}
                 <button
                   className="btn btn-secondary py-3"
                   onClick={() => {
@@ -264,154 +357,149 @@ export default function AuditLogsPage() {
                     setDateFilter('')
                     setSeverityFilter('')
                   }}
-                 
+                  disabled={!hasActiveFilters}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    opacity: hasActiveFilters ? 1 : 0.5,
+                    cursor: hasActiveFilters ? 'pointer' : 'default',
+                    whiteSpace: 'nowrap',
+                  }}
                 >
-                  Clear Filters
+                  <X size={14} /> Clear Filters
                 </button>
-
               </div>
 
               {/* Table */}
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '580px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '650px' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid #eee' }}>
-
                       {[
-                        { label: 'Timestamp', align: 'left' },
-                        { label: 'Admin', align: 'left' },
-                        { label: 'Action', align: 'left' },
-                        { label: 'Target Entity', align: 'left' },
-                        { label: 'IP Address', align: 'left' },
-                        { label: 'Severity', align: 'left' },
-                        { label: 'Session', align: 'left' }
-                      ].map(h => (
-                        <th key={h.label} className="font-xs color-text-paragraph-2"
+                        'Timestamp', 'Admin', 'Action', 'Target Entity',
+                        'IP Address', 'Severity', 'Session', ''
+                      ].map((label, idx) => (
+                        <th key={idx} className="font-xs color-text-paragraph-2"
                           style={{
-                            padding: '12px 10px', textAlign: h.align,
+                            padding: '12px 10px', textAlign: 'left',
                             fontWeight: 600, textTransform: 'uppercase',
                             letterSpacing: '0.4px', fontSize: '10px', whiteSpace: 'nowrap',
-                          }}>{h.label}</th>
+                          }}>{label}</th>
                       ))}
                     </tr>
-
                   </thead>
                   <tbody>
-                    {filtered.map((row, i) => (
-                      <>
-                        <tr key={i} className="hover-up" style={{ borderBottom: '1px solid #f5f5f5' }}>
-                          <td style={{ padding: '14px 10px', verticalAlign: 'top', whiteSpace: 'pre', lineHeight: 1.6 }}>
-                            <span className="font-xs" style={{ color: '#122359', fontWeight: 500 }}>{row.ts}</span>
-                          </td>
-                          <td style={{ padding: '14px 10px', verticalAlign: 'top' }}>
-                            <span className="font-xs" style={{ fontWeight: 600, color: '#122359', wordBreak: 'break-all' }}>{row.actor}</span>
-                          </td>
-                          {/* Action */}
-                          <td style={{ padding: '14px 10px' }}>
-                            <span style={{
-                              fontSize: '10px',
-                              fontWeight: 700,
-                              padding: '4px 10px',
-                              borderRadius: '4px',
-                              color: row.actionColor,
-                              background: row.actionBg,
-                            }}>
-                              {row.action}
-                            </span>
-                          </td>
+                    {filtered.map((row, i) => {
+                      const sev = SEVERITY_STYLES[row.severity] || SEVERITY_STYLES.info
+                      const act = ACTION_STYLES[row.action] || { color: '#122359', bg: '#f0f0f0' }
+                      const isOpen = openRow === i
+                      return (
+                        <>
+                          <tr
+                            key={i}
+                            className="hover-up"
+                            onClick={() => setOpenRow(isOpen ? null : i)}
+                            style={{ borderBottom: isOpen ? 'none' : '1px solid #f5f5f5', cursor: 'pointer' }}
+                          >
+                            <td style={{ padding: '14px 10px', verticalAlign: 'top', whiteSpace: 'pre', lineHeight: 1.6 }}>
+                              <span className="font-xs" style={{ color: '#122359', fontWeight: 500 }}>{row.ts}</span>
+                            </td>
+                            <td style={{ padding: '14px 10px', verticalAlign: 'top' }}>
+                              <span className="font-xs" style={{ fontWeight: 600, color: '#122359', wordBreak: 'break-all' }}>{row.actor}</span>
+                            </td>
+                            <td style={{ padding: '14px 10px' }}>
+                              <Badge color={act.color} bg={act.bg} pill={false}>{row.action}</Badge>
+                            </td>
+                            <td style={{ padding: '14px 10px' }}>{row.entity}</td>
+                            <td style={{ padding: '14px 10px' }}>{row.ip}</td>
+                            <td style={{ padding: '14px 10px' }}>
+                              <Badge color={sev.color} bg={sev.bg}>{sev.label}</Badge>
+                            </td>
+                            <td style={{ padding: '14px 10px' }}>{row.session_id || '-'}</td>
+                            <td style={{ padding: '14px 10px', textAlign: 'right' }}>
+                              <ChevronDown
+                                size={16}
+                                color="#888"
+                                style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}
+                              />
+                            </td>
+                          </tr>
 
-                          {/* Target */}
-                          <td style={{ padding: '14px 10px' }}>
-                            {row.entity}
-                          </td>
-
-                          {/* IP */}
-                          <td style={{ padding: '14px 10px' }}>
-                            {row.ip}
-                          </td>
-
-                          {/* Severity */}
-                          <td style={{ padding: '14px 10px' }}>
-                            <span style={{
-                              fontSize: '10px',
-                              padding: '3px 8px',
-                              borderRadius: '20px',
-                              background:
-                                row.severity === 'critical' ? '#fdecea' :
-                                  row.severity === 'warning' ? '#fff3e0' : '#e8f5e9',
-                              color:
-                                row.severity === 'critical' ? '#c62828' :
-                                  row.severity === 'warning' ? '#e65100' : '#2e7d32'
-                            }}>
-                              {row.severity || 'info'}
-                            </span>
-                          </td>
-
-                          {/* Session */}
-                          <td style={{ padding: '14px 10px' }}>
-                            {row.session_id || '-'}
-                          </td>
-
-
-
-                        </tr>
-
-                      </>
-                    ))}
-
+                          {isOpen && (
+                            <tr key={`${i}-detail`} style={{ borderBottom: '1px solid #f5f5f5' }}>
+                              <td colSpan={8} style={{ padding: '0' }}>
+                                <div style={{
+                                  background: '#F8FAFF',
+                                  borderLeft: `3px solid ${sev.color}`,
+                                  padding: '16px 24px',
+                                  display: 'grid',
+                                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                                  gap: '14px',
+                                }}>
+                                  <div>
+                                    <p className="font-xs color-text-paragraph-2 mb-5">Actor ID</p>
+                                    <span className="font-sm" style={{ fontWeight: 600 }}>{row.actor_id}</span>
+                                  </div>
+                                  <div>
+                                    <p className="font-xs color-text-paragraph-2 mb-5">Target ID</p>
+                                    <span className="font-sm" style={{ fontWeight: 600 }}>{row.target_id}</span>
+                                  </div>
+                                  <div>
+                                    <p className="font-xs color-text-paragraph-2 mb-5">Reason</p>
+                                    <span className="font-sm">{row.change_reason}</span>
+                                  </div>
+                                  <div>
+                                    <p className="font-xs color-text-paragraph-2 mb-5">Change</p>
+                                    <span className="font-sm">{row.old_value} <span style={{ color: '#aaa' }}>→</span> {row.new_value}</span>
+                                  </div>
+                                  <div>
+                                    <p className="font-xs color-text-paragraph-2 mb-5">Record Hash</p>
+                                    <CopyHash hash={row.hash} />
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      )
+                    })}
 
                     {filtered.length === 0 && (
                       <tr>
                         <td colSpan={8} style={{ padding: '30px', textAlign: 'center' }}>
                           <span className="font-sm color-text-paragraph-2">No logs match your filters.</span>
                         </td>
-
                       </tr>
                     )}
-
                   </tbody>
                 </table>
               </div>
 
               {/* Pagination */}
-                      <div className="paginations mt-25">
-        <div className="row align-items-center g-2">
-          <div className="col-lg-6">
-            <p className="font-sm color-text-paragraph-2 mb-0">
-              Showing 1–6 of <strong>3,248</strong> candidates
-            </p>
-          </div>
-
-          <div className="col-lg-6 text-lg-end">
-            <ul className="pager justify-content-lg-end">
-              <li><a className="pager-prev"></a></li>
-              <li><a className="pager-number active">1</a></li>
-              <li><a className="pager-next"></a></li>
-            </ul>
-          </div>
-        </div>
-      </div>
+              <div className="paginations mt-25">
+                <div className="row align-items-center g-2">
+                  <div className="col-lg-6">
+                    <p className="font-sm color-text-paragraph-2 mb-0">
+                      Showing 1–{filtered.length} of <strong>{logsData.length}</strong> logs
+                    </p>
+                  </div>
+                  <div className="col-lg-6 text-lg-end">
+                    <ul className="pager justify-content-lg-end">
+                      <li><a className="pager-prev"></a></li>
+                      <li><a className="pager-number active">1</a></li>
+                      <li><a className="pager-next"></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
 
             </div>
           </div>
-
-          {/* ── RECENT DETAIL INSPECTIONS ── */}
-
-
         </div>
-        {/* end left column */}
-
-        {/* ════ RIGHT SIDEBAR ════ */}
-
-        {/* end right sidebar */}
-
       </div>
 
       <div className='row'>
-
         {/* LEFT COLUMN */}
         <div className="col-xxl-8 col-xl-8 col-lg-8 col-md-12">
-
           <div className="section-box">
             <div className="panel-white">
               <div className="panel-head">
@@ -422,60 +510,59 @@ export default function AuditLogsPage() {
               </div>
 
               <div className="panel-body" style={{ padding: '0' }}>
-                {inspections.map((item, i) => (
-                  <div key={item.id}>
-                    <div
-                      className="hover-up"
-                      onClick={() => setOpenInspection(openInspection === i ? null : i)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '12px',
-                        padding: '16px 20px',
-                        borderBottom: openInspection === i ? 'none' : (i < inspections.length - 1 ? '1px solid #f5f5f5' : 'none'),
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <span style={{
-                        fontSize: '11px', fontWeight: 700, padding: '4px 12px', borderRadius: '20px',
-                        whiteSpace: 'nowrap',
-                        color: item.levelColor, background: item.levelBg,
-                        border: `1px solid ${item.levelColor}40`,
-                      }}>{item.level}</span>
+                {inspections.map((item, i) => {
+                  const lvl = SEVERITY_STYLES[item.level] || SEVERITY_STYLES.info
+                  const isOpen = openInspection === i
+                  return (
+                    <div key={item.id}>
+                      <div
+                        className="hover-up"
+                        onClick={() => setOpenInspection(isOpen ? null : i)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '12px',
+                          padding: '16px 20px',
+                          borderBottom: isOpen ? 'none' : (i < inspections.length - 1 ? '1px solid #f5f5f5' : 'none'),
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Badge color={lvl.color} bg={lvl.bg}>{lvl.label}</Badge>
 
-                      <div style={{ flex: 1 }}>
-                        <span className="font-sm" style={{ fontWeight: 600, color: '#122359' }}>
-                          {item.title}: {item.id}
-                        </span>
-                        <span className="font-xs color-text-paragraph-2" style={{ marginLeft: '8px' }}>
-                          Actor: {item.actor}
-                        </span>
+                        <div style={{ flex: 1 }}>
+                          <span className="font-sm" style={{ fontWeight: 600, color: '#122359' }}>
+                            {item.title}: {item.id}
+                          </span>
+                          <span className="font-xs color-text-paragraph-2" style={{ marginLeft: '8px' }}>
+                            Actor: {item.actor}
+                          </span>
+                        </div>
+
+                        <ChevronDown
+                          size={16}
+                          color="#888"
+                          style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}
+                        />
                       </div>
 
-                      <span style={{
-                        fontSize: '16px', color: '#888',
-                        transform: openInspection === i ? 'rotate(180deg)' : 'none',
-                      }}>&#8964;</span>
+                      {isOpen && (
+                        <div style={{
+                          padding: '16px 20px 20px',
+                          background: '#F8FAFF',
+                          borderLeft: `3px solid ${lvl.color}`,
+                          borderBottom: i < inspections.length - 1 ? '1px solid #f5f5f5' : 'none',
+                        }}>
+                          <p className="font-sm color-text-paragraph-2">{item.detail}</p>
+                        </div>
+                      )}
                     </div>
-
-                    {/* {openInspection === i && (
-                <div style={{
-                  padding: '16px 20px 20px',
-                  background: '#F8FAFF',
-                  borderLeft: `3px solid ${item.levelColor}`,
-                }}>
-                  <p className="font-sm color-text-paragraph-2">{item.detail}</p>
-                </div>
-              )} */}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           </div>
-
         </div>
 
         {/* RIGHT COLUMN */}
         <div className="col-xxl-4 col-xl-4 col-lg-4 col-md-12">
-
           <div className="section-box">
             <div className="container">
               <div className="panel-white">
@@ -492,11 +579,7 @@ export default function AuditLogsPage() {
                       style={{ paddingBottom: '15px', borderBottom: '1px solid #f5f5f5' }}>
                       <div className="d-flex align-items-center justify-content-between mb-5">
                         <span className="font-sm" style={{ fontWeight: 600, color: '#122359' }}>{item.rule}</span>
-                        <span style={{
-                          fontSize: '10px', fontWeight: 700, padding: '2px 8px',
-                          borderRadius: '20px', whiteSpace: 'nowrap',
-                          color: item.statusColor, background: item.statusBg,
-                        }}>{item.status}</span>
+                        <Badge color={item.statusColor} bg={item.statusBg}>{item.status}</Badge>
                       </div>
                       <p className="font-xs color-text-paragraph-2 mb-0">{item.desc}</p>
                     </div>
@@ -511,10 +594,9 @@ export default function AuditLogsPage() {
               </div>
             </div>
           </div>
-
         </div>
-
       </div>
+
       <Footer />
     </>
   )
