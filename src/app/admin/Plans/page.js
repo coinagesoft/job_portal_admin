@@ -63,6 +63,7 @@ export default function PlansPage() {
     Object.fromEntries(regions.map((region) => [region.id, makeRegionalPlans(region.id)])),
   );
   const [editingId, setEditingId] = useState(null);
+  const [featureDraft, setFeatureDraft] = useState('');
   const [saved, setSaved] = useState(false);
   const [regionPickerOpen, setRegionPickerOpen] = useState(false);
 
@@ -116,6 +117,15 @@ export default function PlansPage() {
   const saveChanges = () => {
     setSaved(true);
     setEditingId(null);
+  };
+
+  const togglePlanEditor = (plan) => {
+    if (editingId === plan.id) {
+      setEditingId(null);
+      return;
+    }
+    setFeatureDraft(plan.features?.join('\n') ?? '');
+    setEditingId(plan.id);
   };
 
   return (
@@ -175,7 +185,7 @@ export default function PlansPage() {
                   {isEditing ? <input className="edit-name" autoFocus value={plan.name} onChange={(event) => updatePlan(plan.id, { name: event.target.value })} aria-label="Plan name" /> : <h4>{plan.name}</h4>}
                   {isEditing && activeTab !== 'credits' ? <input className="edit-description" value={plan.description} onChange={(event) => updatePlan(plan.id, { description: event.target.value })} aria-label="Plan description" /> : <p>{activeTab === 'credits' ? `${plan.credits.toLocaleString()} credits for recruiters` : plan.description}</p>}
                 </div>
-                <button className="plan-edit" onClick={() => setEditingId(isEditing ? null : plan.id)} aria-label={`Edit ${plan.name}`}><Edit3 size={16} /></button>
+                <button className="plan-edit" onClick={() => togglePlanEditor(plan)} aria-label={`Edit ${plan.name}`}><Edit3 size={16} /></button>
               </div>
               <div className="plan-price">
                 <span className="currency">{region.symbol}</span>
@@ -191,7 +201,7 @@ export default function PlansPage() {
                 <div><span>Cost per credit</span><b>{region.symbol}{(Number(plan.price) / plan.credits).toFixed(2)}</b></div>
                 {plan.bonus ? <span className="credit-bonus">+ {plan.bonus}</span> : <span className="credit-bonus muted">No bonus credits</span>}
               </div>) : (isEditing ? (
-                <label className="feature-editor">Full-access features<textarea value={plan.features.join('\n')} onChange={(event) => updatePlan(plan.id, { features: event.target.value.split('\n').map((feature) => feature.trim()).filter(Boolean) })} /></label>
+                <label className="feature-editor">Full-access features<textarea value={featureDraft} onChange={(event) => { setFeatureDraft(event.target.value); updatePlan(plan.id, { features: event.target.value.split('\n').map((feature) => feature.trim()).filter(Boolean) }); }} /></label>
               ) : <ul className="plan-features">{plan.features.map((feature) => <li key={feature}><Check size={16} />{feature}</li>)}</ul>)}
               <div className="plan-footer">
                 <button className={`plan-status ${plan.active ? 'is-active' : 'is-inactive'}`} onClick={() => updatePlan(plan.id, { active: !plan.active })} aria-label={`Set ${plan.name} ${plan.active ? 'inactive' : 'active'}`}>

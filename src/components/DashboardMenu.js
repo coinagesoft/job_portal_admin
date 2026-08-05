@@ -18,23 +18,36 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from 'react';
 const navItems = [
-  { href: '/admin/dashboard', icon: '/assets/imgs/page/dashboard/dashboard.svg', name: 'Dashboard' },
-  { href: '/admin/candidates', icon: '/assets/imgs/page/dashboard/candidates.svg', name: 'Candidates' },
-  { href: '/admin/recruiters', icon: '/assets/imgs/page/dashboard/recruiters.svg', name: 'Recruiters' },
+  { href: '/admin/dashboard', icon: '/assets/imgs/page/dashboard/dashboard.svg', name: 'Dashboard', accessKey: 'dashboard' },
+  { href: '/admin/candidates', icon: '/assets/imgs/page/dashboard/candidates.svg', name: 'Candidates', accessKey: 'candidates.view' },
+  { href: '/admin/recruiters', icon: '/assets/imgs/page/dashboard/recruiters.svg', name: 'Recruiters', accessKey: 'recruiters.view' },
   // { href: '/admin/verifications', icon: '/assets/imgs/page/dashboard/jobs.svg', name: 'Verifications' },
-  { href: '/admin/revenue', icon: '/assets/imgs/page/dashboard/tasks.svg', name: 'Revenue' },
-  { href: '/admin/Plans', icon: BadgeDollarSign, name: 'Plans' },
-  { href: '/admin/subadmin', icon: '/assets/imgs/page/dashboard/profiles.svg', name: 'Sub-Admin' },
-  { href: '/admin/helpAndsupport', icon:Headphones, name: 'Help & Support' },
-  { href: '/admin/audit', icon: FileText, name: 'Audit Logs' },
-{ href: '/admin/managePolicies', icon:  Scale, name: 'Legal Pages' },
-  { href: '/admin/settings', icon: '/assets/imgs/page/dashboard/settings.svg', name: 'Settings' },
+  { href: '/admin/revenue', icon: '/assets/imgs/page/dashboard/tasks.svg', name: 'Revenue', accessKey: 'revenue.view' },
+  { href: '/admin/Plans', icon: BadgeDollarSign, name: 'Plans', accessKey: 'plans.view' },
+  { href: '/admin/subadmin', icon: '/assets/imgs/page/dashboard/profiles.svg', name: 'Sub-Admin', accessKey: 'subadmin.view' },
+  { href: '/admin/helpAndsupport', icon:Headphones, name: 'Help & Support', accessKey: 'support.view' },
+  { href: '/admin/audit', icon: FileText, name: 'Audit Logs', accessKey: 'audit.view' },
+{ href: '/admin/managePolicies', icon:  Scale, name: 'Legal Pages', accessKey: 'legal.view' },
+  { href: '/admin/settings', icon: '/assets/imgs/page/dashboard/settings.svg', name: 'Settings', accessKey: 'settings.view' },
   { href: '/', icon: '/assets/imgs/page/dashboard/logout.svg', name: 'Logout' },
 ];
 
 export default function DashboardMenu() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [subAdminAccess, setSubAdminAccess] = useState(null);
+
+  useEffect(() => {
+    const readAccess = () => {
+      try {
+        const session = JSON.parse(window.localStorage.getItem('jobbox_active_subadmin') || 'null');
+        setSubAdminAccess(session?.status === 'Active' && Array.isArray(session.access) ? session.access : null);
+      } catch { setSubAdminAccess(null); }
+    };
+    readAccess();
+    window.addEventListener('storage', readAccess);
+    return () => window.removeEventListener('storage', readAccess);
+  }, []);
 
   const isActive = (href) => {
     // exact match
@@ -56,6 +69,10 @@ export default function DashboardMenu() {
   }
 }, [collapsed]);
 
+  const visibleNavItems = subAdminAccess === null
+    ? navItems
+    : navItems.filter((item) => !item.accessKey || subAdminAccess.includes(item.accessKey));
+
 return (
   <div className="nav">
 
@@ -69,7 +86,7 @@ return (
     {/* Menu */}
     <nav className="nav-main-menu">
       <ul className="main-menu">
-        {navItems.map((item) => (
+        {visibleNavItems.map((item) => (
           <li key={item.href} title={collapsed ? item.name : undefined}>
             <Link
               href={item.href}
