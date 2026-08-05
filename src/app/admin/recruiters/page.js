@@ -2,11 +2,10 @@
 
 import Footer from "../../../components/Footer"
 import Link from "next/link"
-import { Building, Clock, ShieldCheck, FileText } from "lucide-react";
+import { ShieldCheck, FileText } from "lucide-react";
 import { useState } from "react";
 
-
-const recruiters = [
+const initialRecruiters = [
   {
     id: 1,
     logo: "user1.png",
@@ -67,13 +66,39 @@ const recruiters = [
     status: "Active",
     registered: "2024-01-15"
   }
-]
+];
 
 export default function RecruiterPage() {
+  const [recruitersList, setRecruitersList] = useState(initialRecruiters);
   const [search, setSearch] = useState("");
   const [plan, setPlan] = useState("");
   const [gst, setGst] = useState("");
   const [status, setStatus] = useState("");
+
+  const handleToggleVerification = (id) => {
+    setRecruitersList((prev) =>
+      prev.map((r) => {
+        if (r.id === id) {
+          const newGst = r.gst === "Verified" ? "Pending" : "Verified";
+          return { ...r, gst: newGst };
+        }
+        return r;
+      })
+    );
+  };
+
+  const handleToggleSuspend = (id) => {
+    setRecruitersList((prev) =>
+      prev.map((r) => {
+        if (r.id === id) {
+          const newStatus = r.status === "Suspended" ? "Active" : "Suspended";
+          return { ...r, status: newStatus };
+        }
+        return r;
+      })
+    );
+  };
+
   const getStatusStyle = (status) => {
     switch (status) {
       case 'Active':
@@ -85,30 +110,37 @@ export default function RecruiterPage() {
       default:
         return { bg: '#f5f5f5', color: '#555', border: '#ddd' }
     }
-  }
-  const filteredRecruiters = recruiters.filter((r) => {
+  };
+
+  const filteredRecruiters = recruitersList.filter((r) => {
     return (
       (r.company.toLowerCase().includes(search.toLowerCase()) ||
-        r.email.toLowerCase().includes(search.toLowerCase())) &&
+        r.email.toLowerCase().includes(search.toLowerCase()) ||
+        r.person.toLowerCase().includes(search.toLowerCase())) &&
       (plan === "" || r.plan === plan) &&
       (gst === "" || r.gst === gst) &&
       (status === "" || r.status === status)
     );
   });
+
+  const verifiedCount = recruitersList.filter(r => r.gst === 'Verified').length;
+  const verificationRate = recruitersList.length > 0 ? Math.round((verifiedCount / recruitersList.length) * 100) : 0;
+  const pendingApprovalsCount = recruitersList.filter(r => r.status === 'Pending').length;
+  const activeRecruitersCount = recruitersList.filter(r => r.status === 'Active').length;
+
   return (
     <>
-
       {/* Header */}
       <div className="box-heading">
         <div className="box-title">
           <h3 className="mb-5">Recruiter Management</h3>
           <p className="font-sm color-text-paragraph-2">
-            Manage employer accounts, verifications and subscription tiers.
+            Manage employer accounts, verifications, documents and subscription tiers.
           </p>
         </div>
 
         <div className="box-breadcrumb">
-          <div className="breadcrumbs mb-15" style={{border:"none" ,  backgroundColor:"revert"}}>
+          <div className="breadcrumbs mb-15" style={{ border: "none", backgroundColor: "revert" }}>
             <ul>
               <li>
                 <a className="icon-home" href="/admin/dashboard">
@@ -120,7 +152,6 @@ export default function RecruiterPage() {
               </li>
             </ul>
           </div>
-
         </div>
       </div>
 
@@ -137,8 +168,8 @@ export default function RecruiterPage() {
               <div className="card-info">
                 <div className="card-title">
                   <h3>
-                    1,284
-                    <span className="font-sm status up ms-2">+12%</span>
+                    {recruitersList.length}
+                    <span className="font-sm status up ms-2">Total</span>
                   </h3>
                 </div>
                 <p className="color-text-paragraph-2">Total Employers</p>
@@ -155,7 +186,7 @@ export default function RecruiterPage() {
               <div className="card-info">
                 <div className="card-title">
                   <h3>
-                    24 <br></br>
+                    {pendingApprovalsCount} <br />
                     <span className="font-sm status down ms-2">Pending</span>
                   </h3>
                 </div>
@@ -173,7 +204,7 @@ export default function RecruiterPage() {
               <div className="card-info">
                 <div className="card-title">
                   <h3>
-                    92% <br></br>
+                    {verificationRate}% <br />
                     <span className="font-sm status up ms-2">GST</span>
                   </h3>
                 </div>
@@ -191,8 +222,8 @@ export default function RecruiterPage() {
               <div className="card-info">
                 <div className="card-title">
                   <h3>
-                    842 <br></br>
-                    <span className="font-sm status up ms-2">+5%</span>
+                    {activeRecruitersCount} <br />
+                    <span className="font-sm status up ms-2">Active</span>
                   </h3>
                 </div>
                 <p className="color-text-paragraph-2">Active Recruiters</p>
@@ -203,14 +234,11 @@ export default function RecruiterPage() {
         </div>
       </div>
 
-      {/* Search + Filters */}
-     
-
-      {/* Table */}
-      <div className="section-box">
+      {/* Filters & Table */}
+      <div className="section-box mt-20">
         <div className="panel-white">
           <div className="box-padding">
-   <div className="row g-3 align-items-end mb-3">
+            <div className="row g-3 align-items-end mb-3">
 
               <div className="col-xl-5 col-lg-12">
                 <label className="font-sm mb-10">
@@ -219,10 +247,9 @@ export default function RecruiterPage() {
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="Search by Company, Email or GST..."
+                  placeholder="Search by Company, Contact or Email..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-
                 />
               </div>
 
@@ -256,7 +283,7 @@ export default function RecruiterPage() {
                     </select>
                   </div>
 
-                  {/* Status (FIXED) */}
+                  {/* Status */}
                   <div className="col-md-3 col-6">
                     <select
                       className="form-control filter-select"
@@ -272,13 +299,14 @@ export default function RecruiterPage() {
 
                   {/* Clear */}
                   <div className="col-md-3 col-6">
-                    <button className="btn btn-secondary w-100 h-100 py-3  "
+                    <button
+                      className="btn btn-secondary w-100 h-100 py-3"
                       onClick={() => {
-    setSearch("");
-    setStatus("");
-      setPlan("");
-        setGst("");
-  }}
+                        setSearch("");
+                        setStatus("");
+                        setPlan("");
+                        setGst("");
+                      }}
                     >
                       Clear Filters
                     </button>
@@ -287,193 +315,323 @@ export default function RecruiterPage() {
                 </div>
               </div>
 
-
-
-
             </div>
+
+            {/* Table */}
             <div className="table-responsive">
               <table className="table table-hover align-middle">
 
                 <thead>
                   <tr style={{ borderBottom: '1px solid #eee' }}>
-                    <th style={{ minWidth: "260px" }}>
+                    <th style={{ minWidth: "240px" }}>
                       Employer / Company
                     </th>
-                    <th style={{ minWidth: "220px" }}>
+                    <th style={{ minWidth: "200px" }}>
                       Contact Person
                     </th>
-                    <th style={{ minWidth: "50px" }} className="text-center">Plan</th>
-                    <th style={{ minWidth: "120px" }}>GST Status</th>
-                    <th>Status</th>
-                    <th>Registered</th>
-                    <th>Actions</th>
+                    <th style={{ minWidth: "70px" }} className="text-center">Plan</th>
+                    <th style={{ minWidth: "110px" }}>GST Status</th>
+                    <th style={{ minWidth: "100px" }}>Status</th>
+                    <th style={{ minWidth: "110px" }}>Registered</th>
+                    <th style={{ minWidth: "320px" }}>Actions</th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {filteredRecruiters.map((r) => (
-                    <tr key={r.id}>
-
-                      {/* Company */}
-                      <td className="align-middle">
-                        <div className="d-flex align-items-center">
-                          <img
-                            src={`/assets/imgs/page/candidates/${r.logo}`}
-                            style={{
-                              width: "46px",
-                              height: "46px",
-                              borderRadius: "50%",
-                              objectFit: "cover"
-                            }}
-                          />
-
-                          <div className="ms-3">
-                            <h6 className="mb-0">{r.company}</h6>
-                            <span className="font-sm color-text-paragraph-2">
-                              {r.sector}
-                            </span>
-                          </div>
-                        </div>
+                  {filteredRecruiters.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="text-center py-4 color-text-paragraph-2">
+                        No recruiters found.
                       </td>
+                    </tr>
+                  ) : (
+                    filteredRecruiters.map((r) => (
+                      <tr key={r.id}>
 
-                      {/* Contact */}
-                      <td>
-                        <h6 className="mb-0">{r.person}</h6>
-                        <span className="font-sm color-text-paragraph-2">
-                          {r.email}
-                        </span>
-                      </td>
-
-                      {/* Plan */}
-                      <td>
-                        {(() => {
-                          const gstStyle =
-                            r.plan === 'Paid'
-                              ? { bg: '#e8f5e9', color: '#2e7d32', border: '#a5d6a7' }
-                              : r.plan === 'Trail'
-                                ? { bg: '#fff3e0', color: '#e65100', border: '#ffcc80' }
-                                : { bg: '#fdecea', color: '#c62828', border: '#ef9a9a' }
-
-                          return (
-                            <span
-                              style={{
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                padding: '4px 12px',
-                                borderRadius: '20px',
-                                background: gstStyle.bg,
-                                color: gstStyle.color,
-                                border: `1px solid ${gstStyle.border}`
-                              }}
-                            >
-                              {r.plan}
-                            </span>
-                          )
-                        })()}
-                      </td>
-
-                      {/* GST */}
-                      <td>
-                        {(() => {
-                          const gstStyle =
-                            r.gst === 'Verified'
-                              ? { bg: '#e8f5e9', color: '#2e7d32', border: '#a5d6a7' }
-                              : r.gst === 'Pending'
-                                ? { bg: '#fff3e0', color: '#e65100', border: '#ffcc80' }
-                                : { bg: '#fdecea', color: '#c62828', border: '#ef9a9a' }
-
-                          return (
-                            <span
-                              style={{
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                padding: '4px 12px',
-                                borderRadius: '20px',
-                                background: gstStyle.bg,
-                                color: gstStyle.color,
-                                border: `1px solid ${gstStyle.border}`
-                              }}
-                            >
-                              {r.gst}
-                            </span>
-                          )
-                        })()}
-                      </td>
-
-                      {/* Status */}
-                      <td>
-                        {(() => {
-                          const s = getStatusStyle(r.status)
-                          return (
-                            <span
-                              style={{
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                padding: '4px 12px',
-                                borderRadius: '20px',
-                                background: s.bg,
-                                color: s.color,
-                                border: `1px solid ${s.border}`
-                              }}
-                            >
-                              {r.status}
-                            </span>
-                          )
-                        })()}
-                      </td>
-
-                      {/* Registered */}
-                      <td style={{ minWidth: "120px" }}>{r.registered}</td>
-
-                      {/* Actions */}
-                      <td>
-                        <div className="d-flex gap-2">
-
-                          <Link
-                            href={`/admin/recruiters/Edit?id=${r.id}`}
-                            className="btn btn-grey-small"
-                          >
-                            <i className="fi-rr-edit"></i>
-                          </Link>
-
-                          <button className="btn btn-grey-small">
-                            <i className="fi-rr-trash"></i>
-                          </button>
-
+                        {/* Company */}
+                        <td className="align-middle">
                           <Link
                             href={`/admin/recruiters/details?id=${r.id}`}
-                            className="btn btn-grey-small"
+                            className="d-flex align-items-center text-decoration-none"
                           >
-                            <i className="fi-rr-eye"></i>
+                            <img
+                              src={`/assets/imgs/page/candidates/${r.logo}`}
+                              alt={r.company}
+                              style={{
+                                width: "46px",
+                                height: "46px",
+                                borderRadius: "50%",
+                                objectFit: "cover"
+                              }}
+                            />
+
+                            <div className="ms-3">
+                              <h6 className="mb-0 text-dark hover-primary">{r.company}</h6>
+                              <span className="font-sm color-text-paragraph-2">
+                                {r.sector}
+                              </span>
+                            </div>
                           </Link>
+                        </td>
 
-                        </div>
-                      </td>
+                        {/* Contact */}
+                        <td>
+                          <h6 className="mb-0">{r.person}</h6>
+                          <span className="font-sm color-text-paragraph-2">
+                            {r.email}
+                          </span>
+                        </td>
 
-                    </tr>
-                  ))}
+                        {/* Plan */}
+                        <td className="text-center">
+                          {(() => {
+                            const planStyle =
+                              r.plan === 'Paid'
+                                ? { bg: '#e8f5e9', color: '#2e7d32', border: '#a5d6a7' }
+                                : { bg: '#fff3e0', color: '#e65100', border: '#ffcc80' }
+
+                            return (
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  padding: '4px 12px',
+                                  borderRadius: '20px',
+                                  background: planStyle.bg,
+                                  color: planStyle.color,
+                                  border: `1px solid ${planStyle.border}`
+                                }}
+                              >
+                                {r.plan}
+                              </span>
+                            )
+                          })()}
+                        </td>
+
+                        {/* GST */}
+                        <td>
+                          {(() => {
+                            const gstStyle =
+                              r.gst === 'Verified'
+                                ? { bg: '#e8f5e9', color: '#2e7d32', border: '#a5d6a7' }
+                                : r.gst === 'Pending'
+                                  ? { bg: '#fff3e0', color: '#e65100', border: '#ffcc80' }
+                                  : { bg: '#fdecea', color: '#c62828', border: '#ef9a9a' }
+
+                            return (
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  padding: '4px 12px',
+                                  borderRadius: '20px',
+                                  background: gstStyle.bg,
+                                  color: gstStyle.color,
+                                  border: `1px solid ${gstStyle.border}`
+                                }}
+                              >
+                                {r.gst}
+                              </span>
+                            )
+                          })()}
+                        </td>
+
+                        {/* Status */}
+                        <td>
+                          {(() => {
+                            const s = getStatusStyle(r.status)
+                            return (
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  padding: '4px 12px',
+                                  borderRadius: '20px',
+                                  background: s.bg,
+                                  color: s.color,
+                                  border: `1px solid ${s.border}`
+                                }}
+                              >
+                                {r.status}
+                              </span>
+                            )
+                          })()}
+                        </td>
+
+                        {/* Registered */}
+                        <td style={{ minWidth: "110px" }}>{r.registered}</td>
+
+                        {/* Actions */}
+                        <td>
+                          <div className="d-flex align-items-center gap-2">
+
+                            {/* View Profile */}
+                            <Link
+                              href={`/admin/recruiters/details?id=${r.id}`}
+                              className="btn hover-up"
+                              style={{
+                                background: '#f8fafc',
+                                color: '#334155',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '20px',
+                                padding: '5px 12px',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                transition: 'all 0.2s ease'
+                              }}
+                              title="View Details"
+                            >
+                              <i className="fi-rr-eye" style={{ fontSize: '13px', color: '#475569' }}></i>
+                              <span>View</span>
+                            </Link>
+
+                            {/* Documents Button (Replacing Edit) */}
+                            <Link
+                              href={`/admin/verifications/preview?id=${r.id}`}
+                              className="btn hover-up"
+                              style={{
+                                background: '#f0f4ff',
+                                color: '#0f52ba',
+                                border: '1px solid #c7d2fe',
+                                borderRadius: '20px',
+                                padding: '5px 12px',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                transition: 'all 0.2s ease'
+                              }}
+                              title="View Verification Documents"
+                            >
+                              <i className="fi-rr-file" style={{ fontSize: '13px' }}></i>
+                              <span>Documents</span>
+                            </Link>
+
+                            {/* Verification Button */}
+                            {r.gst !== 'Verified' ? (
+                              <button
+                                className="btn hover-up"
+                                style={{
+                                  background: '#e0f2fe',
+                                  color: '#0369a1',
+                                  border: '1px solid #bae6fd',
+                                  borderRadius: '20px',
+                                  padding: '5px 12px',
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                  transition: 'all 0.2s ease'
+                                }}
+                                onClick={() => handleToggleVerification(r.id)}
+                                title="Verify Company from Admin Side"
+                              >
+                                <i className="fi-rr-shield-check" style={{ fontSize: '13px' }}></i>
+                                <span>Verify</span>
+                              </button>
+                            ) : (
+                              <button
+                                className="btn hover-up"
+                                style={{
+                                  background: '#f0fdf4',
+                                  color: '#16a34a',
+                                  border: '1px solid #bbf7d0',
+                                  borderRadius: '20px',
+                                  padding: '5px 12px',
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                  cursor: 'default'
+                                }}
+                                title="Company Verified"
+                              >
+                                <i className="fi-rr-check-circle" style={{ fontSize: '13px' }}></i>
+                                <span>Verified</span>
+                              </button>
+                            )}
+
+                            {/* Suspend / Activate Account (Replacing Delete) */}
+                            {r.status === 'Suspended' ? (
+                              <button
+                                className="btn hover-up"
+                                style={{
+                                  background: '#f0fdf4',
+                                  color: '#16a34a',
+                                  border: '1px solid #bbf7d0',
+                                  borderRadius: '20px',
+                                  padding: '5px 12px',
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                  transition: 'all 0.2s ease'
+                                }}
+                                onClick={() => handleToggleSuspend(r.id)}
+                                title="Activate Account"
+                              >
+                                <i className="fi-rr-check-circle" style={{ fontSize: '13px' }}></i>
+                                <span>Activate</span>
+                              </button>
+                            ) : (
+                              <button
+                                className="btn hover-up"
+                                style={{
+                                  background: '#fff1f2',
+                                  color: '#e11d48',
+                                  border: '1px solid #fecdd3',
+                                  borderRadius: '20px',
+                                  padding: '5px 12px',
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                  transition: 'all 0.2s ease'
+                                }}
+                                onClick={() => handleToggleSuspend(r.id)}
+                                title="Suspend Account"
+                              >
+                                <i className="fi-rr-ban" style={{ fontSize: '13px' }}></i>
+                                <span>Suspend</span>
+                              </button>
+                            )}
+
+                          </div>
+                        </td>
+
+                      </tr>
+                    ))
+                  )}
                 </tbody>
 
               </table>
             </div>
 
-         <div className="paginations mt-25">
-        <div className="row align-items-center g-2">
-          <div className="col-lg-6">
-            <p className="font-sm color-text-paragraph-2 mb-0">
-              Showing 1–6 of <strong>3,248</strong> candidates
-            </p>
-          </div>
+            <div className="paginations mt-25">
+              <div className="row align-items-center g-2">
+                <div className="col-lg-6">
+                  <p className="font-sm color-text-paragraph-2 mb-0">
+                    Showing 1–{filteredRecruiters.length} of <strong>{recruitersList.length}</strong> recruiters
+                  </p>
+                </div>
 
-          <div className="col-lg-6 text-lg-end">
-            <ul className="pager justify-content-lg-end">
-              <li><a className="pager-prev"></a></li>
-              <li><a className="pager-number active">1</a></li>
-              <li><a className="pager-next"></a></li>
-            </ul>
-          </div>
-        </div>
-      </div>
+                <div className="col-lg-6 text-lg-end">
+                  <ul className="pager justify-content-lg-end">
+                    <li><a className="pager-prev"></a></li>
+                    <li><a className="pager-number active">1</a></li>
+                    <li><a className="pager-next"></a></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
 
           </div>
         </div>

@@ -3,9 +3,9 @@
 import Footer from "../../../components/Footer"
 import Link from "next/link";
 import { useState } from "react";
+import { UserCheck, Clock } from "lucide-react";
 
-import { Users, UserCheck, UserPlus, Clock } from "lucide-react";
-const candidates = [
+const initialCandidates = [
   {
     id: 1,
     img: "user1.png",
@@ -74,23 +74,29 @@ const candidates = [
   }
 ];
 
-const stats = [
-  { title: "Total Candidates", value: "3,248", growth: "+5.2%", icon: "fi-rr-users" },
-  { title: "Active Candidates", value: "2,105", growth: "+8%", icon: "fi-rr-check-circle" },
-  { title: "Placed", value: "842", growth: "+32", icon: "fi-rr-briefcase" },
-  { title: "Pending Reviews", value: "184", growth: "+18", icon: "fi-rr-clock" },
-]
-
 export default function CandidatesPage() {
-
+  const [candidatesList, setCandidatesList] = useState(initialCandidates);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
-  const filteredCandidates = candidates.filter((c) => {
+
+  const handleSetStatus = (id, newStatus) => {
+    setCandidatesList((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, status: newStatus } : c))
+    );
+  };
+
+  const filteredCandidates = candidatesList.filter((c) => {
     return (
-      c.name.toLowerCase().includes(search.toLowerCase()) &&
+      (c.name.toLowerCase().includes(search.toLowerCase()) ||
+        c.email.toLowerCase().includes(search.toLowerCase())) &&
       (status === "" || c.status === status)
     );
   });
+
+  const activeCount = candidatesList.filter((c) => c.status === "Active").length;
+  const pendingCount = candidatesList.filter((c) => c.status === "Pending").length;
+  const suspendedCount = candidatesList.filter((c) => c.status === "Suspended").length;
+
   return (
     <>
       {/* Header */}
@@ -98,7 +104,7 @@ export default function CandidatesPage() {
         <div className="box-title">
           <h3 className="mb-5">Candidates</h3>
           <p className="font-sm color-text-paragraph-2 mb-3">
-            Browse candidates, filter by skill or location, and manage profiles.
+            Browse candidates, view profiles, and manage account statuses.
           </p>
         </div>
 
@@ -110,8 +116,6 @@ export default function CandidatesPage() {
             </ul>
           </div>
         </div>
-
-
       </div>
 
       {/* Stats */}
@@ -126,8 +130,8 @@ export default function CandidatesPage() {
               <div className="card-info">
                 <div className="card-title">
                   <h3>
-                    3,248 <br></br>
-                    <span className="font-sm status up">5.2%</span>
+                    {candidatesList.length} <br />
+                    <span className="font-sm status up">Total</span>
                   </h3>
                 </div>
                 <p className="color-text-paragraph-2">Total Candidates</p>
@@ -143,28 +147,11 @@ export default function CandidatesPage() {
               <div className="card-info">
                 <div className="card-title">
                   <h3>
-                    2,105<br></br>
-                    <span className="font-sm status up">8%</span>
+                    {activeCount}<br />
+                    <span className="font-sm status up">Active</span>
                   </h3>
                 </div>
                 <p className="color-text-paragraph-2">Active Candidates</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6 col-sm-6">
-            <div className="card-style-1 hover-up">
-              <div className="card-image">
-                <img src="/assets/imgs/page/dashboard/recruiters.svg" alt="placed" />
-              </div>
-              <div className="card-info">
-                <div className="card-title">
-                  <h3>
-                    842<br></br>
-                    <span className="font-sm status up">32</span>
-                  </h3>
-                </div>
-                <p className="color-text-paragraph-2">Placed</p>
               </div>
             </div>
           </div>
@@ -177,8 +164,8 @@ export default function CandidatesPage() {
               <div className="card-info">
                 <div className="card-title">
                   <h3>
-                    184<br></br>
-                    <span className="font-sm status down">18</span>
+                    {pendingCount}<br />
+                    <span className="font-sm status down">Pending</span>
                   </h3>
                 </div>
                 <p className="color-text-paragraph-2">Pending Reviews</p>
@@ -186,11 +173,25 @@ export default function CandidatesPage() {
             </div>
           </div>
 
+          <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6 col-sm-6">
+            <div className="card-style-1 hover-up">
+              <div className="card-image">
+                <img src="/assets/imgs/page/dashboard/recruiters.svg" alt="suspended" />
+              </div>
+              <div className="card-info">
+                <div className="card-title">
+                  <h3>
+                    {suspendedCount}<br />
+                    <span className="font-sm status down">Suspended</span>
+                  </h3>
+                </div>
+                <p className="color-text-paragraph-2">Suspended Accounts</p>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
-
-
-
 
       <div className="section-box mt-20">
         <div className="panel-white">
@@ -205,18 +206,15 @@ export default function CandidatesPage() {
                   <input
                     type="text"
                     className="form-control form-icons"
-                    placeholder="Search candidates..."
+                    placeholder="Search candidates by name or email..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-
                   />
                 </div>
               </div>
 
               <div className="col-xl-4 col-lg-12">
                 <div className="row g-2">
-
-
 
                   <div className="col-md-6 col-6">
                     <select
@@ -231,8 +229,6 @@ export default function CandidatesPage() {
                     </select>
                   </div>
 
-
-
                   <div className="col-md-6 col-6">
                     <button
                       className="btn btn-secondary w-100 py-3"
@@ -242,7 +238,6 @@ export default function CandidatesPage() {
                       }}
                     >
                       Clear Filters
-
                     </button>
                   </div>
 
@@ -256,108 +251,166 @@ export default function CandidatesPage() {
 
                 <thead>
                   <tr>
-                    <th style={{ minWidth: '280px' }}>Candidate</th>
-                    <th style={{ minWidth: '160px' }}>National ID</th>
-                    <th style={{ minWidth: '140px' }}>Status</th>
-                    <th style={{ minWidth: '220px' }}>Company</th>
-                    <th style={{ minWidth: '160px' }}>Joined Date</th>
-                    <th style={{ minWidth: '140px' }}>Actions</th>
+                    <th style={{ minWidth: '260px' }}>Candidate</th>
+                    <th style={{ minWidth: '130px' }}>Status</th>
+                    <th style={{ minWidth: '150px' }}>Joined Date</th>
+                    <th style={{ minWidth: '220px' }}>Actions</th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {filteredCandidates.map((c) => (
-                    <tr key={c.id}>
-
-                      {/* Candidate */}
-                      <td className="align-middle">
-                        <div className="d-flex align-items-center">
-                          <img
-                            src={`/assets/imgs/page/candidates/${c.img}`}
-                            style={{
-                              width: '48px',
-                              height: '48px',
-                              borderRadius: '50%',
-                              objectFit: 'cover'
-                            }}
-                          />
-
-                          <div className="ms-3">
-                            <h6 className="mb-0">{c.name}</h6>
-                            <span className="font-sm color-text-paragraph-2">
-                              {c.email}
-                            </span>
-                          </div>
-                        </div>
+                  {filteredCandidates.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="text-center py-4 color-text-paragraph-2">
+                        No candidates found.
                       </td>
+                    </tr>
+                  ) : (
+                    filteredCandidates.map((c) => (
+                      <tr key={c.id}>
 
-                      {/* National ID */}
-                      <td className="align-middle">
-                        <span className="font-sm color-text-paragraph-2">{c.nationalId}</span>
-                      </td>
-
-
-
-                      {/* Status */}
-                      <td className="align-middle">
-                        <span
-                          style={{
-                            fontSize: '11px',
-                            fontWeight: 600,
-                            padding: '4px 12px',
-                            borderRadius: '20px',
-                            display: 'inline-block',
-                            width: '100px',
-                            textAlign: 'center',
-                            background:
-                              c.status === 'Active'
-                                ? '#e8f5e9'
-                                : c.status === 'Pending'
-                                  ? '#fff3e0'
-                                  : '#fdecea',
-                            color:
-                              c.status === 'Active'
-                                ? '#2e7d32'
-                                : c.status === 'Pending'
-                                  ? '#e65100'
-                                  : '#c62828',
-                            border:
-                              c.status === 'Active'
-                                ? '1px solid #a5d6a7'
-                                : c.status === 'Pending'
-                                  ? '1px solid #ffcc80'
-                                  : '1px solid #ef9a9a'
-                          }}
-                        >
-                          {c.status}
-                        </span>
-                      </td>
-
-                      {/* Company */}
-                      <td className="align-middle">
-                        {c.company}
-                      </td>
-
-                      {/* Joined */}
-                      <td className="align-middle">
-                        {c.joined}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="align-middle">
-                        <div className="d-flex gap-2">                                                   
+                        {/* Candidate */}
+                        <td className="align-middle">
                           <Link
                             href={`/admin/candidates/candidateDetails?id=${c.id}`}
-                            className="btn btn-grey-small"
+                            className="d-flex align-items-center text-decoration-none color-brand-1"
                           >
-                            <i className="fi-rr-eye"></i>
-                          </Link>
-                          <a className="btn btn-grey-small"><i className="fi-rr-trash"></i></a>
-                        </div>
-                      </td>
+                            <img
+                              src={`/assets/imgs/page/candidates/${c.img}`}
+                              alt={c.name}
+                              style={{
+                                width: '48px',
+                                height: '48px',
+                                borderRadius: '50%',
+                                objectFit: 'cover'
+                              }}
+                            />
 
-                    </tr>
-                  ))}
+                            <div className="ms-3">
+                              <h6 className="mb-0 text-dark hover-primary">{c.name}</h6>
+                              <span className="font-sm color-text-paragraph-2">
+                                {c.email}
+                              </span>
+                            </div>
+                          </Link>
+                        </td>
+
+                        {/* Status */}
+                        <td className="align-middle">
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              padding: '4px 12px',
+                              borderRadius: '20px',
+                              display: 'inline-block',
+                              width: '100px',
+                              textAlign: 'center',
+                              background:
+                                c.status === 'Active'
+                                  ? '#e8f5e9'
+                                  : c.status === 'Pending'
+                                    ? '#fff3e0'
+                                    : '#fdecea',
+                              color:
+                                c.status === 'Active'
+                                  ? '#2e7d32'
+                                  : c.status === 'Pending'
+                                    ? '#e65100'
+                                    : '#c62828',
+                              border:
+                                c.status === 'Active'
+                                  ? '1px solid #a5d6a7'
+                                  : c.status === 'Pending'
+                                    ? '1px solid #ffcc80'
+                                    : '1px solid #ef9a9a'
+                            }}
+                          >
+                            {c.status}
+                          </span>
+                        </td>
+
+                        {/* Joined */}
+                        <td className="align-middle">
+                          {c.joined}
+                        </td>
+
+                        {/* Actions: Exactly 2 buttons per row */}
+                        <td className="align-middle">
+                          <div className="d-flex align-items-center gap-2">
+                            <Link
+                              href={`/admin/candidates/candidateDetails?id=${c.id}`}
+                              className="btn hover-up"
+                              style={{
+                                background: '#f8fafc',
+                                color: '#334155',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '20px',
+                                padding: '5px 14px',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                transition: 'all 0.2s ease'
+                              }}
+                              title="View Profile (Read-Only)"
+                            >
+                              <i className="fi-rr-eye" style={{ fontSize: '13px', color: '#475569' }}></i>
+                              <span>View Profile</span>
+                            </Link>
+
+                            {c.status === 'Suspended' ? (
+                              <button
+                                className="btn hover-up"
+                                style={{
+                                  background: '#f0fdf4',
+                                  color: '#16a34a',
+                                  border: '1px solid #bbf7d0',
+                                  borderRadius: '20px',
+                                  padding: '5px 14px',
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  transition: 'all 0.2s ease'
+                                }}
+                                onClick={() => handleSetStatus(c.id, 'Active')}
+                                title="Activate Account"
+                              >
+                                <i className="fi-rr-check-circle" style={{ fontSize: '13px' }}></i>
+                                <span>Activate</span>
+                              </button>
+                            ) : (
+                              <button
+                                className="btn hover-up"
+                                style={{
+                                  background: '#fff1f2',
+                                  color: '#e11d48',
+                                  border: '1px solid #fecdd3',
+                                  borderRadius: '20px',
+                                  padding: '5px 14px',
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  transition: 'all 0.2s ease'
+                                }}
+                                onClick={() => handleSetStatus(c.id, 'Suspended')}
+                                title="Suspend Account"
+                              >
+                                <i className="fi-rr-ban" style={{ fontSize: '13px' }}></i>
+                                <span>Suspend</span>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+
+                      </tr>
+                    ))
+                  )}
                 </tbody>
 
               </table>
@@ -366,56 +419,140 @@ export default function CandidatesPage() {
             {/* Mobile / Tablet Cards */}
             <div className="d-block d-lg-none">
               <div className="row">
-                {candidates.map((c) => (
+                {filteredCandidates.map((c) => (
                   <div className="col-md-6 mb-15" key={c.id}>
                     <div className="panel-white h-100">
                       <div className="box-padding">
 
                         <div className="d-flex align-items-center mb-15">
-                          <img
-                            src={`/assets/imgs/page/candidates/${c.img}`}
-                            style={{
-                              width: "52px",
-                              height: "52px",
-                              borderRadius: "50%",
-                              objectFit: "cover"
-                            }}
-                          />
+                          <Link
+                            href={`/admin/candidates/candidateDetails?id=${c.id}`}
+                            className="d-flex align-items-center text-decoration-none color-brand-1"
+                          >
+                            <img
+                              src={`/assets/imgs/page/candidates/${c.img}`}
+                              alt={c.name}
+                              style={{
+                                width: "52px",
+                                height: "52px",
+                                borderRadius: "50%",
+                                objectFit: "cover"
+                              }}
+                            />
 
-                          <div className="ms-3">
-                            <h6 className="mb-0">{c.name}</h6>
-                            <span className="font-sm color-text-paragraph-2">
-                              {c.email}
-                            </span>
-                          </div>
+                            <div className="ms-3">
+                              <h6 className="mb-0 text-dark">{c.name}</h6>
+                              <span className="font-sm color-text-paragraph-2">
+                                {c.email}
+                              </span>
+                            </div>
+                          </Link>
                         </div>
 
                         <div className="mb-10">
-                          <p className="font-sm mb-5">
-                            <strong>ID:</strong> {c.nationalId}
-                          </p>
-
-                          <p className="font-sm mb-5">
-                            <strong>Type:</strong> {c.accountType}
-                          </p>
-
-                          <p className="font-sm mb-5">
-                            <strong>Company:</strong> {c.company}
-                          </p>
-
                           <p className="font-sm mb-5">
                             <strong>Joined:</strong> {c.joined}
                           </p>
 
                           <p className="font-sm mb-0">
                             <strong>Status:</strong>{" "}
-                            <span className="btn-paragraph-2">{c.status}</span>
+                            <span
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                padding: '2px 10px',
+                                borderRadius: '20px',
+                                display: 'inline-block',
+                                background:
+                                  c.status === 'Active'
+                                    ? '#e8f5e9'
+                                    : c.status === 'Pending'
+                                      ? '#fff3e0'
+                                      : '#fdecea',
+                                color:
+                                  c.status === 'Active'
+                                    ? '#2e7d32'
+                                    : c.status === 'Pending'
+                                      ? '#e65100'
+                                      : '#c62828',
+                                border:
+                                  c.status === 'Active'
+                                    ? '1px solid #a5d6a7'
+                                    : c.status === 'Pending'
+                                      ? '1px solid #ffcc80'
+                                      : '1px solid #ef9a9a'
+                              }}
+                            >
+                              {c.status}
+                            </span>
                           </p>
                         </div>
 
                         <div className="d-flex gap-2 mt-15">
-                          <a className="btn btn-grey-small w-100">View</a>
-                          <a className="btn btn-default w-100">Edit</a>
+                          <Link
+                            href={`/admin/candidates/candidateDetails?id=${c.id}`}
+                            className="btn hover-up w-100"
+                            style={{
+                              background: '#f8fafc',
+                              color: '#334155',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '20px',
+                              padding: '8px 14px',
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            <i className="fi-rr-eye" style={{ fontSize: '13px', color: '#475569' }}></i>
+                            View Profile
+                          </Link>
+
+                          {c.status === 'Suspended' ? (
+                            <button
+                              className="btn hover-up w-100"
+                              style={{
+                                background: '#f0fdf4',
+                                color: '#16a34a',
+                                border: '1px solid #bbf7d0',
+                                borderRadius: '20px',
+                                padding: '8px 14px',
+                                fontSize: '13px',
+                                fontWeight: 600,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px'
+                              }}
+                              onClick={() => handleSetStatus(c.id, 'Active')}
+                            >
+                              <i className="fi-rr-check-circle" style={{ fontSize: '13px' }}></i>
+                              Activate
+                            </button>
+                          ) : (
+                            <button
+                              className="btn hover-up w-100"
+                              style={{
+                                background: '#fff1f2',
+                                color: '#e11d48',
+                                border: '1px solid #fecdd3',
+                                borderRadius: '20px',
+                                padding: '8px 14px',
+                                fontSize: '13px',
+                                fontWeight: 600,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px'
+                              }}
+                              onClick={() => handleSetStatus(c.id, 'Suspended')}
+                            >
+                              <i className="fi-rr-ban" style={{ fontSize: '13px' }}></i>
+                              Suspend
+                            </button>
+                          )}
                         </div>
 
                       </div>
@@ -430,7 +567,7 @@ export default function CandidatesPage() {
               <div className="row align-items-center g-2">
                 <div className="col-lg-6">
                   <p className="font-sm color-text-paragraph-2 mb-0">
-                    Showing 1–6 of <strong>3,248</strong> candidates
+                    Showing 1–{filteredCandidates.length} of <strong>{candidatesList.length}</strong> candidates
                   </p>
                 </div>
 

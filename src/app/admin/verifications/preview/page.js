@@ -1,765 +1,829 @@
 'use client'
 import { useState } from 'react'
 import Footer from '../../../../components/Footer'
-import {
-  Clock,
-  PlusCircle,
-  Edit3,
-  Trash2,
-  CheckCircle,
-  XCircle,
-  LogIn
-} from "lucide-react";
-/* ─────────────────────────────────────────
-   Inline-editable field component
-   Shows value + pencil icon in preview mode.
-   Clicking pencil switches that field to an input.
-   Clicking ✓ saves, clicking ✗ cancels.
-───────────────────────────────────────── */
-function InlineField({ label, icon, value, name, type = 'text', onSave, readonly = false }) {
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(value)
+import { FileText, CheckCircle, Send, ChevronDown, X, Eye, ShieldCheck, ShieldX, RefreshCw } from 'lucide-react'
 
-  const handleSave = () => { onSave(name, draft); setEditing(false) }
-  const handleCancel = () => { setDraft(value); setEditing(false) }
+/* ─── Initial document data ─── */
+const INITIAL_DOCS = [
+  {
+    id: 'gst', title: 'GST Registration Certificate', category: 'Tax & Compliance',
+    status: 'Pending Review', uploadedOn: '15 Oct 2023', validTill: '31 Mar 2026',
+    docId: 'GSTIN: 27AACS1234L1Z5',
+    img: 'https://templates.invoicehome.com/gst-invoice-template-us-neat-750px.png',
+  },
+  {
+    id: 'pan', title: 'Corporate PAN Card', category: 'Tax & Compliance',
+    status: 'Pending Review', uploadedOn: '15 Oct 2023', validTill: 'Permanent',
+    docId: 'PAN: AACS1234L',
+    img: 'https://www.bankbazaar.com/tax/wp-content/uploads/sites/4/2015/09/pan-card-copy.jpg',
+  },
+  {
+    id: 'brc', title: 'Business Registration Certificate', category: 'Company Documents',
+    status: 'Pending Review', uploadedOn: '16 Oct 2023', validTill: 'Permanent',
+    docId: 'CIN: U74900MH2019PTC...',
+    img: 'https://imgv2-2-f.scribdassets.com/img/document/768783389/original/959dd3323c/1?v=1',
+  },
+  {
+    id: 'poe', title: 'POE License', category: 'Recruitment License',
+    status: 'Pending Review', uploadedOn: '17 Oct 2023', validTill: '14 Oct 2025',
+    docId: 'POE-MUM-3391',
+    img: 'https://i.pinimg.com/736x/bc/de/87/bcde87c193ed3acbd43d0e73f1e02ed8.jpg',
+  },
+  {
+    id: 'rpsl', title: 'RPSL Certification', category: 'Recruitment License',
+    status: 'Action Required', uploadedOn: '17 Oct 2023', validTill: '15 Jan 2023',
+    docId: 'RPSL-MUM-442',
+    img: 'https://vigilss.com/wp-content/uploads/2023/07/RPSL-LIC-1-768x723.png',
+    note: 'Document expired. Please re-upload a valid RPSL certificate.',
+  },
+  {
+    id: 'moa', title: 'Memorandum of Association', category: 'Company Documents',
+    status: 'Pending Review', uploadedOn: '18 Oct 2023', validTill: '-',
+    docId: 'MOA-SL-2019',
+    img: 'https://templates.invoicehome.com/gst-invoice-template-us-neat-750px.png',
+  },
+]
 
+const REQUEST_OPTIONS = [
+  'Incorporation Certificate', 'Bank Cancelled Cheque', 'Address Proof / Utility Bill',
+  'Director Aadhaar / PAN (KYC)', 'Labour License', 'Trade License',
+  'ISO Certification', 'Letter of Authorization', 'Audited Financial Statements', 'Custom / Other Document',
+]
+
+const STATUS_STYLE = {
+  'Verified':        { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' },
+  'Pending Review':  { bg: '#fffbeb', color: '#b45309', border: '#fde68a' },
+  'Action Required': { bg: '#fff1f2', color: '#be123c', border: '#fecdd3' },
+  'Rejected':        { bg: '#fff1f2', color: '#be123c', border: '#fecdd3' },
+  'Resubmission':    { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+}
+
+/* ─── Reject Reason Modal ─── */
+function RejectModal({ doc, onClose, onConfirm }) {
+  const [reason, setReason] = useState('')
+  if (!doc) return null
   return (
-    <div>
-      <p className="font-xs color-text-paragraph-2 mb-5"
-        style={{ textTransform: 'uppercase', fontSize: '9px', letterSpacing: '0.5px' }}>
-        {icon && <i className={`${icon} mr-5`}></i>}{label}
-      </p>
-
-      {editing ? (
-        <div className="d-flex align-items-center" style={{ gap: '6px' }}>
-          <input
-            type={type}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            className="form-control font-sm"
-            style={{ flex: 1, height: '36px', padding: '0 10px' }}
-            autoFocus
-          />
-          {/* ✓ Save */}
-          <button onClick={handleSave}
-            className="btn btn-default hover-up"
-            style={{ padding: '6px 10px', lineHeight: 1, minWidth: 'unset' }}
-            title="Save">
-            <i className="fi-rr-check" style={{ fontSize: '12px' }}></i>
-          </button>
-          {/* ✗ Cancel */}
-          <button onClick={handleCancel}
-            className="btn btn-grey-small hover-up"
-            style={{ padding: '6px 10px', lineHeight: 1, minWidth: 'unset' }}
-            title="Cancel">
-            <i className="fi-rr-cross" style={{ fontSize: '12px' }}></i>
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 10000,
+      background: 'rgba(10,20,50,0.6)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        background: '#fff', borderRadius: '16px', maxWidth: '480px', width: '100%',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: '18px 22px', borderBottom: '1px solid #f1f5f9',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div>
+            <p style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase',
+              letterSpacing: '0.5px', fontWeight: 600, margin: 0 }}>Reject Document</p>
+            <h6 style={{ margin: 0, color: '#122359', fontWeight: 700 }}>{doc.title}</h6>
+          </div>
+          <button onClick={onClose} style={{
+            width: '32px', height: '32px', borderRadius: '8px',
+            background: '#f1f5f9', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <X size={16} color="#475569" />
           </button>
         </div>
-      ) : (
-        <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-          <p className="font-sm mb-0" style={{ fontWeight: 600, color: '#122359', flex: 1 }}>
-            {value || <span className="color-text-mutted">—</span>}
-          </p>
-          {!readonly && (
-            <button onClick={() => { setDraft(value); setEditing(true) }}
-              className="btn btn-grey-small hover-up"
-              style={{ padding: '3px 7px', lineHeight: 1, minWidth: 'unset', opacity: 0.6 }}
-              title={`Edit ${label}`}>
-              <i className="fi-rr-edit" style={{ fontSize: '11px' }}></i>
+        {/* Body */}
+        <div style={{ padding: '18px 22px' }}>
+          <div style={{
+            padding: '12px 14px', borderRadius: '10px',
+            background: '#fff1f2', border: '1px solid #fecdd3', marginBottom: '16px',
+          }}>
+            <p style={{ fontSize: '12px', color: '#be123c', margin: 0, fontWeight: 500 }}>
+              The recruiter will be notified and asked to re-upload a corrected document.
+            </p>
+          </div>
+          <label style={{
+            fontSize: '11px', fontWeight: 700, color: '#475569',
+            textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px',
+          }}>
+            Rejection Reason <span style={{ color: '#be123c' }}>*</span>
+          </label>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="E.g. Document is expired / unclear / incorrect format. Please re-upload a valid copy..."
+            style={{
+              width: '100%', minHeight: '100px', resize: 'vertical',
+              borderRadius: '10px', border: '1.5px solid #e2e8f0',
+              padding: '10px 12px', fontSize: '13px', fontFamily: 'inherit',
+              outline: 'none', boxSizing: 'border-box',
+            }}
+          />
+        </div>
+        {/* Footer */}
+        <div style={{
+          padding: '14px 22px', borderTop: '1px solid #f1f5f9',
+          display: 'flex', gap: '10px', justifyContent: 'flex-end',
+        }}>
+          <button onClick={onClose} style={{
+            padding: '10px 20px', background: '#f8fafc', border: '1px solid #e2e8f0',
+            borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: '#475569', cursor: 'pointer',
+          }}>Cancel</button>
+          <button
+            onClick={() => { if (reason.trim()) { onConfirm(doc.id, reason); onClose() } }}
+            disabled={!reason.trim()}
+            style={{
+              padding: '10px 20px',
+              background: reason.trim() ? '#be123c' : '#e2e8f0',
+              color: reason.trim() ? '#fff' : '#94a3b8',
+              border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 700,
+              cursor: reason.trim() ? 'pointer' : 'not-allowed',
+            }}
+          >Confirm Rejection</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Document Preview Modal ─── */
+function PreviewModal({ doc, onClose, onVerify, onRejectOpen, onResubmit }) {
+  if (!doc) return null
+  const s = STATUS_STYLE[doc.status] || STATUS_STYLE['Pending Review']
+  const isVerified = doc.status === 'Verified'
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 9999,
+      background: 'rgba(10,20,50,0.72)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        background: '#fff', borderRadius: '16px', maxWidth: '720px', width: '100%',
+        overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: '16px 20px', display: 'flex',
+          alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0',
+        }}>
+          <div>
+            <p style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase',
+              letterSpacing: '0.5px', fontWeight: 600, margin: 0 }}>{doc.category}</p>
+            <h6 style={{ margin: 0, color: '#122359', fontWeight: 700 }}>{doc.title}</h6>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{
+              fontSize: '11px', fontWeight: 700, padding: '4px 12px',
+              borderRadius: '20px', background: s.bg, color: s.color, border: `1px solid ${s.border}`,
+            }}>{doc.status}</span>
+            <button onClick={onClose} style={{
+              width: '32px', height: '32px', borderRadius: '8px',
+              background: '#f1f5f9', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <X size={16} color="#475569" />
             </button>
+          </div>
+        </div>
+        {/* Image */}
+        <div style={{ background: '#f8fafc', padding: '20px', maxHeight: '55vh', overflow: 'auto' }}>
+          <img src={doc.img} alt={doc.title}
+            style={{ width: '100%', borderRadius: '10px', border: '1px solid #e2e8f0' }} />
+        </div>
+        {/* Footer with action buttons */}
+        <div style={{
+          padding: '14px 20px', borderTop: '1px solid #e2e8f0',
+          display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap',
+        }}>
+          <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '12px', color: '#64748b' }}>
+              <strong style={{ color: '#334155' }}>Doc ID:</strong> {doc.docId}
+            </span>
+            <span style={{ fontSize: '12px', color: '#64748b' }}>
+              <strong style={{ color: '#334155' }}>Valid Till:</strong> {doc.validTill}
+            </span>
+          </div>
+          {!isVerified ? (
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button onClick={() => { onResubmit(doc.id); onClose() }} style={{
+                padding: '9px 14px', background: '#eff6ff', border: '1px solid #bfdbfe',
+                borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                color: '#1d4ed8', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
+              }}>
+                <RefreshCw size={12} /> Request Resubmission
+              </button>
+              <button onClick={() => { onRejectOpen(doc); onClose() }} style={{
+                padding: '9px 14px', background: '#fff1f2', border: '1px solid #fecdd3',
+                borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                color: '#be123c', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
+              }}>
+                <ShieldX size={12} /> Reject
+              </button>
+              <button onClick={() => { onVerify(doc.id); onClose() }} style={{
+                padding: '9px 16px', background: '#16a34a', border: 'none',
+                borderRadius: '8px', fontSize: '12px', fontWeight: 700,
+                color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
+              }}>
+                <ShieldCheck size={12} /> Verify Document
+              </button>
+            </div>
+          ) : (
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a',
+              display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <ShieldCheck size={14} /> Verified by Admin
+            </span>
           )}
         </div>
-      )}
+      </div>
     </div>
   )
 }
 
-/* ─────────────────────────────────────────
-   Inline-editable name (larger text)
-───────────────────────────────────────── */
-function InlineHeading({ value, name, onSave }) {
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(value)
-
-  const handleSave = () => { onSave(name, draft); setEditing(false) }
-  const handleCancel = () => { setDraft(value); setEditing(false) }
-
+/* ─── Document Card ─── */
+function DocCard({ doc, onPreview, onVerify, onRejectOpen, onResubmit }) {
+  const s = STATUS_STYLE[doc.status] || STATUS_STYLE['Pending Review']
+  const isVerified = doc.status === 'Verified'
   return (
-    <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-      {editing ? (
-        <>
-          <input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            className="form-control"
-            style={{ fontSize: '20px', fontWeight: 700, height: '40px', padding: '0 12px', maxWidth: '280px' }}
-            autoFocus
-          />
-          <button onClick={handleSave} className="btn btn-default hover-up"
-            style={{ padding: '6px 10px', lineHeight: 1, minWidth: 'unset' }} title="Save">
-            <i className="fi-rr-check" style={{ fontSize: '12px' }}></i>
+    <div style={{
+      background: '#fff', border: `1.5px solid ${s.border}`, borderRadius: '14px',
+      overflow: 'hidden', display: 'flex', flexDirection: 'column',
+      boxShadow: isVerified ? '0 2px 12px rgba(22,163,74,0.1)' : '0 2px 10px rgba(0,0,0,0.05)',
+    }}>
+      {/* Thumbnail */}
+      <div style={{ height: '148px', background: '#f1f5f9', overflow: 'hidden', position: 'relative', cursor: 'pointer' }}
+        onClick={() => onPreview(doc)}>
+        <img src={doc.img} alt={doc.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        {/* Status badge */}
+        <span style={{
+          position: 'absolute', top: '10px', right: '10px',
+          fontSize: '10px', fontWeight: 700, padding: '3px 9px',
+          borderRadius: '20px', background: s.bg, color: s.color, border: `1px solid ${s.border}`,
+        }}>{doc.status}</span>
+        {/* Verified overlay */}
+        {isVerified && (
+          <div style={{
+            position: 'absolute', inset: 0, background: 'rgba(22,163,74,0.18)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <div style={{
+              width: '50px', height: '50px', borderRadius: '50%', background: '#16a34a',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 14px rgba(22,163,74,0.4)',
+            }}>
+              <ShieldCheck size={26} color="#fff" />
+            </div>
+          </div>
+        )}
+        {/* Preview overlay (non-verified) */}
+        {!isVerified && (
+          <div style={{
+            position: 'absolute', inset: 0, background: 'rgba(18,35,89,0.32)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <div style={{
+              width: '36px', height: '36px', borderRadius: '50%', background: '#fff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.9,
+            }}>
+              <Eye size={16} color="#122359" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Body */}
+      <div style={{ padding: '12px 14px 14px', flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+        <p style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600,
+          textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0 }}>{doc.category}</p>
+        <p style={{ fontSize: '13px', fontWeight: 700, color: '#122359', margin: 0, lineHeight: 1.3 }}>{doc.title}</p>
+        <p style={{ fontSize: '11px', color: '#64748b', margin: 0 }}>{doc.docId}</p>
+        <div style={{ display: 'flex', gap: '8px', marginTop: '3px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '10px', color: '#94a3b8' }}>
+            <strong style={{ color: '#475569' }}>Uploaded:</strong> {doc.uploadedOn}
+          </span>
+          <span style={{ fontSize: '10px', color: '#94a3b8' }}>
+            <strong style={{ color: '#475569' }}>Valid:</strong> {doc.validTill}
+          </span>
+        </div>
+        {doc.rejectReason && (
+          <div style={{ marginTop: '6px', background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '6px', padding: '6px 10px' }}>
+            <p style={{ fontSize: '10px', color: '#be123c', margin: 0, lineHeight: 1.4 }}>
+              <strong>Rejected:</strong> {doc.rejectReason}
+            </p>
+          </div>
+        )}
+        {doc.note && !doc.rejectReason && (
+          <div style={{ marginTop: '6px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', padding: '6px 10px' }}>
+            <p style={{ fontSize: '10px', color: '#b45309', margin: 0, lineHeight: 1.4 }}>{doc.note}</p>
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div style={{ marginTop: 'auto', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {!isVerified ? (
+            <>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button onClick={() => onRejectOpen(doc)} style={{
+                  flex: 1, padding: '7px 0', background: '#fff1f2', border: '1px solid #fecdd3',
+                  borderRadius: '8px', fontSize: '11px', fontWeight: 600, color: '#be123c', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                }}>
+                  <ShieldX size={12} /> Reject
+                </button>
+                <button onClick={() => onVerify(doc.id)} style={{
+                  flex: 1, padding: '7px 0', background: '#16a34a', border: 'none',
+                  borderRadius: '8px', fontSize: '11px', fontWeight: 700, color: '#fff', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                }}>
+                  <ShieldCheck size={12} /> Verify
+                </button>
+              </div>
+              <button onClick={() => onResubmit(doc.id)} style={{
+                width: '100%', padding: '6px 0', background: '#eff6ff', border: '1px solid #bfdbfe',
+                borderRadius: '8px', fontSize: '11px', fontWeight: 600, color: '#1d4ed8', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+              }}>
+                <RefreshCw size={11} /> Request Resubmission
+              </button>
+            </>
+          ) : (
+            <div style={{
+              padding: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0',
+              borderRadius: '8px', textAlign: 'center',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+            }}>
+              <ShieldCheck size={13} color="#16a34a" />
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a' }}>Verified by Admin</span>
+            </div>
+          )}
+          <button onClick={() => onPreview(doc)} style={{
+            width: '100%', padding: '6px 0', background: '#f8fafc', border: '1px solid #e2e8f0',
+            borderRadius: '8px', fontSize: '11px', fontWeight: 600, color: '#334155', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+          }}>
+            <Eye size={12} /> Preview Document
           </button>
-          <button onClick={handleCancel} className="btn btn-grey-small hover-up"
-            style={{ padding: '6px 10px', lineHeight: 1, minWidth: 'unset' }} title="Cancel">
-            <i className="fi-rr-cross" style={{ fontSize: '12px' }}></i>
-          </button>
-        </>
-      ) : (
-        <>
-          <h4 className="mb-0">{value}</h4>
-          <button onClick={() => { setDraft(value); setEditing(true) }}
-            className="btn btn-grey-small hover-up"
-            style={{ padding: '3px 7px', lineHeight: 1, minWidth: 'unset', opacity: 0.6 }}
-            title="Edit name">
-            <i className="fi-rr-edit" style={{ fontSize: '11px' }}></i>
-          </button>
-        </>
-      )}
+        </div>
+      </div>
     </div>
   )
 }
 
-/* ─────────────────────────────────────────
-   Inline-editable sub-line (role • company)
-───────────────────────────────────────── */
-function InlineSubline({ role, company, onSave }) {
-  const [editingRole, setEditingRole] = useState(false)
-  const [editingCompany, setEditingCompany] = useState(false)
-  const [draftRole, setDraftRole] = useState(role)
-  const [draftCompany, setDraftCompany] = useState(company)
+/* ─── Main Page ─── */
+export default function RecruiterDocumentsPage() {
+  const [docs, setDocs] = useState(INITIAL_DOCS)
+  const [previewDoc, setPreviewDoc] = useState(null)
+  const [rejectTarget, setRejectTarget] = useState(null)
+  const [requestedDocs, setRequestedDocs] = useState([])
+  const [selectedDocType, setSelectedDocType] = useState('')
+  const [requestNote, setRequestNote] = useState('')
+  const [adminNote, setAdminNote] = useState('')
+  const [adminNoteSaved, setAdminNoteSaved] = useState(false)
+  const [toast, setToast] = useState(null)
 
-  return (
-    <div className="d-flex align-items-center" style={{ gap: '8px', flexWrap: 'wrap' }}>
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 3200)
+  }
 
-      {/* Role */}
-      {editingRole ? (
-        <div className="d-flex align-items-center" style={{ gap: '4px' }}>
-          <input value={draftRole} onChange={(e) => setDraftRole(e.target.value)}
-            className="form-control font-xs" style={{ width: '140px', height: '30px', padding: '0 8px' }} autoFocus />
-          <button onClick={() => { onSave('role', draftRole); setEditingRole(false) }}
-            className="btn btn-default hover-up" style={{ padding: '4px 7px', lineHeight: 1, minWidth: 'unset' }}>
-            <i className="fi-rr-check" style={{ fontSize: '10px' }}></i>
-          </button>
-          <button onClick={() => { setDraftRole(role); setEditingRole(false) }}
-            className="btn btn-grey-small hover-up" style={{ padding: '4px 7px', lineHeight: 1, minWidth: 'unset' }}>
-            <i className="fi-rr-cross" style={{ fontSize: '10px' }}></i>
-          </button>
-        </div>
-      ) : (
-        <div className="d-flex align-items-center" style={{ gap: '4px' }}>
-          <span className="font-sm color-text-paragraph-2">{role}</span>
-          <button onClick={() => { setDraftRole(role); setEditingRole(true) }}
-            className="btn btn-grey-small hover-up" style={{ padding: '2px 5px', lineHeight: 1, minWidth: 'unset', opacity: 0.5 }}>
-            <i className="fi-rr-edit" style={{ fontSize: '10px' }}></i>
-          </button>
-        </div>
-      )}
+  const handleVerify = (id) => {
+    setDocs((prev) => prev.map((d) => d.id === id ? { ...d, status: 'Verified', rejectReason: null } : d))
+    showToast('Document verified successfully', 'success')
+  }
 
-      <span className="color-text-mutted font-xs">&bull;</span>
+  const handleReject = (id, reason) => {
+    setDocs((prev) => prev.map((d) => d.id === id ? { ...d, status: 'Action Required', rejectReason: reason } : d))
+    showToast('Document rejected — recruiter notified', 'error')
+  }
 
-      {/* Company */}
-      {editingCompany ? (
-        <div className="d-flex align-items-center" style={{ gap: '4px' }}>
-          <input value={draftCompany} onChange={(e) => setDraftCompany(e.target.value)}
-            className="form-control font-xs" style={{ width: '130px', height: '30px', padding: '0 8px' }} autoFocus />
-          <button onClick={() => { onSave('company', draftCompany); setEditingCompany(false) }}
-            className="btn btn-default hover-up" style={{ padding: '4px 7px', lineHeight: 1, minWidth: 'unset' }}>
-            <i className="fi-rr-check" style={{ fontSize: '10px' }}></i>
-          </button>
-          <button onClick={() => { setDraftCompany(company); setEditingCompany(false) }}
-            className="btn btn-grey-small hover-up" style={{ padding: '4px 7px', lineHeight: 1, minWidth: 'unset' }}>
-            <i className="fi-rr-cross" style={{ fontSize: '10px' }}></i>
-          </button>
-        </div>
-      ) : (
-        <div className="d-flex align-items-center" style={{ gap: '4px' }}>
-          <span className="font-sm color-text-paragraph-2">{company}</span>
-          <button onClick={() => { setDraftCompany(company); setEditingCompany(true) }}
-            className="btn btn-grey-small hover-up" style={{ padding: '2px 5px', lineHeight: 1, minWidth: 'unset', opacity: 0.5 }}>
-            <i className="fi-rr-edit" style={{ fontSize: '10px' }}></i>
-          </button>
-        </div>
-      )}
+  const handleResubmit = (id) => {
+    setDocs((prev) => prev.map((d) => d.id === id ? { ...d, status: 'Resubmission', rejectReason: null } : d))
+    showToast('Resubmission request sent to recruiter', 'info')
+  }
 
-    </div>
-  )
-}
+  const handleVerifyAll = () => {
+    setDocs((prev) => prev.map((d) => ({ ...d, status: 'Verified', rejectReason: null })))
+    showToast('All documents verified!', 'success')
+  }
 
-/* ─────────────────────────────────────────
-   Main Page
-───────────────────────────────────────── */
-const initial = {
-  name: 'Vikram Sahay',
-  role: 'Lead Product Designer',
-  company: 'NexusGlobal',
-  status: 'Pending Review',
-  userId: 'USR-88219',
-  email: 'vikram.sahay@nexus.c',
-  phone: '+91 98210 55421',
-  location: 'Bangalore, India',
-  joined: '24 Oct, 2023',
-}
+  const handleSendRequest = () => {
+    if (!selectedDocType) return
+    setRequestedDocs((prev) => [{
+      id: Date.now(), docType: selectedDocType, note: requestNote,
+      sentAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    }, ...prev])
+    showToast(`Request sent: ${selectedDocType}`, 'info')
+    setSelectedDocType('')
+    setRequestNote('')
+  }
 
-const ocrFields = [
-  { field: 'Full Name', userProvided: 'Vikram Sahay', aiExtracted: 'VIKRAM SAHAY', status: 'Match' },
-  { field: 'Date of Birth', userProvided: '12/05/1992', aiExtracted: '12-MAY-1992', status: 'Match' },
-  { field: 'Document ID', userProvided: 'ABCDE1234F', aiExtracted: 'ABCDE1234F', status: 'Match' },
-  { field: 'Expiry Date', userProvided: '20/12/2032', aiExtracted: '20-DEC-2032', status: 'Match' },
-]
-
-const auditHistory = [
-  { icon: 'fi-rr-check-circle', label: 'Registration Completed', time: '2 hours ago', by: 'System' },
-  { icon: 'fi-rr-id-badge', label: 'Identity Doc Uploaded', time: '1 hour ago', by: 'System' },
-  { icon: 'fi-rr-shield-check', label: 'AI Scan Completed', time: '58 mins ago', by: 'SkillBot AI' },
-  { icon: 'fi-rr-eye', label: 'Viewed by Admin', time: '5 mins ago', by: 'Sarah J. (Admin)' },
-]
-
-export default function UserVerificationPage() {
-  const [form, setForm] = useState(initial)
-  const [decisionNote, setDecisionNote] = useState('')
-
-  /* Universal field saver — used by all InlineField / InlineHeading / InlineSubline */
-  const handleSave = (name, value) => setForm((prev) => ({ ...prev, [name]: value }))
+  const verified   = docs.filter((d) => d.status === 'Verified').length
+  const pending    = docs.filter((d) => d.status === 'Pending Review').length
+  const actionReq  = docs.filter((d) => d.status === 'Action Required' || d.status === 'Resubmission').length
+  const allVerified = verified === docs.length
+  const pct = Math.round((verified / docs.length) * 100)
 
   return (
     <>
-
-      {/* ── PAGE HEADING ── */}
-      <div className="box-heading justify-content-between mb-3">
-        
-        <div className="box-title d-flex ">
-          
-          <h3 className="mb-0">User Verification</h3>
-           
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed', top: '20px', right: '20px', zIndex: 99999,
+          padding: '12px 20px', borderRadius: '10px', fontWeight: 600, fontSize: '13px',
+          background: toast.type === 'success' ? '#16a34a' : toast.type === 'error' ? '#be123c' : '#1d4ed8',
+          color: '#fff', boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+          display: 'flex', alignItems: 'center', gap: '8px', animation: 'slideIn 0.2s ease',
+        }}>
+          {toast.type === 'success' && <ShieldCheck size={16} />}
+          {toast.type === 'error' && <ShieldX size={16} />}
+          {toast.type === 'info' && <Send size={16} />}
+          {toast.msg}
         </div>
+      )}
 
+      {/* Modals */}
+      <RejectModal doc={rejectTarget} onClose={() => setRejectTarget(null)} onConfirm={handleReject} />
+      <PreviewModal
+        doc={previewDoc} onClose={() => setPreviewDoc(null)}
+        onVerify={handleVerify}
+        onRejectOpen={(d) => { setPreviewDoc(null); setRejectTarget(d) }}
+        onResubmit={handleResubmit}
+      />
+
+      {/* PAGE HEADING */}
+      <div className="box-heading justify-content-between mb-3">
+        <div className="box-title d-flex align-items-center" style={{ gap: '10px' }}>
+          <h3 className="mb-0">Recruiter Documents</h3>
+          <span style={{
+            fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '12px',
+            background: allVerified ? '#f0fdf4' : '#fffbeb',
+            color: allVerified ? '#16a34a' : '#b45309',
+            border: `1px solid ${allVerified ? '#bbf7d0' : '#fde68a'}`,
+          }}>
+            {allVerified ? '✓ All Verified' : 'Pending Review'}
+          </span>
+        </div>
         <div className="box-breadcrumb">
-          <div className="breadcrumbs" style={{border:"none" ,  backgroundColor:"revert"}}>
+          <div className="breadcrumbs" style={{ border: 'none', backgroundColor: 'revert' }}>
             <ul>
               <li><a className="icon-home" href="/admin/dashboard">Admin</a></li>
-              <li><a href="/admin/verifications">Verifications</a></li>
-              <li><span>Edit - Alexander Wright</span></li>
+              <li><a href="/admin/recruiters">Recruiters</a></li>
+              <li><span>Documents — Stellar Logistics Pvt. Ltd.</span></li>
             </ul>
           </div>
         </div>
       </div>
 
-      {/* ── MAIN LAYOUT ── */}
+      {/* COMPANY + STATS STRIP */}
+      <div className="section-box mb-4">
+        <div className="panel-white" style={{ padding: '16px 20px' }}>
+          <div className="d-flex align-items-center justify-content-between" style={{ flexWrap: 'wrap', gap: '12px' }}>
+            <div className="d-flex align-items-center" style={{ gap: '14px' }}>
+              <div style={{
+                width: '46px', height: '46px', borderRadius: '10px', background: '#ffa300',
+                color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: 700, fontSize: '16px', flexShrink: 0,
+              }}>SL</div>
+              <div>
+                <h6 className="mb-0" style={{ color: '#122359' }}>Stellar Logistics Pvt. Ltd.</h6>
+                <p className="font-xs color-text-paragraph-2 mb-0">
+                  GSTIN: 27AACS1234L1Z5 &nbsp;·&nbsp; Registered: Oct 2023 &nbsp;·&nbsp; Mumbai, India
+                </p>
+              </div>
+            </div>
+            <div className="d-flex align-items-center" style={{ gap: '8px', flexWrap: 'wrap' }}>
+              {[
+                { label: 'Verified', val: verified, bg: '#f0fdf4', border: '#bbf7d0', color: '#16a34a' },
+                { label: 'Pending', val: pending, bg: '#fffbeb', border: '#fde68a', color: '#b45309' },
+                { label: 'Action Req.', val: actionReq, bg: '#fff1f2', border: '#fecdd3', color: '#be123c' },
+                { label: 'Total', val: docs.length, bg: '#f0f4ff', border: '#c7d2fe', color: '#3730a3' },
+              ].map(({ label, val, bg, border, color }) => (
+                <div key={label} style={{
+                  padding: '8px 14px', borderRadius: '10px', background: bg,
+                  border: `1px solid ${border}`, textAlign: 'center', transition: 'all 0.3s',
+                }}>
+                  <p style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase',
+                    fontWeight: 600, letterSpacing: '0.5px', margin: '0 0 2px' }}>{label}</p>
+                  <span style={{ fontSize: '20px', fontWeight: 800, color }}>{val}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* MAIN LAYOUT */}
       <div className="row">
 
-        {/* ════ LEFT COLUMN ════ */}
+        {/* LEFT — Document Cards */}
         <div className="col-xxl-8 col-xl-8 col-lg-8 col-md-12">
-
-          {/* ── User Profile Card ── */}
-          <div className="section-box mt-4">
-            <div className="panel-white p-0" style={{ borderRadius: '16px', overflow: 'hidden' }}>
-
-              {/* ───────── TOP STRIP ───────── */}
-              
-
-              {/* ───────── MAIN BODY ───────── */}
-              <div className="panel-body p-4" style={{ marginTop: '0px' }}>
-
-                {/* Avatar + Info */}
-                <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
-
-                  {/* LEFT SIDE */}
-                  <div className="d-flex align-items-center" style={{ gap: '20px', flexWrap: 'wrap' }}>
-
-                    {/* Avatar */}
-                    <div style={{ position: 'relative' }}>
-                      <div className="card-grid-2-image-rd online" style={{ maxWidth: '80px', padding: 0 }}>
-                        <figure>
-                          <img
-                            src="/assets/imgs/page/candidates/user1.png"
-                            alt={form.name}
-                            style={{
-                              width: '80px',
-                              height: '80px',
-                              borderRadius: '50%',
-                              objectFit: 'cover',
-                              border: '4px solid #fff'
-                            }}
-                          />
-                        </figure>
-                      </div>
-
-                      {/* Edit icon */}
-                      <button title="Change photo"
-                        style={{
-                          position: 'absolute',
-                          bottom: 0,
-                          right: 0,
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
-                          background: '#ffa300',
-                          border: '2px solid #fff',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                        }}>
-                        <i className="fi-rr-camera" style={{ fontSize: '10px', color: '#fff' }}></i>
-                      </button>
-                    </div>
-
-                    {/* Info */}
-                    <div style={{ minWidth: 0 }} className='mt-5 pt-5'>
-                      <InlineHeading value={form.name} name="name" onSave={handleSave} />
-
-                      <div className="d-flex align-items-center flex-wrap mt-1" style={{ gap: '8px' }}>
-                        <InlineSubline role={form.role} company={form.company} onSave={handleSave} />
-
-                        <span style={{
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          padding: '3px 12px',
-                          borderRadius: '20px',
-                          background: '#f1f5f9',
-                          color: '#334155'
-                        }}>
-                          Pending Review
-                        </span>
-                      </div>
-                    </div>
-
-                  </div>
-
-                </div>
-
-                {/* Divider */}
-                <hr style={{ borderColor: '#ffc151', margin: '20px 0' }} />
-
-                {/* Contact Info */}
-                <div className="row">
-
-                  <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-15">
-                    <InlineField
-                      label="Email"
-                      icon="fi-rr-envelope"
-                      value={form.email}
-                      name="email"
-                      onSave={handleSave}
-                    />
-                  </div>
-
-                  <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-15">
-                    <InlineField
-                      label="Phone"
-                      icon="fi-rr-phone"
-                      value={form.phone}
-                      name="phone"
-                      onSave={handleSave}
-                    />
-                  </div>
-
-                  <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-15">
-                    <InlineField
-                      label="Location"
-                      icon="fi-rr-marker"
-                      value={form.location}
-                      name="location"
-                      onSave={handleSave}
-                    />
-                  </div>
-
-                  <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-15">
-                    <InlineField
-                      label="Joined"
-                      icon="fi-rr-calendar"
-                      value={form.joined}
-                      name="joined"
-                      onSave={handleSave}
-                      readonly
-                    />
-                  </div>
-
-                </div>
-
-              </div>
-            </div>
-          </div>
-
-          {/* ── KYC Documents ── */}
-          <div className="section-box">
-            <div className="panel-white">
-              <div className="panel-head" style={{ alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
-                <div>
-                  <h6 className="mb-0">KYC Documents</h6>
-                  <p className="font-xs color-text-paragraph-2 mt-5 mb-0">
-                    Government Issued National Identity Card (Passport / PAN)
-                  </p>
-                </div>
-                <span style={{
-                  fontSize: '11px', fontWeight: 700, padding: '3px 10px',
-                  borderRadius: '20px', background: '#ffc151', color: '#ffa300',
-                }}>OCR Processed</span>
-              </div>
-
-              <div className="panel-body">
-
-                {/* Document images — each with re-upload button */}
-                <div className="row mb-25">
-                  {[
-                    { label: 'Front Side', src: 'https://pvcprint.shop/wp-content/uploads/2025/04/aadhar-card-front.png' },
-                    { label: 'Back Side', src: 'https://pbs.twimg.com/media/CvwpwnjVMAEoFoi.jpg' },
-                  ].map((doc) => (
-                    <div key={doc.label} className="col-md-6 col-sm-12 mb-15">
-                      <div className="d-flex align-items-center justify-content-between mb-10">
-                        <p className="font-xs color-text-paragraph-2 mb-0"
-                          style={{ textTransform: 'uppercase', fontSize: '9px', letterSpacing: '0.5px', fontWeight: 600 }}>
-                          {doc.label}
-                        </p>
-                        {/* Re-upload trigger */}
-                        <button className="btn btn-grey-small hover-up font-xs"
-                          style={{ padding: '3px 8px', opacity: 0.7 }}>
-                          <i className="fi-rr-upload mr-5" style={{ fontSize: '10px' }}></i>Re-upload
-                        </button>
-                      </div>
-                      <div style={{
-                        border: '1px solid #ffc151', borderRadius: '8px',
-                        overflow: 'hidden', background: '#F8FAFF',
-                        height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <img src={doc.src} alt={doc.label}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* OCR data table — each User Provided cell is editable */}
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '500px' }}>
-                    <thead>
-                      <tr>
-                        {['Data Field', 'User Provided', 'AI Extracted (OCR)', 'Status'].map((h) => (
-                          <th key={h} className="font-xs color-text-paragraph-2"
-                            style={{ padding: '10px 14px', borderBottom: '1px solid #ffc151', textAlign: 'left', fontWeight: 600 }}>
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ocrFields.map((row) => (
-                        <tr key={row.field} className="hover-up">
-                          <td style={{ padding: '10px 14px', borderBottom: '1px solid #f5f5f5' }}>
-                            <span className="font-sm" style={{ fontWeight: 600, color: '#122359' }}>{row.field}</span>
-                          </td>
-                          {/* User Provided — inline editable */}
-                          <td style={{ padding: '6px 14px', borderBottom: '1px solid #f5f5f5', minWidth: '140px' }}>
-                            <OcrCell value={row.userProvided} />
-                          </td>
-                          <td style={{ padding: '10px 14px', borderBottom: '1px solid #f5f5f5' }}>
-                            <span className="font-sm color-text-paragraph-2">{row.aiExtracted}</span>
-                          </td>
-                          <td style={{ padding: '10px 14px', borderBottom: '1px solid #f5f5f5' }}>
-                            <span style={{
-                              fontSize: '11px', fontWeight: 700, padding: '3px 10px',
-                              borderRadius: '20px', background: '#e8f5e9', color: '#2e7d32',
-                            }}>{row.status}</span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-              </div>
-            </div>
-          </div>
-
-          {/* ── Live Selfie Verification ── */}
-          <div className="section-box">
-            <div className="panel-white">
-              <div className="panel-head" style={{ alignItems: 'flex-start' }}>
-                <div>
-                  <h6 className="mb-0">Live Selfie Verification</h6>
-                  <p className="font-xs color-text-paragraph-2 mt-5 mb-0">
-                    Biometric comparison against document photo
-                  </p>
-                </div>
-              </div>
-              <div className="panel-body">
-                <div className="row align-items-center">
-
-                  {/* Document photo */}
-                  <div className="col-xl-3 col-lg-3 col-md-4 col-sm-6 text-center mb-15">
-                    <div style={{
-                      position: 'relative', width: '100px', margin: '0 auto 8px',
-                    }}>
-                      <div style={{
-                        width: '100px', height: '100px', borderRadius: '50%',
-                        overflow: 'hidden', border: '3px solid #ffc151',
-                      }}>
-                        <img src="/assets/imgs/page/candidates/user1.png" alt="Document Photo"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      </div>
-                      <button title="Re-upload document photo" style={{
-                        position: 'absolute', bottom: 2, right: 2,
-                        width: '22px', height: '22px', borderRadius: '50%',
-                        background: '#66789C', border: '2px solid #fff',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <i className="fi-rr-upload" style={{ fontSize: '9px', color: '#fff' }}></i>
-                      </button>
-                    </div>
-                    <p className="font-xs color-text-paragraph-2 mb-0"
-                      style={{ textTransform: 'uppercase', fontSize: '9px', letterSpacing: '0.5px' }}>
-                      Document Photo
-                    </p>
-                  </div>
-
-                  {/* Arrow */}
-                  <div className="col-xl-1 col-lg-1 col-md-1 text-center mb-15">
-                    <i className="fi-rr-arrow-right font-lg color-brand-2"></i>
-                  </div>
-
-                  {/* Live capture */}
-                  <div className="col-xl-3 col-lg-3 col-md-4 col-sm-6 text-center mb-15">
-                    <div style={{ position: 'relative', width: '100px', margin: '0 auto 8px' }}>
-                      <div style={{
-                        width: '100px', height: '100px', borderRadius: '50%',
-                        overflow: 'hidden', border: '3px solid #ffa300',
-                      }}>
-                        <img src="/assets/imgs/page/candidates/user2.png" alt="Live Capture"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      </div>
-                      <span style={{
-                        position: 'absolute', bottom: '-4px', left: '50%', transform: 'translateX(-50%)',
-                        fontSize: '9px', fontWeight: 700, padding: '2px 8px',
-                        borderRadius: '20px', background: '#ffa300', color: '#fff', whiteSpace: 'nowrap',
-                      }}>LIVE CAPTURE</span>
-                    </div>
-                    <p className="font-xs color-text-paragraph-2 mb-0 mt-10"
-                      style={{ textTransform: 'uppercase', fontSize: '9px', letterSpacing: '0.5px' }}>
-                      Live Capture
-                    </p>
-                  </div>
-
-                  {/* Score + checks */}
-                  <div className="col-xl-5 col-lg-5 col-md-3 col-sm-12 mb-15">
-                    <div className="d-flex align-items-center justify-content-between mb-10">
-                      <span className="font-sm color-text-paragraph-2">Face Match Score</span>
-                      <strong style={{ color: '#2e7d32', fontSize: '16px' }}>98.2%</strong>
-                    </div>
-                    <div className="box-progress-bar mb-15">
-                      <div className="progress">
-                        <div className="progress-bar" role="progressbar"
-                          style={{ width: '98%', borderRadius: '5px', background: '#ffa300' }}>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="d-flex flex-column" style={{ gap: '6px' }}>
-                      <span className="font-xs" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#2e7d32' }}>
-                        <i className="fi-rr-check-circle"></i>Liveness Detected
-                      </span>
-                      <span className="font-xs" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#2e7d32' }}>
-                        <i className="fi-rr-check-circle"></i>No Spoofing Detected
-                      </span>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-        {/* end left col */}
-
-        {/* ════ RIGHT SIDEBAR ════ */}
-        <div className="col-xxl-4 col-xl-4 col-lg-4 col-md-12 mt-4">
-
-          {/* AI Confidence Score */}
-          <div className="section-box">
-            <div className="panel-white">
-                  {/* Queue meta */}
-        <div className="d-flex align-items-center" style={{ gap: '10px', flexShrink: 0 }}>
-          <div style={{ border: '1px solid #ffa300', borderRadius: '8px', padding: '8px 16px', textAlign: 'center', background: '#fff' }}>
-            <p className="font-xs color-text-paragraph-2 mb-2"
-              style={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: '9px' }}>Queue Priority</p>
-            <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px', background: '#fdecea', color: '#c62828' }}>High</span>
-          </div>
-          <div style={{ border: '1px solid #ffa300', borderRadius: '8px', padding: '8px 16px', textAlign: 'center', background: '#fff' }}>
-            <p className="font-xs color-text-paragraph-2 mb-2"
-              style={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: '9px' }}>Time in Queue</p>
-            <h6 className="mb-0">42 mins</h6>
-          </div>
-        </div>
-              <div className="panel-head" style={{ alignItems: 'center' }}>
-                <h6 className="mb-0" style={{ textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.6px', color: '#66789C' }}>
-                  AI Confidence Score
-                </h6>
-                <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '20px', background: '#e8f5e9', color: '#2e7d32' }}>
-                  High Trust
-                </span>
-              </div>
-              <div className="panel-body text-center">
-                <div style={{ margin: '0 auto 10px', width: '110px' }}>
-                  <h2 style={{ fontSize: '40px', fontWeight: 800, color: '#122359', marginBottom: 0 }}>94%</h2>
-                  <div style={{ height: '6px', background: '#ffc151', borderRadius: '5px', overflow: 'hidden', marginTop: '8px' }}>
-                    <div style={{ width: '94%', height: '100%', background: '#ffa300', borderRadius: '5px' }}></div>
-                  </div>
-                </div>
-                <div className="row mt-20">
-                  <div className="col-12">
-                    <div style={{ background: '#F8FAFF', border: '1px solid #ffc151', borderRadius: '8px', padding: '10px' }}>
-                      <p className="font-xs color-text-paragraph-2 mb-5"
-                        style={{ textTransform: 'uppercase', fontSize: '9px', letterSpacing: '0.4px' }}>Risk Level</p>
-                      <p className="font-sm mb-0" style={{ fontWeight: 700, color: '#2e7d32' }}>Very Low</p>
-                    </div>
-                  </div>
-                  {/* <div className="col-6">
-                    <div style={{ background: '#F8FAFF', border: '1px solid #ffc151', borderRadius: '8px', padding: '10px' }}>
-                      <p className="font-xs color-text-paragraph-2 mb-5"
-                        style={{ textTransform: 'uppercase', fontSize: '9px', letterSpacing: '0.4px' }}>Anomaly</p>
-                      <p className="font-sm mb-0" style={{ fontWeight: 700, color: '#122359' }}>None detected</p>
-                    </div>
-                  </div> */}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Admin Decision */}
-          <div className="section-box">
-            <div className="panel-white">
-              <div className="panel-head" style={{ alignItems: 'flex-start' }}>
-                <div>
-                  <h6 className="mb-0">Admin Decision</h6>
-                  <p className="font-xs color-text-paragraph-2 mt-5 mb-0">
-                    Finalize verification status for this user
-                  </p>
-                </div>
-              </div>
-              <div className="panel-body">
-              
-                <p className="font-xs color-text-paragraph-2 mb-5" style={{ fontWeight: 600 }}>
-                  Decision Notes (Internal)
-                </p>
-                <div className="form-group mb-15">
-                  <textarea
-                    className="form-control font-sm"
-                    placeholder="Explain your decision (required for rejection)..."
-                    value={decisionNote}
-                    onChange={(e) => setDecisionNote(e.target.value)}
-                    style={{ minHeight: '90px', resize: 'vertical', borderRadius: '8px' }}
-                  />
-                </div>
-                   <a className="btn btn-default hover-up font-sm mb-10"
-                  href="#" style={{ width: '100%', textAlign: 'center', display: 'block' }}>
-                  Send
-                </a>
-                <div className="d-flex align-items-center mb-15" style={{ gap: '8px' }}>
-
-                  
-                  <a className="btn hover-up font-sm" href="#" style={{
-                    flex: 1, textAlign: 'center',
-                    background: '#fff', border: '1px solid #f87171',
-                    color: '#dc2626', borderRadius: '8px', padding: '10px 12px', lineHeight: '22px',
-                  }}>
-                  Cancel
-                  </a>
-                  
-                </div>
-                <p className="font-xs color-text-paragraph-2 mb-0 text-center">
-                  <i className="fi-rr-clock mr-5"></i>This action will notify the user via email instantly.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Audit History */}
           <div className="section-box">
             <div className="panel-white">
               <div className="panel-head" style={{ alignItems: 'center' }}>
                 <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-                  <i className="fi-rr-time-past font-sm color-brand-2 ms-4 d-none"></i>
-                  <h6 className="mb-0">Audit History</h6>
+                  <FileText size={16} color="#ffa300" />
+                  <h6 className="mb-0">Uploaded Documents</h6>
+                  <span style={{
+                    fontSize: '11px', fontWeight: 700, padding: '2px 9px',
+                    borderRadius: '20px', background: '#f1f5f9', color: '#475569',
+                  }}>{docs.length} files</span>
+                </div>
+                <p className="font-xs color-text-paragraph-2 mb-0">
+                  Preview each document and take action — Verify ✓, Reject ✗, or Request Resubmission ↺
+                </p>
+              </div>
+              <div className="panel-body">
+                <div className="row">
+                  {docs.map((doc) => (
+                    <div key={doc.id} className="col-xl-4 col-lg-4 col-md-6 col-sm-6 mb-20">
+                      <DocCard
+                        doc={doc} onPreview={setPreviewDoc}
+                        onVerify={handleVerify} onRejectOpen={setRejectTarget} onResubmit={handleResubmit}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sent Requests */}
+          {requestedDocs.length > 0 && (
+            <div className="section-box">
+              <div className="panel-white">
+                <div className="panel-head" style={{ alignItems: 'center' }}>
+                  <div className="d-flex align-items-center" style={{ gap: '8px' }}>
+                    <Send size={15} color="#1d4ed8" />
+                    <h6 className="mb-0">Document Requests Sent</h6>
+                    <span style={{
+                      fontSize: '11px', fontWeight: 700, padding: '2px 9px',
+                      borderRadius: '20px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe',
+                    }}>{requestedDocs.length} pending</span>
+                  </div>
+                </div>
+                <div className="panel-body">
+                  {requestedDocs.map((req) => (
+                    <div key={req.id} style={{
+                      display: 'flex', alignItems: 'flex-start', gap: '14px',
+                      padding: '14px', marginBottom: '10px',
+                      background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px',
+                    }}>
+                      <div style={{
+                        width: '34px', height: '34px', borderRadius: '8px', background: '#dbeafe',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      }}>
+                        <Send size={15} color="#1d4ed8" />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div className="d-flex align-items-center justify-content-between" style={{ flexWrap: 'wrap', gap: '4px' }}>
+                          <p className="font-sm mb-0" style={{ fontWeight: 700, color: '#122359' }}>{req.docType}</p>
+                          <span style={{
+                            fontSize: '10px', fontWeight: 700, padding: '2px 9px',
+                            borderRadius: '20px', background: '#fff', color: '#1d4ed8', border: '1px solid #bfdbfe',
+                          }}>Requested · {req.sentAt}</span>
+                        </div>
+                        {req.note && (
+                          <p className="font-xs color-text-paragraph-2 mb-0 mt-5">Note: {req.note}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT SIDEBAR */}
+        <div className="col-xxl-4 col-xl-4 col-lg-4 col-md-12">
+
+          {/* Admin Verification Summary */}
+          <div className="section-box">
+            <div className="panel-white">
+              <div className="panel-head">
+                <div className="d-flex align-items-center" style={{ gap: '8px' }}>
+                  <ShieldCheck size={15} color="#ffa300" />
+                  <h6 className="mb-0">Admin Verification</h6>
                 </div>
               </div>
               <div className="panel-body">
-                {auditHistory.map((item, i) => (
-                  
-                    <div style={{ flex: 1 }} className='my-2'>
-                      <p className="font-sm mb-0" style={{ fontWeight: 600, color: '#122359', lineHeight: 1.3 }}>
-                        {item.label}
-                      </p>
-                      <span className="font-xs color-text-paragraph-2">
-                        {item.time} &bull; {item.by}
-                      </span>
+                <div style={{
+                  padding: '16px', borderRadius: '12px', marginBottom: '16px', textAlign: 'center',
+                  background: 'linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%)',
+                  border: `1px solid ${allVerified ? '#bbf7d0' : '#e2e8f0'}`,
+                }}>
+                  <p style={{ fontSize: '38px', fontWeight: 800, color: '#122359', margin: 0, lineHeight: 1 }}>
+                    {verified}<span style={{ fontSize: '20px', color: '#94a3b8' }}>/{docs.length}</span>
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#475569', margin: '4px 0 10px', fontWeight: 600 }}>
+                    Documents Verified
+                  </p>
+                  <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '5px', overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${pct}%`, height: '100%',
+                      background: allVerified ? '#16a34a' : '#ffa300',
+                      borderRadius: '5px', transition: 'width 0.4s ease',
+                    }} />
+                  </div>
+                  <p style={{ fontSize: '12px', fontWeight: 700, margin: '6px 0 0',
+                    color: allVerified ? '#16a34a' : '#b45309' }}>
+                    {pct}% Complete
+                  </p>
+                </div>
+                <button
+                  onClick={handleVerifyAll} disabled={allVerified}
+                  style={{
+                    width: '100%', padding: '12px 0',
+                    background: allVerified ? '#f0fdf4' : '#16a34a',
+                    color: allVerified ? '#16a34a' : '#fff',
+                    border: `1px solid ${allVerified ? '#bbf7d0' : 'transparent'}`,
+                    borderRadius: '10px', fontSize: '13px', fontWeight: 700,
+                    cursor: allVerified ? 'default' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
+                  }}
+                >
+                  <ShieldCheck size={15} />
+                  {allVerified ? 'All Documents Verified' : 'Verify All Documents'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Request Additional Document */}
+          <div className="section-box">
+            <div className="panel-white">
+              <div className="panel-head" style={{ alignItems: 'flex-start' }}>
+                <div>
+                  <div className="d-flex align-items-center" style={{ gap: '8px' }}>
+                    <Send size={15} color="#ffa300" />
+                    <h6 className="mb-0">Request Additional Document</h6>
+                  </div>
+                  <p className="font-xs color-text-paragraph-2 mt-5 mb-0">
+                    Ask the recruiter to upload a missing document
+                  </p>
+                </div>
+              </div>
+              <div className="panel-body">
+                <div className="form-group mb-15">
+                  <label style={{ fontSize: '9px', fontWeight: 700, color: '#475569',
+                    textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>
+                    Document Type
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <select className="form-control font-sm" value={selectedDocType}
+                      onChange={(e) => setSelectedDocType(e.target.value)}
+                      style={{ height: '42px', paddingRight: '36px', appearance: 'none', borderRadius: '10px', border: '1.5px solid #e2e8f0' }}>
+                      <option value="">-- Select document to request --</option>
+                      {REQUEST_OPTIONS.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                    <ChevronDown size={15} color="#94a3b8" style={{
+                      position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none',
+                    }} />
+                  </div>
+                </div>
+                <div className="form-group mb-15">
+                  <label style={{ fontSize: '9px', fontWeight: 700, color: '#475569',
+                    textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>
+                    Message <span style={{ color: '#94a3b8', textTransform: 'none', fontSize: '11px' }}>(optional)</span>
+                  </label>
+                  <textarea className="form-control font-sm"
+                    placeholder="Explain why this document is needed..."
+                    value={requestNote} onChange={(e) => setRequestNote(e.target.value)}
+                    style={{ minHeight: '80px', resize: 'vertical', borderRadius: '10px', border: '1.5px solid #e2e8f0' }} />
+                </div>
+                <button onClick={handleSendRequest} disabled={!selectedDocType} style={{
+                  width: '100%', padding: '11px 0',
+                  background: selectedDocType ? '#122359' : '#e2e8f0',
+                  color: selectedDocType ? '#fff' : '#94a3b8',
+                  border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 700,
+                  cursor: selectedDocType ? 'pointer' : 'not-allowed',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
+                }}>
+                  <Send size={14} /> Send Document Request
+                </button>
+                {requestedDocs.length > 0 && (
+                  <p className="font-xs color-text-paragraph-2 mt-10 mb-0 text-center">
+                    <span style={{ color: '#1d4ed8', fontWeight: 600 }}>{requestedDocs.length}</span> request{requestedDocs.length > 1 ? 's' : ''} sent
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Checklist */}
+          <div className="section-box">
+            <div className="panel-white">
+              <div className="panel-head">
+                <div className="d-flex align-items-center" style={{ gap: '8px' }}>
+                  <CheckCircle size={15} color="#ffa300" />
+                  <h6 className="mb-0">Document Checklist</h6>
+                </div>
+              </div>
+              <div className="panel-body">
+                {docs.map((doc) => {
+                  const s = STATUS_STYLE[doc.status] || STATUS_STYLE['Pending Review']
+                  return (
+                    <div key={doc.id} className="d-flex align-items-center justify-content-between mb-10">
+                      <span className="font-sm" style={{ color: '#334155', fontWeight: 500 }}>{doc.title}</span>
+                      <span style={{
+                        fontSize: '10px', fontWeight: 700, padding: '2px 8px',
+                        borderRadius: '20px', background: s.bg, color: s.color, border: `1px solid ${s.border}`,
+                        whiteSpace: 'nowrap', marginLeft: '8px', flexShrink: 0,
+                      }}>{doc.status}</span>
                     </div>
-                ))}
+                  )
+                })}
+                <hr style={{ borderColor: '#f1f5f9', margin: '12px 0' }} />
+                <div className="d-flex align-items-center justify-content-between mb-5">
+                  <span className="font-xs color-text-paragraph-2">Verification Progress</span>
+                  <strong className="font-xs" style={{ color: '#122359' }}>{pct}%</strong>
+                </div>
+                <div className="box-progress-bar">
+                  <div className="progress">
+                    <div className="progress-bar" role="progressbar"
+                      style={{ width: `${pct}%`, borderRadius: '5px',
+                        background: allVerified ? '#16a34a' : '#ffa300', transition: 'width 0.4s ease' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Admin Notes */}
+          <div className="section-box">
+            <div className="panel-white">
+              <div className="panel-head" style={{ alignItems: 'flex-start' }}>
+                <div>
+                  <h6 className="mb-0">Admin Notes</h6>
+                  <p className="font-xs color-text-paragraph-2 mt-5 mb-0">Internal — not visible to recruiter</p>
+                </div>
+              </div>
+              <div className="panel-body">
+                <textarea className="form-control font-sm"
+                  placeholder="Add internal notes about this document review..."
+                  value={adminNote}
+                  onChange={(e) => { setAdminNote(e.target.value); setAdminNoteSaved(false) }}
+                  style={{ minHeight: '80px', resize: 'vertical', borderRadius: '10px', border: '1.5px solid #e2e8f0', marginBottom: '10px' }} />
+                <button onClick={() => { if (adminNote.trim()) setAdminNoteSaved(true) }} style={{
+                  width: '100%', padding: '9px 0',
+                  background: adminNoteSaved ? '#f0fdf4' : '#f8fafc',
+                  border: `1.5px solid ${adminNoteSaved ? '#bbf7d0' : '#e2e8f0'}`,
+                  borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+                  color: adminNoteSaved ? '#16a34a' : '#334155', cursor: 'pointer',
+                }}>
+                  {adminNoteSaved ? '✓ Note Saved' : 'Save Note'}
+                </button>
               </div>
             </div>
           </div>
 
         </div>
-        {/* end right sidebar */}
-
       </div>
 
-      {/* ── BOTTOM QUEUE BAR ── */}
+      {/* BOTTOM ACTION BAR */}
       <div className="section-box">
-       
-          <div className="section-box">
         <div className="panel-white" style={{ padding: '16px 20px' }}>
           <div className="d-flex align-items-center justify-content-between" style={{ flexWrap: 'wrap', gap: '12px' }}>
-            <div className="d-flex align-items-center" style={{ gap: '20px', flexWrap: 'wrap' }}>
+            <div>
+              <p className="font-sm mb-0" style={{ fontWeight: 600, color: '#122359' }}>
+                Review Actions — Stellar Logistics Pvt. Ltd.
+              </p>
+              <p className="font-xs color-text-paragraph-2 mb-0">
+                {verified} of {docs.length} documents verified
+                {allVerified && <span style={{ color: '#16a34a', fontWeight: 700, marginLeft: '8px' }}>✓ Verification Complete</span>}
+              </p>
             </div>
             <div className="d-flex gap-2 flex-wrap">
-              <button className="btn btn-default hover-up" style={{ background: '#e8f5e9', color: '#2e7d32', border: '1px solid #a5d6a7', height: '44px', borderRadius: '10px' }}>Approve</button>
-              <button className="btn btn-default hover-up" style={{ background: '#fdecea', color: '#c62828', border: '1px solid #ef9a9a', height: '44px', borderRadius: '10px' }}>Reject</button>
-              <button className="btn btn-default hover-up" style={{ background: '#fff3e0', color: '#e65100', border: '1px solid #ffcc80', height: '44px', borderRadius: '10px' }}>Flag</button>
-              <a href="/recruiters" className="btn d-flex align-items-center justify-content-center" style={{ height: '44px', padding: '0 18px', borderRadius: '10px' }}>Discard Changes</a>
-              <a href="#" className="btn btn-primary d-flex align-items-center justify-content-center" style={{ height: '44px', padding: '0 18px', borderRadius: '10px' }}>Save Changes</a>
+              <a href="/admin/recruiters" className="btn hover-up font-sm" style={{
+                height: '44px', padding: '0 18px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: '#f8fafc', border: '1px solid #e2e8f0',
+                color: '#475569', borderRadius: '10px', fontWeight: 600,
+              }}>
+                Back to Recruiters
+              </a>
+              <button onClick={handleVerifyAll} disabled={allVerified} className="btn hover-up font-sm" style={{
+                height: '44px', padding: '0 20px',
+                background: allVerified ? '#bbf7d0' : '#16a34a',
+                border: `1px solid ${allVerified ? '#86efac' : 'transparent'}`,
+                color: allVerified ? '#16a34a' : '#fff',
+                borderRadius: '10px', fontWeight: 700,
+                cursor: allVerified ? 'default' : 'pointer',
+                display: 'flex', alignItems: 'center', gap: '7px',
+              }}>
+                <ShieldCheck size={15} />
+                {allVerified ? 'All Verified' : 'Approve All Documents'}
+              </button>
             </div>
           </div>
         </div>
       </div>
-      </div>
+
+      <style>{`
+        @keyframes slideIn {
+          from { transform: translateX(30px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `}</style>
 
       <Footer />
     </>
-  )
-}
-
-/* ─────────────────────────────────────────
-   Inline-editable OCR table cell
-───────────────────────────────────────── */
-function OcrCell({ value: initialValue }) {
-  const [editing, setEditing] = useState(false)
-  const [value, setValue] = useState(initialValue)
-  const [draft, setDraft] = useState(initialValue)
-
-  const save = () => { setValue(draft); setEditing(false) }
-  const cancel = () => { setDraft(value); setEditing(false) }
-
-  return editing ? (
-    <div className="d-flex align-items-center" style={{ gap: '4px' }}>
-      <input value={draft} onChange={(e) => setDraft(e.target.value)}
-        className="form-control font-sm"
-        style={{ flex: 1, height: '32px', padding: '0 8px' }} autoFocus />
-      <button onClick={save} className="btn btn-default hover-up"
-        style={{ padding: '5px 8px', lineHeight: 1, minWidth: 'unset' }}>
-        <i className="fi-rr-check" style={{ fontSize: '11px' }}></i>
-      </button>
-      <button onClick={cancel} className="btn btn-grey-small hover-up"
-        style={{ padding: '5px 8px', lineHeight: 1, minWidth: 'unset' }}>
-        <i className="fi-rr-cross" style={{ fontSize: '11px' }}></i>
-      </button>
-    </div>
-  ) : (
-    <div className="d-flex align-items-center" style={{ gap: '6px' }}>
-      <span className="font-sm color-text-paragraph-2">{value}</span>
-      <button onClick={() => { setDraft(value); setEditing(true) }}
-        className="btn btn-grey-small hover-up"
-        style={{ padding: '3px 6px', lineHeight: 1, minWidth: 'unset', opacity: 0.55 }}>
-        <i className="fi-rr-edit" style={{ fontSize: '10px' }}></i>
-      </button>
-    </div>
   )
 }

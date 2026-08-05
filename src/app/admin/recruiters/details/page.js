@@ -27,7 +27,12 @@ export default function EmployerDetailsPage() {
     </div>
 
     <div className='mt-1'>
-      <h5 className="mb-0">Stellar Logistics Pvt. Ltd.</h5>
+      <div className="d-flex align-items-center gap-2 mb-1">
+        <h5 className="mb-0">Stellar Logistics Pvt. Ltd.</h5>
+        <span className="badge" style={{ backgroundColor: '#e2e8f0', color: '#475569', fontSize: '11px', padding: '4px 8px', borderRadius: '12px' }}>
+          View Only
+        </span>
+      </div>
 
       <div className="d-flex align-items-center mt-1" style={{ gap: '10px' }}>
         <span style={{
