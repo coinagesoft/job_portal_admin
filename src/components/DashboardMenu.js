@@ -12,6 +12,7 @@ import {
   UserCog,
   Headphones,
   FileText,
+   Scale,
   Settings,
   LogOut
 } from "lucide-react";
@@ -26,7 +27,7 @@ const navItems = [
   { href: '/admin/subadmin', icon: '/assets/imgs/page/dashboard/profiles.svg', name: 'Sub-Admin' },
   { href: '/admin/helpAndsupport', icon:Headphones, name: 'Help & Support' },
   { href: '/admin/audit', icon: FileText, name: 'Audit Logs' },
-    { href: '/admin/managePolicies', icon: '/assets/imgs/page/dashboard/tasks.svg', name: 'Legal Pages' },
+{ href: '/admin/managePolicies', icon:  Scale, name: 'Legal Pages' },
   { href: '/admin/settings', icon: '/assets/imgs/page/dashboard/settings.svg', name: 'Settings' },
   { href: '/', icon: '/assets/imgs/page/dashboard/logout.svg', name: 'Logout' },
 ];
