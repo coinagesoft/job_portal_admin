@@ -706,6 +706,43 @@ export default function CandidatesPage() {
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        .table-pagination {
+          padding: 15px 20px;
+          border-top: 1px solid #edf1f6;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          color: #7b8aa5;
+          font-size: 12px;
+        }
+        .table-pagination div {
+          display: flex;
+          gap: 5px;
+        }
+        .table-pagination button {
+          height: 30px;
+          min-width: 30px;
+          padding: 0 9px;
+          border: 1px solid #dce4ef;
+          border-radius: 5px;
+          background: #fff;
+          color: #5f7194;
+          font-size: 11px;
+          font-weight: 700;
+        }
+        .table-pagination button.active {
+          color: #fff;
+          background: #ffa300;
+          border-color: #ffa300;
+        }
+        .table-pagination button:disabled {
+          opacity: 0.45;
+          cursor: not-allowed;
+        }
+      `}</style>
       <Footer />
     </>
   );
