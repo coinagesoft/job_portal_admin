@@ -8,6 +8,33 @@ export default function CandidateDetailsPage() {
   const [preview, setPreview] = useState(null)
   const [accountStatus, setAccountStatus] = useState("Active")
 
+  const documents = [
+    {
+      id: 1,
+      title: 'Aadhaar Card',
+      subtitle: 'Identity Document',
+      url: 'https://pvcprint.shop/wp-content/uploads/2025/04/aadhar-card-front.png'
+    },
+    {
+      id: 2,
+      title: 'ITI Certificate',
+      subtitle: 'Education Certificate',
+      url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTTjV_NKW48YeqkUxUYHNN3mhKX-YybptO9Tg&s'
+    },
+    {
+      id: 3,
+      title: 'Resume',
+      subtitle: 'Candidate Resume PDF',
+      url: 'https://via.placeholder.com/900x1200?text=Resume+Preview'
+    },
+    {
+      id: 4,
+      title: 'Police Clearance',
+      subtitle: 'Background Check Document',
+      url: 'https://via.placeholder.com/900x1200?text=Police+Clearance+Preview'
+    }
+  ]
+
   return (
     <>
       <div className="box-heading"> 
@@ -156,131 +183,6 @@ export default function CandidateDetailsPage() {
           {/* RIGHT CONTENT */}
           <div className="col-xl-8 col-lg-7">
 
-            {/* Identity Verification */}
-            <div className="panel-white mb-20">
-              <div className="box-padding">
-                <h5 className="mb-20">Identity Verification</h5>
-
-                <div className="row">
-                  <div className="col-md-6">
-                    <p className="font-sm mb-5"><strong>ID Type:</strong> Aadhaar</p>
-                  </div>
-
-                  <div className="col-md-6">
-                    <p className="font-sm mb-5"><strong>ID Number:</strong> XXXX-XXXX-1120</p>
-                  </div>
-                </div>
-
-                <div className="row mt-15">
-                  <div className="col-md-6 mb-15">
-                    <img
-                      src="https://pvcprint.shop/wp-content/uploads/2025/04/aadhar-card-front.png"
-                      className="img-responsive"
-                      style={{ borderRadius: "12px", width: "100%" }}
-                    />
-                  </div>
-
-                  <div className="col-md-6 mb-15">
-                    <img
-                      src="https://pbs.twimg.com/media/CvwpwnjVMAEoFoi.jpg"
-                      className="img-responsive"
-                      style={{ borderRadius: "12px", width: "100%" }}
-                    />
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-            {/* Certificate */}
-            <div className="panel-white mb-20">
-              <div className="box-padding">
-                <h5 className="mb-20">ITI Certificate (AI Extracted)</h5>
-
-                <div
-                  className="text-center p-5 mb-20"
-                  style={{
-                    border: "1px dashed #d8d8d8",
-                    borderRadius: "14px",
-                    minHeight: "260px"
-                  }}
-                >
-                 <div style={{ position: 'relative' }}>
-  <img
-    src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTTjV_NKW48YeqkUxUYHNN3mhKX-YybptO9Tg&s"
-    alt="ITI Certificate"
-    style={{
-      width: '100%',
-      maxHeight: '220px',
-      objectFit: 'cover',
-      borderRadius: '10px',
-      border: '1px solid #eee'
-    }}
-  />
-
-  {/* VIEW BUTTON */}
-  <button
-    className="btn btn-grey-small"
-    onClick={() => setPreview("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTTjV_NKW48YeqkUxUYHNN3mhKX-YybptO9Tg&s")}
-    style={{
-      position: 'absolute',
-      bottom: '10px',
-      right: '10px'
-    }}
-  >
-    View Original
-  </button>
-</div>
-                </div>
-
-                <div className="row">
-                  <div className="col-md-6">
-                    <div className="panel-white mb-15">
-                      <div className="box-padding">
-                        <p className="font-xs">TRADE</p>
-                        <h6>Electrician</h6>
-                        <span className="btn btn-tags-sm">98% AI Confidence</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="col-md-6">
-                    <div className="panel-white mb-15">
-                      <div className="box-padding">
-                        <p className="font-xs">INSTITUTE</p>
-                        <h6>Government ITI, Mumbai</h6>
-                        <span className="btn btn-tags-sm">95% AI Confidence</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="col-md-6">
-                    <div className="panel-white mb-15">
-                      <div className="box-padding">
-                        <p className="font-xs">YEAR OF PASSING</p>
-                        <h6>2021</h6>
-                        <span className="btn btn-tags-sm">92% AI Confidence</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="col-md-6">
-                    <div className="panel-white mb-15">
-                      <div className="box-padding">
-                        <p className="font-xs">CERTIFICATE NUMBER</p>
-                        <h6>CERT-88291-B</h6>
-                        <span className="btn btn-tags-sm">45% Confidence</span>
-                        <p className="font-xs color-danger mt-5">
-                          Manual review recommended
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
             {/* Billing */}
             <div className="panel-white mb-20">
               <div className="box-padding">
@@ -310,6 +212,50 @@ export default function CandidateDetailsPage() {
                   </table>
                 </div>
 
+              </div>
+            </div>
+
+            {/* Documents */}
+            <div className="panel-white mb-20">
+              <div className="box-padding">
+                <div className="d-flex align-items-start justify-content-between mb-20">
+                  <div>
+                    <h5 className="mb-5">Documents</h5>
+                    <p className="font-sm color-text-paragraph-2 mb-0">
+                      View uploaded candidate documents and preview them in a modal.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="table-responsive">
+                  <table className="table table-hover">
+                    <thead>
+                      <tr>
+                        <th>Document</th>
+                        <th>Type</th>
+                        <th className="text-end">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {documents.map((doc) => (
+                        <tr key={doc.id}>
+                          <td>
+                            <strong>{doc.title}</strong>
+                          </td>
+                          <td>{doc.subtitle}</td>
+                          <td className="text-end">
+                            <button
+                              className="btn btn-grey-small"
+                              onClick={() => setPreview(doc.url)}
+                            >
+                              Preview
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
 

@@ -353,13 +353,13 @@ function DocCard({ doc, onPreview, onVerify, onRejectOpen, onResubmit }) {
               <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a' }}>Verified by Admin</span>
             </div>
           )}
-          <button onClick={() => onPreview(doc)} style={{
+          {/* <button onClick={() => onPreview(doc)} style={{
             width: '100%', padding: '6px 0', background: '#f8fafc', border: '1px solid #e2e8f0',
             borderRadius: '8px', fontSize: '11px', fontWeight: 600, color: '#334155', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
           }}>
             <Eye size={12} /> Preview Document
-          </button>
+          </button> */}
         </div>
       </div>
     </div>
@@ -374,8 +374,6 @@ export default function RecruiterDocumentsPage() {
   const [requestedDocs, setRequestedDocs] = useState([])
   const [selectedDocType, setSelectedDocType] = useState('')
   const [requestNote, setRequestNote] = useState('')
-  const [adminNote, setAdminNote] = useState('')
-  const [adminNoteSaved, setAdminNoteSaved] = useState(false)
   const [toast, setToast] = useState(null)
 
   const showToast = (msg, type = 'success') => {
@@ -745,36 +743,6 @@ export default function RecruiterDocumentsPage() {
               </div>
             </div>
           </div>
-
-          {/* Admin Notes */}
-          <div className="section-box">
-            <div className="panel-white">
-              <div className="panel-head" style={{ alignItems: 'flex-start' }}>
-                <div>
-                  <h6 className="mb-0">Admin Notes</h6>
-                  <p className="font-xs color-text-paragraph-2 mt-5 mb-0">Internal — not visible to recruiter</p>
-                </div>
-              </div>
-              <div className="panel-body">
-                <textarea className="form-control font-sm"
-                  placeholder="Add internal notes about this document review..."
-                  value={adminNote}
-                  onChange={(e) => { setAdminNote(e.target.value); setAdminNoteSaved(false) }}
-                  style={{ minHeight: '80px', resize: 'vertical', borderRadius: '10px', border: '1.5px solid #e2e8f0', marginBottom: '10px' }} />
-                <button onClick={() => { if (adminNote.trim()) setAdminNoteSaved(true) }} style={{
-                  width: '100%', padding: '9px 0',
-                  background: adminNoteSaved ? '#f0fdf4' : '#f8fafc',
-                  border: `1.5px solid ${adminNoteSaved ? '#bbf7d0' : '#e2e8f0'}`,
-                  borderRadius: '10px', fontSize: '13px', fontWeight: 600,
-                  color: adminNoteSaved ? '#16a34a' : '#334155', cursor: 'pointer',
-                }}>
-                  {adminNoteSaved ? '✓ Note Saved' : 'Save Note'}
-                </button>
-              </div>
-            </div>
-          </div>
-
-        </div>
       </div>
 
       {/* BOTTOM ACTION BAR */}
@@ -815,7 +783,8 @@ export default function RecruiterDocumentsPage() {
           </div>
         </div>
       </div>
-
+              </div>
+              
       <style>{`
         @keyframes slideIn {
           from { transform: translateX(30px); opacity: 0; }
