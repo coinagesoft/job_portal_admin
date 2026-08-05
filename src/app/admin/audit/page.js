@@ -10,8 +10,20 @@ import {
   ChevronDown,
   Copy,
   Check,
-  X
+  X,
+  Calendar,
+  Flag,
+  FlagOff
 } from "lucide-react"
+
+// SNAKE_CASE action code → readable label, e.g. USER_SUSPENDED → "User Suspended"
+function formatAction(action) {
+  return action
+    .toLowerCase()
+    .split('_')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+}
 
 // ── Severity → color mapping (single source of truth, used everywhere) ──
 const SEVERITY_STYLES = {
@@ -108,18 +120,11 @@ const logsData = [
   },
 ]
 
-const inspections = [
-  {
-    id: 'LOG-8291-A', title: 'User Suspension Investigation',
-    level: 'critical', actor: 'sarah.admin@skillbridge.io',
-    detail: 'Admin sarah.admin@skillbridge.io suspended user John Doe (ID: 1293) citing repeated policy violations. Suspension logged at 14:22:01. IP: 192.168.1.45. No prior warnings issued. Action flagged for compliance review.',
-  },
-  {
-    id: 'LOG-8294-D', title: 'System Configuration Update',
-    level: 'warning', actor: 'admin.super',
-    detail: 'admin.super modified the Global Registration Fee configuration. Change recorded at 09:12:30. All changes are immutable and hashed. IP: 192.168.5.112.',
-  },
-]
+// Logs pre-flagged for review on load (in a real app this comes from the backend)
+const initialFlags = {
+  'a8f5f167f44f4964e6c998dee827110c': { status: 'open', note: 'Repeated violations — confirm no prior warnings were missed.' },
+  '2c624232cdd221771294dfbb310aca00': { status: 'open', note: 'Fee change — verify finance sign-off is on file.' },
+}
 
 const dpdpRules = [
   { rule: 'Notice of Purpose', status: 'Compliant', statusColor: '#2e7d32', statusBg: '#e8f5e9', desc: 'Admin must state why data is accessed.' },
@@ -179,6 +184,33 @@ export default function AuditLogsPage() {
   const [openInspection, setOpenInspection] = useState(null)
   const [openRow, setOpenRow] = useState(null)
   const [exportMsg, setExportMsg] = useState('')
+  const [flags, setFlags] = useState(initialFlags)
+
+  function toggleFlag(hash) {
+    setFlags(prev => {
+      const next = { ...prev }
+      if (next[hash]) {
+        delete next[hash]
+      } else {
+        next[hash] = { status: 'open', note: '' }
+      }
+      return next
+    })
+  }
+
+  function toggleResolved(hash) {
+    setFlags(prev => ({
+      ...prev,
+      [hash]: { ...prev[hash], status: prev[hash].status === 'open' ? 'resolved' : 'open' }
+    }))
+  }
+
+  const flaggedLogs = useMemo(() => {
+    return logsData
+      .filter(l => flags[l.hash])
+      .map(l => ({ ...l, flagStatus: flags[l.hash].status, flagNote: flags[l.hash].note }))
+      .sort((a, b) => (a.flagStatus === b.flagStatus ? 0 : a.flagStatus === 'open' ? -1 : 1))
+  }, [flags])
 
   const filtered = useMemo(() => logsData.filter(l => {
     const matchesActor = l.actor.toLowerCase().includes(actorFilter.toLowerCase())
@@ -325,13 +357,14 @@ export default function AuditLogsPage() {
                   />
                 </div>
 
-                <div style={{ minWidth: '170px', maxWidth: '170px' }}>
+                <div style={{ position: 'relative', minWidth: '170px', maxWidth: '170px' }}>
+                  <Calendar size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#aaa', pointerEvents: 'none' }} />
                   <input
                     type="date"
-                    className="form-control font-xs"
+                    className="form-control font-xs date-filter-input"
                     value={dateFilter}
                     onChange={(e) => setDateFilter(e.target.value)}
-                    style={{ height: '42px', fontSize: '12px', padding: '4px 10px' }}
+                    style={{ height: '42px', fontSize: '12px', padding: '4px 10px 4px 30px' }}
                   />
                 </div>
 
@@ -368,6 +401,12 @@ export default function AuditLogsPage() {
                   <X size={14} /> Clear Filters
                 </button>
               </div>
+              <style jsx>{`
+                .date-filter-input::-webkit-calendar-picker-indicator {
+                  filter: invert(0.5);
+                  cursor: pointer;
+                }
+              `}</style>
 
               {/* Table */}
               <div style={{ overflowX: 'auto' }}>
@@ -407,7 +446,7 @@ export default function AuditLogsPage() {
                               <span className="font-xs" style={{ fontWeight: 600, color: '#122359', wordBreak: 'break-all' }}>{row.actor}</span>
                             </td>
                             <td style={{ padding: '14px 10px' }}>
-                              <Badge color={act.color} bg={act.bg} pill={false}>{row.action}</Badge>
+                              <Badge color={act.color} bg={act.bg} pill={false}>{formatAction(row.action)}</Badge>
                             </td>
                             <td style={{ padding: '14px 10px' }}>{row.entity}</td>
                             <td style={{ padding: '14px 10px' }}>{row.ip}</td>
@@ -454,6 +493,23 @@ export default function AuditLogsPage() {
                                   <div>
                                     <p className="font-xs color-text-paragraph-2 mb-5">Record Hash</p>
                                     <CopyHash hash={row.hash} />
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); toggleFlag(row.hash) }}
+                                      className="font-xs"
+                                      style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                        border: `1px solid ${flags[row.hash] ? '#c62828' : '#ddd'}`,
+                                        background: flags[row.hash] ? '#fdecea' : '#fff',
+                                        color: flags[row.hash] ? '#c62828' : '#555',
+                                        borderRadius: '4px', padding: '6px 10px', cursor: 'pointer', fontWeight: 600,
+                                      }}
+                                    >
+                                      {flags[row.hash]
+                                        ? <><FlagOff size={13} /> Unflag</>
+                                        : <><Flag size={13} /> Flag for Review</>}
+                                    </button>
                                   </div>
                                 </div>
                               </td>
@@ -503,38 +559,72 @@ export default function AuditLogsPage() {
           <div className="section-box">
             <div className="panel-white">
               <div className="panel-head">
-                <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-                  <span style={{ fontSize: '16px', color: '#ffa300' }}>&#9658;</span>
-                  <h5 className="mb-0">Recent Detail Inspections</h5>
+                <div className="d-flex align-items-center justify-content-between">
+                  <div className="d-flex align-items-center" style={{ gap: '8px' }}>
+                    <Flag size={16} color="#c62828" />
+                    <h5 className="mb-0">Flagged for Review</h5>
+                  </div>
+                  {flaggedLogs.length > 0 && (
+                    <span className="font-xs color-text-paragraph-2">
+                      {flaggedLogs.filter(l => l.flagStatus === 'open').length} open · {flaggedLogs.filter(l => l.flagStatus === 'resolved').length} resolved
+                    </span>
+                  )}
                 </div>
+                <p className="font-xs color-text-paragraph-2 mb-0 mt-5">
+                  A short worklist of logs someone marked for follow-up — separate from the full table above, so you don't have to search through every log to find what still needs a decision.
+                </p>
               </div>
 
               <div className="panel-body" style={{ padding: '0' }}>
-                {inspections.map((item, i) => {
-                  const lvl = SEVERITY_STYLES[item.level] || SEVERITY_STYLES.info
-                  const isOpen = openInspection === i
+                {flaggedLogs.length === 0 && (
+                  <div style={{ padding: '30px 20px', textAlign: 'center' }}>
+                    <span className="font-sm color-text-paragraph-2">
+                      Nothing flagged yet. Expand a row in the table above and click "Flag for Review" to track it here.
+                    </span>
+                  </div>
+                )}
+
+                {flaggedLogs.map((item, i) => {
+                  const lvl = SEVERITY_STYLES[item.severity] || SEVERITY_STYLES.info
+                  const isOpen = openInspection === item.hash
+                  const isResolved = item.flagStatus === 'resolved'
                   return (
-                    <div key={item.id}>
+                    <div key={item.hash}>
                       <div
                         className="hover-up"
-                        onClick={() => setOpenInspection(isOpen ? null : i)}
+                        onClick={() => setOpenInspection(isOpen ? null : item.hash)}
                         style={{
                           display: 'flex', alignItems: 'center', gap: '12px',
                           padding: '16px 20px',
-                          borderBottom: isOpen ? 'none' : (i < inspections.length - 1 ? '1px solid #f5f5f5' : 'none'),
+                          borderBottom: isOpen ? 'none' : (i < flaggedLogs.length - 1 ? '1px solid #f5f5f5' : 'none'),
                           cursor: 'pointer',
+                          opacity: isResolved ? 0.6 : 1,
                         }}
                       >
                         <Badge color={lvl.color} bg={lvl.bg}>{lvl.label}</Badge>
 
                         <div style={{ flex: 1 }}>
-                          <span className="font-sm" style={{ fontWeight: 600, color: '#122359' }}>
-                            {item.title}: {item.id}
+                          <span className="font-sm" style={{ fontWeight: 600, color: '#122359', textDecoration: isResolved ? 'line-through' : 'none' }}>
+                            {formatAction(item.action)}: {item.entity}
                           </span>
                           <span className="font-xs color-text-paragraph-2" style={{ marginLeft: '8px' }}>
                             Actor: {item.actor}
                           </span>
                         </div>
+
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleResolved(item.hash) }}
+                          className="font-xs"
+                          style={{
+                            border: `1px solid ${isResolved ? '#2e7d32' : '#ddd'}`,
+                            background: isResolved ? '#e8f5e9' : '#fff',
+                            color: isResolved ? '#2e7d32' : '#555',
+                            borderRadius: '20px', padding: '4px 12px', cursor: 'pointer', fontWeight: 600, fontSize: '11px',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {isResolved ? 'Resolved' : 'Mark Resolved'}
+                        </button>
 
                         <ChevronDown
                           size={16}
@@ -548,9 +638,12 @@ export default function AuditLogsPage() {
                           padding: '16px 20px 20px',
                           background: '#F8FAFF',
                           borderLeft: `3px solid ${lvl.color}`,
-                          borderBottom: i < inspections.length - 1 ? '1px solid #f5f5f5' : 'none',
+                          borderBottom: i < flaggedLogs.length - 1 ? '1px solid #f5f5f5' : 'none',
                         }}>
-                          <p className="font-sm color-text-paragraph-2">{item.detail}</p>
+                          <p className="font-sm color-text-paragraph-2 mb-5">{item.flagNote || 'No note added.'}</p>
+                          <p className="font-xs color-text-paragraph-2 mb-0">
+                            {item.ts.replace('\n', ' ')} · IP {item.ip} · Session {item.session_id}
+                          </p>
                         </div>
                       )}
                     </div>
