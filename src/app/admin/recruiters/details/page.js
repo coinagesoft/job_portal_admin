@@ -55,20 +55,7 @@ export default function EmployerDetailsPage() {
   style={{ gap: '14px', flexWrap: 'wrap' }}
 >
 
-  <span className="font-xs color-text-paragraph-2 d-flex align-items-center gap-1">
-    <Brain size={14} strokeWidth={2} />
-    AI: <strong>86%</strong>
-  </span>
-
-  <span className="font-xs d-flex align-items-center gap-1">
-    <AlertTriangle size={14} strokeWidth={2} />
-    Risk: <strong style={{ color: '#e65100' }}>Medium</strong>
-  </span>
-
-  <span className="font-xs d-flex align-items-center gap-1">
-    <User size={14} strokeWidth={2} />
-    Assigned: <strong>Sarah</strong>
-  </span>
+  {/* Removed AI/Risk/Assigned badges from top header */}
 
   {/* <span className="font-xs color-text-paragraph-2 d-flex align-items-center gap-1">
     <Clock size={14} strokeWidth={2} />
@@ -188,21 +175,29 @@ export default function EmployerDetailsPage() {
     </div>
 
     <div className="panel-body">
-
-      {[
-        { label: 'Document Validity', val: '1 Expired', color: '#c62828' },
-        { label: 'AI Confidence', val: '86%', color: '#ffa300' },
-        { label: 'Duplicate Company', val: 'No Match', color: '#2e7d32' },
-        { label: 'Sanctions Check', val: 'Clear', color: '#2e7d32' },
-      ].map(item => (
-        <div key={item.label} className="d-flex justify-content-between mb-8">
-          <span className="font-xs">{item.label}</span>
-          <span className="font-xs" style={{ color: item.color, fontWeight: 600 }}>
-            {item.val}
-          </span>
-        </div>
-      ))}
-
+      <div className="row gx-3 gy-3">
+        {[
+          { title: 'Document Validity', value: '1 Expired', description: 'One uploaded document has expired', color: '#dc2626' },
+          { title: 'AI Confidence', value: '86%', description: 'Overall verification confidence', color: '#ea580c' },
+          { title: 'Duplicate Company', value: 'No Match', description: 'No duplicate entity found', color: '#15803d' },
+          { title: 'Sanctions Check', value: 'Clear', description: 'No sanctions detected', color: '#047857' },
+        ].map(item => (
+          <div key={item.title} className="col-sm-6">
+            <div className="card-grid-2" style={{ padding: '16px', borderRadius: '14px', border: '1px solid #e5e7eb' }}>
+              <div className="d-flex align-items-start justify-content-between mb-12">
+                <div>
+                  <p className="font-xs color-text-paragraph-2 mb-2" style={{ textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                    {item.title}
+                  </p>
+                  <p className="font-sm mb-0" style={{ fontWeight: 700, color: '#111827' }}>{item.value}</p>
+                </div>
+                <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: item.color, marginTop: '4px' }}></span>
+              </div>
+              <p className="font-xs color-text-paragraph-2 mb-0">{item.description}</p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   </div>
 </div>
@@ -342,38 +337,6 @@ export default function EmployerDetailsPage() {
                             </div>
                         </div>
                     </div>
-<div className="section-box">
-  <div className="panel-white">
-    <div className="panel-head">
-      <h6 className="mb-0">AI Verification Insights</h6>
-    </div>
-
-    <div className="panel-body">
-
-      {[
-        { label: 'Company Name Match', val: 95 },
-        { label: 'License Match', val: 82 },
-        { label: 'Expiry Detection', val: 78 },
-      ].map(item => (
-        <div key={item.label} className="mb-10">
-          <div className="d-flex justify-content-between">
-            <span className="font-xs">{item.label}</span>
-            <span className="font-xs" style={{ fontWeight: 600 }}>{item.val}%</span>
-          </div>
-
-          <div style={{ height: '5px', background: '#eee', borderRadius: '3px' }}>
-            <div style={{
-              width: `${item.val}%`,
-              height: '100%',
-              background: item.val > 90 ? '#2e7d32' : '#e65100'
-            }}></div>
-          </div>
-        </div>
-      ))}
-
-    </div>
-  </div>
-</div>
                     {/* Trust & Verification Badges */}
                     <div className="section-box">
                         <div className="panel-white">
@@ -384,97 +347,33 @@ export default function EmployerDetailsPage() {
                                         <h6 className="mb-0">Trust &amp; Verification Badges</h6>
                                     </div>
                                     <p className="font-xs color-text-paragraph-2 mt-5 mb-0">
-                                        Status of verification markers visible to candidates
+                                        Verified trust attributes and compliance badges for this recruiter.
                                     </p>
                                 </div>
-                                <a className="btn btn-grey-small hover-up font-sm" href="#">Manage Badges</a>
                             </div>
                             <div className="panel-body">
-                                <div className="d-flex align-items-center" style={{ gap: '8px', flexWrap: 'wrap' }}>
+                                <div className="row gx-2 gy-2">
                                     {[
-                                        { label: 'GST Verified', active: true, color: '#2e7d32', bg: '#e8f5e9', border: '#a5d6a7' },
-                                        { label: 'PAN Verified', active: true, color: '#ffa300', bg: '#ffc151', border: '#90caf9' },
-                                        { label: 'Blue-Tick Verified', active: true, color: '#ffa300', bg: '#ffc151', border: '#90caf9' },
-                                        { label: 'POE Licensed', active: false, color: '#66789C', bg: '#F2F6FD', border: '#ffc151' },
-                                        { label: 'RPSL Certified', active: false, color: '#66789C', bg: '#F2F6FD', border: '#ffc151' },
+                                        { label: 'GST Verified', active: true, color: '#115e59', bg: '#d1fae5', border: '#10b981' },
+                                        { label: 'PAN Verified', active: true, color: '#c2410c', bg: '#ffedd5', border: '#fb923c' },
+                                        { label: 'Blue-Tick Verified', active: true, color: '#1d4ed8', bg: '#dbeafe', border: '#93c5fd' },
+                                        { label: 'POE Licensed', active: false, color: '#334155', bg: '#f8fafc', border: '#cbd5e1' },
+                                        { label: 'RPSL Certified', active: false, color: '#334155', bg: '#f8fafc', border: '#cbd5e1' },
                                     ].map((badge) => (
-                                        <span key={badge.label} style={{
-                                            display: 'inline-flex', alignItems: 'center', gap: '5px',
-                                            padding: '6px 14px', borderRadius: '20px',
-                                            background: badge.bg, color: badge.color,
-                                            fontSize: '12px', fontWeight: 600,
-                                            border: `1px solid ${badge.border}`,
-                                        }}>
-                                            {badge.active && <i className="fi-rr-check" style={{ fontSize: '10px' }}></i>}
-                                            {badge.label}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Activity & Audit Trail */}
-                    <div className="section-box">
-                        <div className="panel-white">
-                            <div className="panel-head" style={{ alignItems: 'center' }}>
-                                <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-                                    <i className="fi-rr-time-past font-sm color-brand-2"></i>
-                                    <h6 className="mb-0">Activity &amp; Audit Trail</h6>
-                                </div>
-                            </div>
-                            <div className="panel-body">
-                                {[
-                                    {
-                                        dot: '#ffa300', title: 'RPSL Document Uploaded',
-                                        by: 'Sarah Jenkins', time: 'Today, 10:45 AM', note: null,
-                                    },
-                                    {
-                                        dot: '#ffa300', title: 'GST Verified Automatically',
-                                        by: 'System AI', time: 'Yesterday, 04:20 PM',
-                                        note: '"GSTIN check successful via government portal API."',
-                                    },
-                                    {
-                                        dot: '#ffa300', title: 'Badge Assigned: Blue Tick',
-                                        by: 'Admin User', time: '2 days ago',
-                                        note: '"Trust verification completed manually."',
-                                    },
-                                    {
-                                        dot: '#dc2626', title: 'Account Suspended',
-                                        by: 'System Security', time: 'Oct 12, 2023',
-                                        note: '"Suspicious activity detected in login patterns."',
-                                    },
-                                ].map((item, i) => (
-                                    <div key={i} className="d-flex" style={{ gap: '14px', marginBottom: '20px' }}>
-                                        <div style={{ paddingTop: '5px', flexShrink: 0 }}>
+                                        <div key={badge.label} className="col-auto">
                                             <span style={{
-                                                display: 'inline-block', width: '10px', height: '10px',
-                                                borderRadius: '50%', background: item.dot,
-                                            }}></span>
+                                                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                                padding: '8px 16px', borderRadius: '999px',
+                                                background: badge.bg, color: badge.color,
+                                                fontSize: '12px', fontWeight: 700,
+                                                border: `1px solid ${badge.border}`,
+                                                minWidth: 'fit-content',
+                                            }}>
+                                                {badge.active && <i className="fi-rr-check" style={{ fontSize: '12px' }}></i>}
+                                                {badge.label}
+                                            </span>
                                         </div>
-                                        <div style={{ flex: 1 }}>
-                                            <div className="d-flex align-items-center justify-content-between"
-                                                style={{ flexWrap: 'wrap', gap: '4px' }}>
-                                                <p className="font-sm mb-0" style={{ fontWeight: 600, color: '#122359' }}>
-                                                    {item.title}
-                                                </p>
-                                                <span className="font-xs color-text-paragraph-2">{item.time}</span>
-                                            </div>
-                                            <p className="font-xs color-text-paragraph-2 mb-5">by {item.by}</p>
-                                            {item.note && (
-                                                <div style={{
-                                                    background: '#F8FAFF', border: '1px solid #ffc151',
-                                                    borderRadius: '4px', padding: '8px 12px',
-                                                }}>
-                                                    <p className="font-xs color-text-paragraph-2 mb-0">{item.note}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-
-                                <div className="text-center mt-10">
-                                    <a className="font-sm color-brand-2 hover-up" href="#">View Full Audit History</a>
+                                    ))}
                                 </div>
                             </div>
                         </div>
