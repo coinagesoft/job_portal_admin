@@ -118,80 +118,80 @@ export default function CandidatesPage() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="section-box">
-        <div className="row">
+   {/* Stats */}
+<div className="section-box">
+  <div className="row">
 
-          <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6 col-sm-6">
-            <div className="card-style-1 hover-up">
-              <div className="card-image">
-                <img src="/assets/imgs/page/dashboard/candidates.svg" alt="candidates" />
-              </div>
-              <div className="card-info">
-                <div className="card-title">
-                  <h3>
-                    {candidatesList.length} <br />
-                    <span className="font-sm status up">Total</span>
-                  </h3>
-                </div>
-                <p className="color-text-paragraph-2">Total Candidates</p>
-              </div>
-            </div>
+    <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6 col-sm-6">
+      <div className="card-style-1 hover-up">
+        <div className="card-image " style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center',marginRight:'0px' }}>
+          <img src="/assets/imgs/page/dashboard/candidates.svg" alt="candidates" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+        </div>
+        <div className="card-info">
+          <div className="card-title">
+            <h3>
+              {candidatesList.length} <br />
+              <span className="font-sm status up">Total</span>
+            </h3>
           </div>
-
-          <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6 col-sm-6">
-            <div className="card-style-1 hover-up">
-              <div className="card-image">
-                <UserCheck size={28} strokeWidth={2.2} />
-              </div>
-              <div className="card-info">
-                <div className="card-title">
-                  <h3>
-                    {activeCount}<br />
-                    <span className="font-sm status up">Active</span>
-                  </h3>
-                </div>
-                <p className="color-text-paragraph-2">Active Candidates</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6 col-sm-6">
-            <div className="card-style-1 hover-up">
-              <div className="card-image">
-                <Clock size={28} strokeWidth={2.2} />
-              </div>
-              <div className="card-info">
-                <div className="card-title">
-                  <h3>
-                    {pendingCount}<br />
-                    <span className="font-sm status down">Pending</span>
-                  </h3>
-                </div>
-                <p className="color-text-paragraph-2">Pending Reviews</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6 col-sm-6">
-            <div className="card-style-1 hover-up">
-              <div className="card-image">
-                <img src="/assets/imgs/page/dashboard/recruiters.svg" alt="suspended" />
-              </div>
-              <div className="card-info">
-                <div className="card-title">
-                  <h3>
-                    {suspendedCount}<br />
-                    <span className="font-sm status down">Suspended</span>
-                  </h3>
-                </div>
-                <p className="color-text-paragraph-2">Suspended Accounts</p>
-              </div>
-            </div>
-          </div>
-
+          <p className="color-text-paragraph-2">Total Candidates</p>
         </div>
       </div>
+    </div>
+
+    <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6 col-sm-6">
+      <div className="card-style-1 hover-up">
+        <div className="card-image" style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center',marginRight:'0px' }}>
+          <UserCheck size={28} strokeWidth={2.2} />
+        </div>
+        <div className="card-info">
+          <div className="card-title">
+            <h3>
+              {activeCount}<br />
+              <span className="font-sm status up">Active</span>
+            </h3>
+          </div>
+          <p className="color-text-paragraph-2">Active Candidates</p>
+        </div>
+      </div>
+    </div>
+
+    <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6 col-sm-6">
+      <div className="card-style-1 hover-up">
+        <div className="card-image" style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center',marginRight:'0px' }}>
+          <Clock size={28} strokeWidth={2.2} />
+        </div>
+        <div className="card-info">
+          <div className="card-title">
+            <h3>
+              {pendingCount}<br />
+              <span className="font-sm status down">Pending</span>
+            </h3>
+          </div>
+          <p className="color-text-paragraph-2">Pending Reviews</p>
+        </div>
+      </div>
+    </div>
+
+    <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6 col-sm-6">
+      <div className="card-style-1 hover-up">
+        <div className="card-image" style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center',marginRight:'0px' }}>
+          <img src="/assets/imgs/page/dashboard/recruiters.svg" alt="suspended" style={{ width: 28, height: 28, objectFit: 'contain',marginRight:'0px' }} />
+        </div>
+        <div className="card-info">
+          <div className="card-title">
+            <h3>
+              {suspendedCount}<br />
+              <span className="font-sm status down">Suspended</span>
+            </h3>
+          </div>
+          <p className="color-text-paragraph-2">Suspended Accounts</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
 
       <div className="section-box mt-20">
         <div className="panel-white">

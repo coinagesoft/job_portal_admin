@@ -110,7 +110,7 @@ visibility: hidden;
   min-width: 48px !important;
   height: 48px !important;
   padding-right: 0 !important;
-  margin-right: 16px !important;
+  margin-right: 16px ;
 }
 .card-style-1 .card-info {
   display: flex !important;
@@ -312,6 +312,7 @@ margin-top: 0px !important;
 
   .card-style-1 h3 {
     font-size: 25px !important;
+    text-align: center;
   }
 }
 
