@@ -3,31 +3,11 @@ import { useState } from 'react'
 import Footer from '../../../components/Footer'
 
 export default function SettingsPage() {
-const [newPack, setNewPack] = useState(null)
 
   // ── Registration & Access state ──
   const [enableRegistrations, setEnableRegistrations] = useState(true)
   const [registrationVerification, setRegistrationVerification] = useState(true)
   const [platformFee, setPlatformFee] = useState('49.99')
-
-  // ── Credit Pack Pricing state ──
-  const [packs, setPacks] = useState([
-    { id: 1, name: 'Starter Pack',      credits: '100 Credits',  price: '19.99' },
-    { id: 2, name: 'Professional',      credits: '500 Credits',  price: '79.99' },
-    { id: 3, name: 'Enterprise',        credits: '2000 Credits', price: '249.99' },
-  ])
-  const [serviceTax, setServiceTax] = useState('12% Included')
-  const [editingPack, setEditingPack] = useState(null) // id of pack being edited
-const addPack = () => {
-  setNewPack({
-    id: Date.now(),
-    name: '',
-    credits: '',
-    price: ''
-  })
-}
-  const deletePack = (id) => setPacks(p => p.filter(pk => pk.id !== id))
-  const updatePack = (id, field, val) => setPacks(p => p.map(pk => pk.id === id ? { ...pk, [field]: val } : pk))
 
   // ── Regional & Compliance state ──
   const [currency, setCurrency]     = useState('USD - United States Dollar ($)')
@@ -39,41 +19,113 @@ const addPack = () => {
   const [enforceMFA, setEnforceMFA]         = useState(true)
   const [maintenanceMode, setMaintenanceMode] = useState(false)
 
+  // ── Admin Password Reset state ──
+  const [newPassword, setNewPassword]         = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [forceRelogin, setForceRelogin]       = useState(true)
+  const passwordsMismatch = confirmPassword.length > 0 && newPassword !== confirmPassword
+
   // ── Unsaved changes indicator ──
   const [unsaved, setUnsaved] = useState(true)
 
   // helper: mark unsaved on any change
   const changed = () => setUnsaved(true)
 
-  // ── Toggle switch component ──
+  // ── shared tokens (kept from the existing theme — navy / amber) ──
+  const navy   = '#122359'
+  const amber  = '#ffa300'
+  const gold   = '#ffc151'
+  const border = '#E7E9F0'
+
+  // ── Toggle switch ──
   const Toggle = ({ value, onChange }) => (
     <div
       onClick={() => { onChange(!value); changed() }}
       style={{
-        width: '44px', height: '24px', borderRadius: '12px', flexShrink: 0,
-        background: value ? '#ffa300' : '#ccc',
+        width: '42px', height: '24px', borderRadius: '12px', flexShrink: 0,
+        background: value ? amber : '#D7DAE3',
         position: 'relative', cursor: 'pointer', transition: 'background .2s',
       }}
     >
       <div style={{
         position: 'absolute', top: '3px',
-        left: value ? '22px' : '3px',
+        left: value ? '21px' : '3px',
         width: '18px', height: '18px', borderRadius: '50%',
         background: '#fff', transition: 'left .2s',
-        boxShadow: '0 1px 3px rgba(0,0,0,.2)',
+        boxShadow: '0 1px 3px rgba(0,0,0,.25)',
       }} />
     </div>
   )
 
-  const auditLog = [
-    { img: 'avata2', name: 'Sarah Jenkins',    action: 'updated Enterprise Credit Pack price from $219 to $249',  time: '12 mins ago' },
-    { img: 'avata3', name: 'Robert Chen',      action: 'enabled Geo-Fencing for European Union countries',         time: '4 hours ago' },
-    { img: 'avata1', name: 'System Automator', action: 'auto-refreshed session timeout token for Security Group 4', time: '6 hours ago' },
-    { img: 'avata4', name: 'Elena Rodriguez',  action: "disabled 'Anonymous Browsing' toggle in General Settings",  time: 'Yesterday at 4:12 PM' },
-    { img: 'avata2', name: 'Sarah Jenkins',    action: 'modified tax percentage to 12% (standard)',                 time: 'Oct 24, 2023' },
-    { img: 'avata5', name: 'David Miller',     action: "added 'Spanish' as a secondary supported language",          time: 'Oct 23, 2023' },
-    { img: 'avata3', name: 'Robert Chen',      action: 'updated Platform Entry Fee for premium agencies',            time: 'Oct 23, 2023' },
-  ]
+  // ── Unified toggle row — one consistent visual state pattern for every toggle ──
+  const ToggleRow = ({ title, desc, value, onChange, last }) => (
+    <div className="hover-up" style={{
+      border: `1px solid ${value ? gold : border}`,
+      background: value ? '#FFF9EE' : '#fff',
+      borderRadius: '10px', padding: '14px 16px',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      gap: '12px', marginBottom: last ? 0 : '10px',
+    }}>
+      <div>
+        <p className="font-sm mb-3" style={{ fontWeight: 600, color: navy }}>{title}</p>
+        <p className="font-xs color-text-paragraph-2 mb-0">{desc}</p>
+      </div>
+      <Toggle value={value} onChange={onChange} />
+    </div>
+  )
+
+  // ── Panel header with a consistent icon badge ──
+  const PanelHeader = ({ icon, title, desc }) => (
+    <div className="panel-head">
+      <div className="d-flex align-items-center" style={{ gap: '12px' }}>
+        <div style={{
+          width: '38px', height: '38px', borderRadius: '10px', flexShrink: 0,
+          background: '#FFF4E0', color: amber,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          {icon}
+        </div>
+        <div>
+          <h5 className="mb-0">{title}</h5>
+          <p className="font-xs color-text-paragraph-2 mb-0">{desc}</p>
+        </div>
+      </div>
+    </div>
+  )
+
+  const fieldLabelStyle = { textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }
+
+  // ── small inline icon set (currentColor, no external deps) ──
+  const IconAccess = (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  )
+  const IconGlobe = (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  )
+  const IconShield = (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  )
+  const IconCheck = (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  )
+  const IconSave = (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" />
+    </svg>
+  )
+  const IconKey = (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3-3.5 3.5zm-.5 1.5l1.5 1.5" />
+    </svg>
+  )
 
   return (
     <>
@@ -85,69 +137,51 @@ const addPack = () => {
             Manage global business rules, pricing strategies, and system-wide security settings.
           </p>
         </div>
-        
-          <div className="box-breadcrumb">
-            <div className="breadcrumbs" style={{border:"none" ,  backgroundColor:"revert"}}>
-              <ul>
-                <li><a className="icon-home" href="/dashboard">Admin</a></li>
-                <li><span>Settings</span></li>
-              </ul>
-            </div>
-          </div>
 
+        <div className="box-breadcrumb">
+          <div className="breadcrumbs" style={{ border: 'none', backgroundColor: 'revert' }}>
+            <ul>
+              <li><a className="icon-home" href="/dashboard">Admin</a></li>
+              <li><span>Settings</span></li>
+            </ul>
+          </div>
+        </div>
       </div>
 
-      {/* ── MAIN 3-COLUMN LAYOUT ── */}
-      <div className="row">
+      {/* ── MAIN 2-COLUMN LAYOUT ── */}
+      <div className="row align-items-start mb-20">
 
-        {/* ════ LEFT: Registration & Access + Credit Pack Pricing ════ */}
-        <div className="col-xxl-4 col-xl-4 col-lg-6 col-md-12">
+        {/* ════ COLUMN 1: Registration & Access + Admin Password Reset ════ */}
+        <div className="col-xxl-5 col-xl-5 col-lg-6 col-md-12 d-flex flex-column">
 
-          {/* Registration & Access */}
           <div className="section-box">
             <div className="panel-white">
-              <div className="panel-head">
-                <div className="d-flex align-items-center" style={{ gap: '10px' }}>
-                  
-                  <div>
-                    <h5 className="mb-0">Registration &amp; Access</h5>
-                    <p className="font-xs color-text-paragraph-2 mb-0">Control who can join the platform and how.</p>
-                  </div>
-                </div>
-              </div>
+              <PanelHeader
+                icon={IconAccess}
+                title="Registration & Access"
+                desc="Control who can join the platform and how."
+              />
 
               <div className="panel-body">
 
-                {/* Enable New Registrations toggle */}
-                <div className="hover-up mb-10" style={{
-                  border: '1px solid #ffc151', borderRadius: '10px',
-                  padding: '14px 16px', display: 'flex',
-                  alignItems: 'center', justifyContent: 'space-between', gap: '12px',
-                }}>
-                  <div>
-                    <p className="font-sm mb-3" style={{ fontWeight: 600, color: '#122359' }}>Enable New Registrations</p>
-                    <p className="font-xs color-text-paragraph-2 mb-0">Allow new candidates and employers to create accounts.</p>
-                  </div>
-                  <Toggle value={enableRegistrations} onChange={setEnableRegistrations} />
-                </div>
+                <ToggleRow
+                  title="Enable New Registrations"
+                  desc="Allow new candidates and employers to create accounts."
+                  value={enableRegistrations}
+                  onChange={setEnableRegistrations}
+                />
 
-                {/* Registration Verification toggle */}
-                <div className="hover-up mb-20" style={{
-                  border: '1px solid #ffc151', borderRadius: '10px',
-                  padding: '14px 16px', display: 'flex',
-                  alignItems: 'center', justifyContent: 'space-between', gap: '12px',
-                }}>
-                  <div>
-                    <p className="font-sm mb-3" style={{ fontWeight: 600, color: '#122359' }}>Registration Verification</p>
-                    <p className="font-xs color-text-paragraph-2 mb-0">Mandate manual approval for all new employer accounts.</p>
-                  </div>
-                  <Toggle value={registrationVerification} onChange={setRegistrationVerification} />
-                </div>
+                <ToggleRow
+                  title="Registration Verification"
+                  desc="Mandate manual approval for all new employer accounts."
+                  value={registrationVerification}
+                  onChange={setRegistrationVerification}
+                  last
+                />
 
                 {/* Platform Entry Fee */}
-                <div className="form-group mb-5">
-                  <label className="font-xs color-text-paragraph-2 mb-5"
-                    style={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
+                <div className="form-group mt-20 mb-5">
+                  <label className="font-xs color-text-paragraph-2 mb-5" style={fieldLabelStyle}>
                     Platform Entry Fee
                   </label>
                   <div style={{ position: 'relative' }}>
@@ -172,309 +206,142 @@ const addPack = () => {
             </div>
           </div>
 
-          {/* Credit Pack Pricing */}
-         {/* Credit Pack Pricing */}
-<div className="section-box">
-  <div className="panel-white">
+          {/* Admin Password Reset */}
+          <div className="section-box">
+            <div className="panel-white">
+              <PanelHeader
+                icon={IconKey}
+                title="Admin Password Reset"
+                desc="Set a new password for the Super Admin account."
+              />
 
-    {/* HEADER */}
-    <div className="panel-head d-flex align-items-center justify-content-between">
-      <div className="d-flex align-items-center" style={{ gap: '10px' }}>
-        
-          
-        <div>
-          <h5 className="mb-0">Credit Pack Pricing</h5>
-          <p className="font-xs color-text-paragraph-2 mb-0">
-            Configure the cost of platform credits.
-          </p>
-        </div>
-      </div>
+              <div className="panel-body">
 
-      <button
-        className="btn btn-primary p-2 btn-sm hover-up"
-        onClick={addPack}
-      >
-        + 
-      </button>
-    </div>
-
-    {/* BODY */}
-    <div className="panel-body">
-{newPack && (
-  <div className="d-flex align-items-center justify-content-between hover-up"
-    style={{ padding: '12px 0', borderBottom: '1px solid #f5f5f5' }}>
-
-    <div style={{ flex: 1 }}>
-
-      <input
-        className="form-control font-sm mb-5"
-        value={newPack.name}
-        onChange={(e) => setNewPack({ ...newPack, name: e.target.value })}
-        placeholder="Pack name"
-      />
-
-      <div className="d-flex" style={{ gap: '6px' }}>
-        <input
-          className="form-control font-xs"
-          value={newPack.credits}
-          onChange={(e) => setNewPack({ ...newPack, credits: e.target.value })}
-          placeholder="Credits"
-        />
-
-        <input
-          className="form-control font-sm"
-          value={newPack.price}
-          onChange={(e) => setNewPack({ ...newPack, price: e.target.value })}
-          placeholder="Price"
-        />
-      </div>
-
-    </div>
-
-    <div className="d-flex" style={{ gap: '6px', marginLeft: '10px' }}>
-
-      {/* SAVE */}
-      <button
-        className="btn btn-grey-small"
-        onClick={() => {
-          if (!newPack.name || !newPack.price) return alert("Fill required fields")
-
-          setPacks([...packs, newPack])   // ✅ ADD HERE
-          setNewPack(null)
-          changed()
-        }}
-      >
-        ✓
-      </button>
-
-      {/* CANCEL */}
-      <button
-        className="btn btn-grey-small"
-        onClick={() => setNewPack(null)}   // ✅ DISCARD
-      >
-        ✕
-      </button>
-
-    </div>
-
-  </div>
-)}
-      {packs.map((pk) => (
-        <div
-          key={pk.id}
-          className="d-flex align-items-center justify-content-between hover-up"
-          style={{
-            padding: '12px 0',
-            borderBottom: '1px solid #f5f5f5'
-          }}
-        >
-
-          {/* LEFT CONTENT */}
-          <div style={{ flex: 1 }}>
-
-            {editingPack === pk.id ? (
-              <>
-                <input
-                  className="form-control font-sm mb-5"
-                  value={pk.name}
-                  onChange={(e) => updatePack(pk.id, 'name', e.target.value)}
-                  placeholder="Pack name"
-                />
-
-                <div className="d-flex align-items-center" style={{ gap: '6px' }}>
+                <div className="form-group mb-20">
+                  <label className="font-xs color-text-paragraph-2 mb-5" style={fieldLabelStyle}>
+                    New Password
+                  </label>
                   <input
-                    className="form-control font-xs"
-                    value={pk.credits}
-                    onChange={(e) => updatePack(pk.id, 'credits', e.target.value)}
-                    placeholder="Credits"
-                  />
-
-                  <input
-                    className="form-control font-sm"
-                    value={pk.price}
-                    onChange={(e) => updatePack(pk.id, 'price', e.target.value)}
-                    placeholder="Price"
+                    className="form-control"
+                    type="password"
+                    placeholder="Enter new password"
+                    value={newPassword}
+                    onChange={e => { setNewPassword(e.target.value); changed() }}
                   />
                 </div>
-              </>
-            ) : (
-              <>
-                <p className="font-sm mb-0" style={{ fontWeight: 600 }}>
-                  {pk.name}
-                </p>
-                <span className="font-xs color-text-paragraph-2">
-                  {pk.credits}
-                </span>
-              </>
-            )}
 
-          </div>
+                <div className="form-group mb-5">
+                  <label className="font-xs color-text-paragraph-2 mb-5" style={fieldLabelStyle}>
+                    Confirm New Password
+                  </label>
+                  <input
+                    className="form-control"
+                    type="password"
+                    placeholder="Re-enter new password"
+                    value={confirmPassword}
+                    onChange={e => { setConfirmPassword(e.target.value); changed() }}
+                    style={passwordsMismatch ? { borderColor: '#e53935' } : undefined}
+                  />
+                  {passwordsMismatch ? (
+                    <p className="font-xs mt-5 mb-0" style={{ color: '#e53935' }}>Passwords don&apos;t match.</p>
+                  ) : (
+                    <p className="font-xs color-text-paragraph-2 mt-5 mb-0" style={{ fontStyle: 'italic' }}>
+                      Minimum 8 characters, at least one number and one symbol.
+                    </p>
+                  )}
+                </div>
 
-          {/* PRICE */}
-          {editingPack !== pk.id && (
-            <strong
-              className="font-sm"
-              style={{ color: '#ffa300', minWidth: '80px', textAlign: 'right' }}
-            >
-              ₹{pk.price}
-            </strong>
-          )}
+                <ToggleRow
+                  title="Sign Out Everywhere"
+                  desc="Force re-login on all devices after this password reset."
+                  value={forceRelogin}
+                  onChange={setForceRelogin}
+                  last
+                />
 
-          {/* ACTIONS */}
-          <div className="d-flex align-items-center" style={{ gap: '6px', marginLeft: '12px' }}>
-
-            {editingPack === pk.id ? (
-              <>
-                {/* SAVE */}
                 <button
-                  className="btn btn-grey-small"
-                  onClick={() => {
-                    setEditingPack(null)
-                    changed()
+                  className="btn btn-primary hover-up mt-20"
+                  disabled={!newPassword || passwordsMismatch}
+                  onClick={() => { setNewPassword(''); setConfirmPassword(''); changed() }}
+                  style={{
+                    width: '100%', padding: '10px 24px', fontSize: '13px', fontWeight: 600,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                    opacity: (!newPassword || passwordsMismatch) ? 0.5 : 1,
+                    cursor: (!newPassword || passwordsMismatch) ? 'not-allowed' : 'pointer',
                   }}
-                  title="Save"
                 >
-                  ✓
+                  {IconKey} Reset Password
                 </button>
 
-                {/* CANCEL */}
-                <button
-                  className="btn btn-grey-small"
-                  onClick={() => setEditingPack(null)}
-                  title="Cancel"
-                >
-                  ✕
-                </button>
-              </>
-            ) : (
-              <>
-                {/* EDIT */}
-                <button
-                  className="btn btn-grey-small"
-                  onClick={() => setEditingPack(pk.id)}
-                  title="Edit"
-                >
-                  ✎
-                </button>
-
-                {/* DELETE */}
-                <button
-                  className="btn btn-grey-small"
-                  onClick={() => {
-                    deletePack(pk.id)
-                    changed()
-                  }}
-                  title="Delete"
-                  style={{ color: '#c62828' }}
-                >
-                  🗑
-                </button>
-              </>
-            )}
-
+              </div>
+            </div>
           </div>
 
         </div>
-      ))}
 
-      {/* TAX SECTION */}
-      <div
-        className="d-flex align-items-center justify-content-between"
-        style={{ padding: '14px 0' }}
-      >
-        <span className="font-sm" style={{ fontWeight: 600 }}>
-          Platform Service Tax
-        </span>
-
-        <input
-          className="form-control font-sm"
-          value={serviceTax}
-          onChange={(e) => {
-            setServiceTax(e.target.value)
-            changed()
-          }}
-          style={{
-            width: '120px',
-            textAlign: 'right',
-            fontWeight: 600,
-            color: '#ffa300'
-          }}
-        />
-      </div>
-
-    </div>
-  </div>
-</div>
-
-        </div>
-
-        {/* ════ MIDDLE: Regional & Compliance + System Security ════ */}
-        <div className="col-xxl-4 col-xl-4 col-lg-6 col-md-12">
+        {/* ════ COLUMN 2: Regional & Compliance + System Security ════ */}
+        <div className="col-xxl-7 col-xl-7 col-lg-6 col-md-12 d-flex flex-column">
 
           {/* Regional & Compliance */}
           <div className="section-box">
             <div className="panel-white">
-              <div className="panel-head">
-                <div className="d-flex align-items-center" style={{ gap: '10px' }}>
-                 
-                  <div>
-                    <h5 className="mb-0">Regional &amp; Compliance</h5>
-                    <p className="font-xs color-text-paragraph-2 mb-0">Localization and market restrictions.</p>
-                  </div>
-                </div>
-              </div>
+              <PanelHeader
+                icon={IconGlobe}
+                title="Regional & Compliance"
+                desc="Localization and market restrictions."
+              />
 
               <div className="panel-body">
 
-                {/* Base Currency */}
-                <div className="form-group mb-20">
-                  <label className="font-xs color-text-paragraph-2 mb-5"
-                    style={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
-                    Base Currency
-                  </label>
-                  <select className="form-control select2"
-                    value={currency} onChange={e => { setCurrency(e.target.value); changed() }}>
-                    <option>USD - United States Dollar ($)</option>
-                    <option>EUR - Euro (€)</option>
-                    <option>GBP - British Pound (£)</option>
-                    <option>INR - Indian Rupee (₹)</option>
-                    <option>AUD - Australian Dollar (A$)</option>
-                  </select>
+                <div className="row">
+                  <div className="col-lg-6 col-md-12">
+                    <div className="form-group mb-20">
+                      <label className="font-xs color-text-paragraph-2 mb-5" style={fieldLabelStyle}>
+                        Base Currency
+                      </label>
+                      <select className="form-control select2"
+                        value={currency} onChange={e => { setCurrency(e.target.value); changed() }}>
+                        <option>USD - United States Dollar ($)</option>
+                        <option>EUR - Euro (€)</option>
+                        <option>GBP - British Pound (£)</option>
+                        <option>INR - Indian Rupee (₹)</option>
+                        <option>AUD - Australian Dollar (A$)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="col-lg-6 col-md-12">
+                    <div className="form-group mb-20">
+                      <label className="font-xs color-text-paragraph-2 mb-5" style={fieldLabelStyle}>
+                        Default Language
+                      </label>
+                      <select className="form-control select2"
+                        value={language} onChange={e => { setLanguage(e.target.value); changed() }}>
+                        <option>English (US)</option>
+                        <option>English (UK)</option>
+                        <option>Hindi</option>
+                        <option>French</option>
+                        <option>Spanish</option>
+                        <option>German</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Default Language */}
-                <div className="form-group mb-20">
-                  <label className="font-xs color-text-paragraph-2 mb-5"
-                    style={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
-                    Default Language
-                  </label>
-                  <select className="form-control select2"
-                    value={language} onChange={e => { setLanguage(e.target.value); changed() }}>
-                    <option>English (US)</option>
-                    <option>English (UK)</option>
-                    <option>Hindi</option>
-                    <option>French</option>
-                    <option>Spanish</option>
-                    <option>German</option>
-                  </select>
-                </div>
-
-                {/* Geo-Fencing toggle */}
-                <div className="hover-up" style={{
-                  border: '1px solid #ffc151', borderRadius: '10px',
-                  padding: '14px 16px', display: 'flex',
+                <div style={{
+                  border: `1px solid ${geoFencing ? gold : border}`,
+                  background: geoFencing ? '#FFF9EE' : '#fff',
+                  borderRadius: '10px', padding: '14px 16px', display: 'flex',
                   alignItems: 'center', justifyContent: 'space-between', gap: '12px',
-                }}>
+                }} className="hover-up">
                   <div>
-                    <p className="font-sm mb-3" style={{ fontWeight: 600, color: '#122359' }}>Geo-Fencing</p>
+                    <p className="font-sm mb-3" style={{ fontWeight: 600, color: navy }}>Geo-Fencing</p>
                     <p className="font-xs color-text-paragraph-2 mb-0">Restrict platform access by region.</p>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     {geoFencing && (
                       <span style={{
                         fontSize: '11px', fontWeight: 700, padding: '3px 10px',
-                        borderRadius: '20px', background: '#ffc151', color: '#ffa300',
-                        border: '1px solid #90caf9',
+                        borderRadius: '20px', background: amber, color: '#fff',
                       }}>Active</span>
                     )}
                     <Toggle value={geoFencing} onChange={setGeoFencing} />
@@ -488,22 +355,16 @@ const addPack = () => {
           {/* System Security */}
           <div className="section-box">
             <div className="panel-white">
-              <div className="panel-head">
-                <div className="d-flex align-items-center" style={{ gap: '10px' }}>
-                  
-                  <div>
-                    <h5 className="mb-0">System Security</h5>
-                    <p className="font-xs color-text-paragraph-2 mb-0">Admin authentication and session rules.</p>
-                  </div>
-                </div>
-              </div>
+              <PanelHeader
+                icon={IconShield}
+                title="System Security"
+                desc="Admin authentication and session rules."
+              />
 
               <div className="panel-body">
 
-                {/* Session Timeout */}
                 <div className="form-group mb-20">
-                  <label className="font-xs color-text-paragraph-2 mb-5"
-                    style={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
+                  <label className="font-xs color-text-paragraph-2 mb-5" style={fieldLabelStyle}>
                     Session Timeout Value
                   </label>
                   <select className="form-control select2"
@@ -516,82 +377,25 @@ const addPack = () => {
                   </select>
                 </div>
 
-                {/* Enforce Admin MFA toggle */}
-                <div className="hover-up mb-10" style={{
-                  border: `1px solid ${enforceMFA ? '#90caf9' : '#ffc151'}`,
-                  borderRadius: '10px', padding: '14px 16px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
-                  background: enforceMFA ? '#F0F6FF' : '#fff',
-                }}>
-                  <div>
-                    <p className="font-sm mb-3" style={{ fontWeight: 600, color: enforceMFA ? '#ffa300' : '#122359' }}>
-                      Enforce Admin MFA
-                    </p>
-                    <p className="font-xs color-text-paragraph-2 mb-0">Requires 2FA for all panel access.</p>
-                  </div>
-                  <Toggle value={enforceMFA} onChange={setEnforceMFA} />
-                </div>
+                <ToggleRow
+                  title="Enforce Admin MFA"
+                  desc="Requires 2FA for all panel access."
+                  value={enforceMFA}
+                  onChange={setEnforceMFA}
+                />
 
-                {/* Maintenance Mode toggle */}
-                <div className="hover-up" style={{
-                  border: `1px solid ${maintenanceMode ? '#ffcc80' : '#ffc151'}`,
-                  borderRadius: '10px', padding: '14px 16px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
-                  background: maintenanceMode ? '#FFFDE7' : '#fff',
-                }}>
-                  <div>
-                    <p className="font-sm mb-3" style={{ fontWeight: 600, color: '#122359' }}>Maintenance Mode</p>
-                    <p className="font-xs color-text-paragraph-2 mb-0">Redirect public users to maintenance page.</p>
-                  </div>
-                  <Toggle value={maintenanceMode} onChange={setMaintenanceMode} />
-                </div>
+                <ToggleRow
+                  title="Maintenance Mode"
+                  desc="Redirect public users to maintenance page."
+                  value={maintenanceMode}
+                  onChange={setMaintenanceMode}
+                  last
+                />
 
               </div>
             </div>
           </div>
 
-        </div>
-
-        {/* ════ RIGHT: Change History ════ */}
-        <div className="col-xxl-4 col-xl-4 col-lg-12 col-md-12">
-          <div className="section-box">
-            <div className="panel-white">
-              <div className="panel-head">
-                <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-                  <h5 className="mb-0">Change History</h5>
-                </div>
-              
-              </div>
-
-              <div className="panel-body">
-                {auditLog.map((entry, i) => (
-                  <div key={i} className="hover-up" style={{
-                    display: 'flex', alignItems: 'flex-start', gap: '10px',
-                    padding: '12px 0',
-                    borderBottom: i < auditLog.length - 1 ? '1px solid #f5f5f5' : 'none',
-                  }}>
-                    <img src={`/assets/imgs/page/dashboard/${entry.img}.png`} alt={entry.name}
-                      style={{ width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0, marginTop: '2px' }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p className="font-xs mb-3" style={{ color: '#122359', lineHeight: 1.5 }}>
-                        <strong>{entry.name}</strong> {entry.action}
-                      </p>
-                      <span className="font-xs color-text-paragraph-2">
-                        &#9203; {entry.time}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-
-                <div className="mt-15">
-                  <a className="font-sm color-brand-1 hover-up" href="#"
-                    style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    View Full Audit Log ›
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
       </div>
@@ -603,8 +407,16 @@ const addPack = () => {
 
             {/* Left: validation status + last saved */}
             <div className="d-flex align-items-center" style={{ gap: '16px', flexWrap: 'wrap' }}>
-              <span className="font-xs" style={{ color: '#2e7d32', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span style={{ fontSize: '14px' }}>&#10003;</span> All settings validated
+              <span className="font-xs" style={{
+                color: '#2e7d32', fontWeight: 600, display: 'flex',
+                alignItems: 'center', gap: '6px',
+              }}>
+                <span style={{
+                  width: '18px', height: '18px', borderRadius: '50%',
+                  background: '#2e7d32', color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>{IconCheck}</span>
+                All settings validated
               </span>
               <span style={{ color: '#ddd' }}>|</span>
               <span className="font-xs color-text-paragraph-2">
@@ -626,15 +438,13 @@ const addPack = () => {
                 onClick={() => setUnsaved(false)}
                 style={{ padding: '10px 24px', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                Save Configuration Changes
+                {IconSave} Save Configuration Changes
               </button>
             </div>
 
           </div>
         </div>
       </div>
-
-      
 
       <Footer />
     </>
