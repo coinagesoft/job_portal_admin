@@ -74,57 +74,9 @@ const logsData = [
     hash: 'a8f5f167f44f4964e6c998dee827110c',
   },
   {
-    ts: '2023-11-24\n13:45:20',
-    actor: 'rahul.recruiter@techcorp.io',
-    actor_id: 'REC-208',
-    actor_type: 'recruiter',
-    action: 'CANDIDATE_PROFILE_UNLOCKED',
-    severity: 'info',
-    session_id: 'SES-77840',
-    entity: 'Alexander Wright',
-    target_id: 'USR-1287',
-    ip: '103.22.14.9',
-    change_reason: 'Unlocked using 1 credit',
-    old_value: 'Locked',
-    new_value: 'Unlocked',
-    hash: 'f1c6c0b7a2e4d9f83a5b6c7d8e9f0a1b',
-  },
-  {
-    ts: '2023-11-24\n13:05:12',
-    actor: 'system.automator',
-    actor_id: 'SYS-000',
-    actor_type: 'system',
-    action: 'BATCH_PAYMENT_INIT',
-    severity: 'info',
-    session_id: 'SES-77821',
-    entity: 'Payroll #402',
-    target_id: 'PAY-402',
-    ip: '10.0.0.8',
-    change_reason: 'Scheduled payroll run',
-    old_value: 'Pending',
-    new_value: 'Processing',
-    hash: 'e3b0c44298fc1c149afbf4c8996fb924',
-  },
-  {
-    ts: '2023-11-24\n12:18:47',
-    actor: 'alexander.wright@gmail.com',
-    actor_id: 'USR-1287',
-    actor_type: 'candidate',
-    action: 'CONSENT_REVOKED',
-    severity: 'warning',
-    session_id: 'SES-77835',
-    entity: 'Profile Visibility Consent',
-    target_id: 'USR-1287',
-    ip: '49.207.11.3',
-    change_reason: 'Candidate opted out of recruiter visibility',
-    old_value: 'Granted',
-    new_value: 'Revoked',
-    hash: 'b7d4f1e2c3a4956b8c7d6e5f4a3b2c1d',
-  },
-  {
     ts: '2023-11-24\n11:45:55',
     actor: 'mike.finance@skillbridge.io',
-    actor_id: 'ADM-014',
+    actor_id: 'SUB-014',
     actor_type: 'sub_admin',
     action: 'DATA_EXPORT_DPDP',
     severity: 'warning',
@@ -133,7 +85,7 @@ const logsData = [
     target_id: 'RPT-Q3-2023',
     ip: '172.16.254.1',
     change_reason: 'Quarterly compliance export',
-    old_value: '—',
+    old_value: 'Not Exported',
     new_value: 'Exported',
     hash: '9f86d081884c7d659a2feaa0c55ad015',
   },
@@ -142,20 +94,20 @@ const logsData = [
     actor: 'priya.subadmin@skillbridge.io',
     actor_id: 'SUB-004',
     actor_type: 'sub_admin',
-    action: 'APPLICANT_STATUS_CHANGED',
+    action: 'JOB_APPROVED',
     severity: 'info',
     session_id: 'SES-77828',
-    entity: 'Application #A-5521',
-    target_id: 'APP-5521',
+    entity: 'Senior Software Engineer',
+    target_id: 'JOB-5521',
     ip: '192.168.5.140',
-    change_reason: 'Moved to interview stage',
-    old_value: 'Shortlisted',
-    new_value: 'Interviewing',
+    change_reason: 'Job reviewed and approved',
+    old_value: 'Pending Approval',
+    new_value: 'Approved',
     hash: 'c3d4e5f6a7b8091a2b3c4d5e6f708192',
   },
   {
     ts: '2023-11-24\n09:12:30',
-    actor: 'admin.super',
+    actor: 'admin.super@skillbridge.io',
     actor_id: 'ADM-000',
     actor_type: 'admin',
     action: 'CONFIG_CHANGE',
@@ -164,7 +116,7 @@ const logsData = [
     entity: 'Global Registration Fee',
     target_id: 'CFG-REG-FEE',
     ip: '192.168.5.112',
-    change_reason: 'Pricing update approved by finance',
+    change_reason: 'Pricing update approved',
     old_value: '₹499',
     new_value: '₹599',
     hash: '2c624232cdd221771294dfbb310aca00',
@@ -177,15 +129,63 @@ const logsData = [
     action: 'LOGIN_SUCCESS',
     severity: 'info',
     session_id: 'SES-77821',
-    entity: 'Admin Session',
+    entity: 'Admin Dashboard',
     target_id: 'SES-77821',
     ip: '192.168.1.45',
-    change_reason: '—',
+    change_reason: 'Successful login',
     old_value: '—',
     new_value: '—',
     hash: 'd4735e3a265e16eee03f59718b9b5d03',
   },
-]
+  {
+    ts: '2023-11-23\n18:10:15',
+    actor: 'sarah.admin@skillbridge.io',
+    actor_id: 'ADM-001',
+    actor_type: 'admin',
+    action: 'RECRUITER_VERIFIED',
+    severity: 'info',
+    session_id: 'SES-77792',
+    entity: 'ABC Technologies Pvt Ltd',
+    target_id: 'EMP-1045',
+    ip: '192.168.1.45',
+    change_reason: 'Company documents verified',
+    old_value: 'Pending',
+    new_value: 'Verified',
+    hash: '6b51d431df5d7f141cbececcf79edf3a',
+  },
+  {
+    ts: '2023-11-23\n16:42:09',
+    actor: 'priya.subadmin@skillbridge.io',
+    actor_id: 'SUB-004',
+    actor_type: 'sub_admin',
+    action: 'CANDIDATE_ACCOUNT_RESTORED',
+    severity: 'info',
+    session_id: 'SES-77788',
+    entity: 'Amit Sharma',
+    target_id: 'USR-4512',
+    ip: '192.168.5.140',
+    change_reason: 'Appeal approved',
+    old_value: 'Suspended',
+    new_value: 'Active',
+    hash: '3fdba35f04dc8c462986c992bcf87554',
+  },
+  {
+    ts: '2023-11-23\n15:20:44',
+    actor: 'admin.super@skillbridge.io',
+    actor_id: 'ADM-000',
+    actor_type: 'admin',
+    action: 'SUB_ADMIN_CREATED',
+    severity: 'info',
+    session_id: 'SES-77780',
+    entity: 'Finance Manager',
+    target_id: 'SUB-015',
+    ip: '192.168.5.112',
+    change_reason: 'New finance sub-admin added',
+    old_value: '—',
+    new_value: 'Active',
+    hash: '4e07408562bedb8b60ce05c1decfe3ad',
+  },
+];
 
 // Logs pre-flagged for review on load (in a real app this comes from the backend)
 const initialFlags = {
@@ -403,7 +403,7 @@ export default function AuditLogsPage() {
                   flexWrap: 'wrap',
                 }}
               >
-                <div style={{ position: 'relative', width: '150px' }}>
+                {/* <div style={{ position: 'relative', width: '150px' }}>
                   <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#aaa' }} />
                   <input
                     className="form-control font-xs"
@@ -412,9 +412,9 @@ export default function AuditLogsPage() {
                     onChange={(e) => setActorFilter(e.target.value)}
                     style={{ paddingLeft: '30px', height: '42px', width: '100%' }}
                   />
-                </div>
+                </div> */}
 
-                <div style={{ position: 'relative', width: '150px' }}>
+                <div style={{ position: 'relative', width: '310px' }}>
                   <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#aaa' }} />
                   <input
                     className="form-control font-xs"
@@ -446,9 +446,7 @@ export default function AuditLogsPage() {
                     <option value="">Actor Type</option>
                     <option value="admin">Admin</option>
                     <option value="sub_admin">Sub-Admin</option>
-                    <option value="recruiter">Recruiter</option>
-                    <option value="candidate">Candidate</option>
-                    <option value="system">System</option>
+             
                   </select>
                 </div>
 
@@ -544,7 +542,6 @@ export default function AuditLogsPage() {
                             <td style={{ padding: '12px 8px' }}>
                               <Badge color={sev.color} bg={sev.bg}>{sev.label}</Badge>
                             </td>
-                            <td style={{ padding: '12px 8px' }}>{row.session_id || '-'}</td>
                             <td style={{ padding: '12px 8px', textAlign: 'right' }}>
                               <ChevronDown
                                 size={16}
@@ -581,10 +578,7 @@ export default function AuditLogsPage() {
                                     <p className="font-xs color-text-paragraph-2 mb-5">Change</p>
                                     <span className="font-sm">{row.old_value} <span style={{ color: '#aaa' }}>→</span> {row.new_value}</span>
                                   </div>
-                                  <div>
-                                    <p className="font-xs color-text-paragraph-2 mb-5">Record Hash</p>
-                                    <CopyHash hash={row.hash} />
-                                  </div>
+                                
                                   <div style={{ display: 'flex', alignItems: 'flex-end' }}>
                                     <button
                                       onClick={(e) => { e.stopPropagation(); toggleFlag(row.hash) }}
