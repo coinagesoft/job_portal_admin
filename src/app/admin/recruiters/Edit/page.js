@@ -1,5 +1,6 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Footer from '../../../../components/Footer'
 import {
   Brain,
@@ -583,6 +584,11 @@ const DOCUMENTS = [
 
 // ── Main Page ────────────────────────────────────────────────────────────────
 export default function RecruiterEditPage() {
+  const router = useRouter()
+  useEffect(() => {
+    router.replace('/admin/recruiters/details')
+  }, [router])
+
   const [reviewDoc, setReviewDoc] = useState(null)
   const [docStatuses, setDocStatuses] = useState({})
 

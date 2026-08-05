@@ -2,14 +2,22 @@
 
 import { useState } from "react"
 import Footer from "../../../../components/Footer"
+import Link from "next/link"
 
 export default function CandidateDetailsPage() {
   const [preview, setPreview] = useState(null)
+  const [accountStatus, setAccountStatus] = useState("Active")
+
   return (
     <>
       <div className="box-heading"> 
         <div className="box-title">
-          <h3 className="mb-5">Candidate Profile</h3>
+          <div className="d-flex align-items-center gap-2 mb-5">
+            <h3 className="mb-0">Candidate Profile</h3>
+            <span className="badge" style={{ backgroundColor: '#e2e8f0', color: '#475569', fontSize: '11px', padding: '5px 10px', borderRadius: '12px' }}>
+              View Only
+            </span>
+          </div>
           <p className="font-sm color-text-paragraph-2">
             Review candidate details, documents, billing records and verification status.
           </p>
@@ -18,8 +26,8 @@ export default function CandidateDetailsPage() {
         <div className="box-breadcrumb">
           <div className="breadcrumbs" style={{border:"none" ,  backgroundColor:"revert"}}>
             <ul>
-              <li><a className="icon-home" href="/admin/dashboard">Admin</a></li>
-              <li><a href="/admin/candidates">Candidates</a></li>
+              <li><Link className="icon-home" href="/admin/dashboard">Admin</Link></li>
+              <li><Link href="/admin/candidates">Candidates</Link></li>
               <li><span>Alexander Wright</span></li>
             </ul>
           </div>
@@ -46,7 +54,20 @@ export default function CandidateDetailsPage() {
                 />
 
                 <div className="mt-15">
-                  <span className="btn btn-tags-sm">Pending Verification</span>
+                  <span
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      padding: '4px 14px',
+                      borderRadius: '20px',
+                      display: 'inline-block',
+                      background: accountStatus === 'Active' ? '#e8f5e9' : accountStatus === 'Suspended' ? '#fdecea' : '#fff3e0',
+                      color: accountStatus === 'Active' ? '#2e7d32' : accountStatus === 'Suspended' ? '#c62828' : '#e65100',
+                      border: accountStatus === 'Active' ? '1px solid #a5d6a7' : accountStatus === 'Suspended' ? '1px solid #ef9a9a' : '1px solid #ffcc80'
+                    }}
+                  >
+                    {accountStatus === 'Suspended' ? 'Account Suspended' : 'Active Account'}
+                  </span>
                 </div>
 
                 <p className="font-xs color-text-paragraph-2 mt-10 mb-5">
@@ -347,66 +368,91 @@ export default function CandidateDetailsPage() {
           {/* Bottom Actions */}
 <div className="panel-white">
   <div className="box-padding">
+    <div className="action-bar d-flex align-items-center gap-3">
+      {accountStatus === 'Suspended' ? (
+        <button
+          className="btn hover-up"
+          onClick={() => setAccountStatus('Active')}
+          style={{
+            background: '#f0fdf4',
+            color: '#16a34a',
+            border: '1px solid #bbf7d0',
+            borderRadius: '20px',
+            height: '38px',
+            padding: '0 18px',
+            fontSize: '13px',
+            fontWeight: 600,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          <i className="fi-rr-check-circle" style={{ fontSize: '14px' }}></i>
+          Activate Account
+        </button>
+      ) : (
+        <button
+          className="btn hover-up"
+          onClick={() => setAccountStatus('Suspended')}
+          style={{
+            background: '#fff1f2',
+            color: '#e11d48',
+            border: '1px solid #fecdd3',
+            borderRadius: '20px',
+            height: '38px',
+            padding: '0 18px',
+            fontSize: '13px',
+            fontWeight: 600,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          <i className="fi-rr-ban" style={{ fontSize: '14px' }}></i>
+          Suspend Account
+        </button>
+      )}
 
-    <div className="action-bar">
-<button
-  className="btn btn-default hover-up"
-  style={{
-    background: '#fdecea',
-    color: '#c62828',
-    border: '1px solid #ef9a9a',
-    height: '36px',
-    padding: '0 14px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px'
-  }}
->
-  <i className="fi-rr-trash"></i>
-  Delete
-</button>
+      <button
+        className="btn hover-up"
+        style={{
+          background: '#fef2f2',
+          color: '#991b1b',
+          border: '1px solid #fecaca',
+          borderRadius: '20px',
+          height: '38px',
+          padding: '0 18px',
+          fontSize: '13px',
+          fontWeight: 600,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px'
+        }}
+      >
+        <i className="fi-rr-cross-circle" style={{ fontSize: '14px' }}></i>
+        Reject
+      </button>
 
-     <button
-  className="btn btn-default hover-up"
-  style={{
-    background: '#fff3e0',
-    color: '#e65100',
-    border: '1px solid #ffcc80',
-    height: '36px',
-    padding: '0 14px'
-  }}
->
-  Suspend
-</button>
-
-<button
-  className="btn btn-default hover-up"
-  style={{
-    background: '#fdecea',
-    color: '#c62828',
-    border: '1px solid #ef9a9a',
-    height: '36px',
-    padding: '0 14px'
-  }}
->
-  Reject
-</button>
-
-<button
-  className="btn btn-default hover-up"
-  style={{
-    background: '#e8f5e9',
-    color: '#2e7d32',
-    border: '1px solid #a5d6a7',
-    height: '36px',
-    padding: '0 14px'
-  }}
->
-  Approve
-</button>
-
+      <button
+        className="btn hover-up"
+        style={{
+          background: '#f0fdf4',
+          color: '#16a34a',
+          border: '1px solid #bbf7d0',
+          borderRadius: '20px',
+          height: '38px',
+          padding: '0 18px',
+          fontSize: '13px',
+          fontWeight: 600,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px'
+        }}
+      >
+        <i className="fi-rr-check-circle" style={{ fontSize: '14px' }}></i>
+        Approve
+      </button>
     </div>
-
   </div>
 </div>
 
