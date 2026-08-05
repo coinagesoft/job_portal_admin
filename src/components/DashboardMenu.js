@@ -36,7 +36,6 @@ const navItems = [
 
 export default function DashboardMenu() {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
   const [subAdminAccess, setSubAdminAccess] = useState(null);
 
   useEffect(() => {
@@ -60,36 +59,17 @@ export default function DashboardMenu() {
 
     return false;
   };
-  useEffect(() => {
-  const mainEl = document.querySelector('.main');
-  if (!mainEl) return;
-
-  if (collapsed) {
-    mainEl.classList.add('nav-close');
-  } else {
-    mainEl.classList.remove('nav-close');
-  }
-}, [collapsed]);
-
   const visibleNavItems = subAdminAccess === null
     ? navItems
     : navItems.filter((item) => !item.accessKey || subAdminAccess.includes(item.accessKey));
 
 return (
   <div className="nav">
-
-    {/* Toggle Button */}
-    <a
-      className={`btn btn-expanded${collapsed ? ' btn-collapsed' : ''}`}
-      onClick={() => setCollapsed(!collapsed)}
-      style={{ cursor: 'pointer' }}
-    />
-
     {/* Menu */}
     <nav className="nav-main-menu">
       <ul className="main-menu">
         {visibleNavItems.map((item) => (
-          <li key={item.href} title={collapsed ? item.name : undefined}>
+          <li key={item.href}>
             <Link
               href={item.href}
               className={`dashboard2 ${isActive(item.href) ? 'active' : ''}`}

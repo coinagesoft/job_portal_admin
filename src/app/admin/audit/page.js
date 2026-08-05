@@ -253,6 +253,7 @@ export default function AuditLogsPage() {
   const [openRow, setOpenRow] = useState(null)
   const [exportMsg, setExportMsg] = useState('')
   const [flags, setFlags] = useState(initialFlags)
+  const [page, setPage] = useState(1)
 
   function toggleFlag(hash) {
     setFlags(prev => {
@@ -288,6 +289,10 @@ export default function AuditLogsPage() {
     const matchesActorType = actorTypeFilter === '' || l.actor_type === actorTypeFilter
     return matchesActor && matchesAction && matchesSeverity && matchesDate && matchesActorType
   }), [actorFilter, actionFilter, severityFilter, dateFilter, actorTypeFilter])
+
+  const pageSize = 8
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const visibleLogs = filtered.slice((page - 1) * pageSize, page * pageSize)
 
   const criticalCount = logsData.filter(l => l.severity === 'critical').length
   const hasActiveFilters = actorFilter || actionFilter || dateFilter || severityFilter || actorTypeFilter
@@ -420,7 +425,7 @@ export default function AuditLogsPage() {
                     className="form-control font-xs"
                     placeholder="Action"
                     value={actionFilter}
-                    onChange={(e) => setActionFilter(e.target.value)}
+                    onChange={(e) => { setActionFilter(e.target.value); setPage(1) }}
                     style={{ paddingLeft: '30px', height: '42px', width: '100%' }}
                   />
                 </div>
@@ -431,7 +436,7 @@ export default function AuditLogsPage() {
                     type="date"
                     className="form-control font-xs date-filter-input"
                     value={dateFilter}
-                    onChange={(e) => setDateFilter(e.target.value)}
+                    onChange={(e) => { setDateFilter(e.target.value); setPage(1) }}
                     style={{ height: '42px', fontSize: '12px', padding: '4px 8px 4px 30px', width: '100%' }}
                   />
                 </div>
@@ -440,7 +445,7 @@ export default function AuditLogsPage() {
                   <select
                     className="form-control font-xs"
                     value={actorTypeFilter}
-                    onChange={(e) => setActorTypeFilter(e.target.value)}
+                    onChange={(e) => { setActorTypeFilter(e.target.value); setPage(1) }}
                     style={{ height: '42px', width: '100%' }}
                   >
                     <option value="">Actor Type</option>
@@ -454,7 +459,7 @@ export default function AuditLogsPage() {
                   <select
                     className="form-control font-xs"
                     value={severityFilter}
-                    onChange={(e) => setSeverityFilter(e.target.value)}
+                    onChange={(e) => { setSeverityFilter(e.target.value); setPage(1) }}
                     style={{ height: '42px', width: '100%' }}
                   >
                     <option value="">Severity</option>
@@ -472,6 +477,7 @@ export default function AuditLogsPage() {
                     setDateFilter('')
                     setSeverityFilter('')
                     setActorTypeFilter('')
+                    setPage(1)
                   }}
                   disabled={!hasActiveFilters}
                   style={{
@@ -490,6 +496,12 @@ export default function AuditLogsPage() {
                   filter: invert(0.5);
                   cursor: pointer;
                 }
+                .audit-table-pagination { padding: 15px 20px; border-top: 1px solid #edf1f6; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #7b8aa5; font-size: 12px; }
+                .audit-table-pagination > div { display: flex; gap: 5px; }
+                .audit-table-pagination button { height: 30px; min-width: 30px; padding: 0 9px; border: 1px solid #dce4ef; border-radius: 5px; background: #fff; color: #5f7194; font-size: 11px; font-weight: 700; }
+                .audit-table-pagination button.active { color: #fff; background: #ffa300; border-color: #ffa300; }
+                .audit-table-pagination button:disabled { opacity: .45; cursor: not-allowed; }
+                @media (max-width: 576px) { .audit-table-pagination { align-items: flex-start; flex-direction: column; } }
               `}</style>
 
               {/* Table */}
@@ -511,16 +523,16 @@ export default function AuditLogsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((row, i) => {
+                    {visibleLogs.map((row) => {
                       const sev = SEVERITY_STYLES[row.severity] || SEVERITY_STYLES.info
                       const act = ACTION_STYLES[row.action] || { color: '#122359', bg: '#f0f0f0' }
-                      const isOpen = openRow === i
+                      const isOpen = openRow === row.hash
                       return (
                         <>
                           <tr
-                            key={i}
+                            key={row.hash}
                             className="hover-up"
-                            onClick={() => setOpenRow(isOpen ? null : i)}
+                            onClick={() => setOpenRow(isOpen ? null : row.hash)}
                             style={{ borderBottom: isOpen ? 'none' : '1px solid #f5f5f5', cursor: 'pointer' }}
                           >
                             <td style={{ padding: '12px 8px', verticalAlign: 'top', whiteSpace: 'pre', lineHeight: 1.6 }}>
@@ -615,23 +627,18 @@ export default function AuditLogsPage() {
                 </table>
               </div>
 
-              {/* Pagination */}
-              <div className="paginations mt-25">
-                <div className="row align-items-center g-2">
-                  <div className="col-lg-6">
-                    <p className="font-sm color-text-paragraph-2 mb-0">
-                      Showing 1–{filtered.length} of <strong>{logsData.length}</strong> logs
-                    </p>
-                  </div>
-                  <div className="col-lg-6 text-lg-end">
-                    <ul className="pager justify-content-lg-end">
-                      <li><a className="pager-prev"></a></li>
-                      <li><a className="pager-number active">1</a></li>
-                      <li><a className="pager-next"></a></li>
-                    </ul>
+              {filtered.length > 0 && (
+                <div className="audit-table-pagination">
+                  <span>Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)} of {filtered.length} logs</span>
+                  <div>
+                    <button disabled={page === 1} onClick={() => setPage((current) => current - 1)}>Previous</button>
+                    {Array.from({ length: pageCount }, (_, index) => (
+                      <button key={index} className={page === index + 1 ? 'active' : ''} onClick={() => setPage(index + 1)}>{index + 1}</button>
+                    ))}
+                    <button disabled={page === pageCount} onClick={() => setPage((current) => current + 1)}>Next</button>
                   </div>
                 </div>
-              </div>
+              )}
 
             </div>
           </div>

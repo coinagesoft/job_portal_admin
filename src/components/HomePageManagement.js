@@ -425,10 +425,12 @@ export default function HomePageManagement() {
               {industries.map((industry) => (
                 <div className="compact-row industry-row" key={industry.id}>
                   <IconUploadField value={industry.icon} onChange={(value) => { updateCollection(setIndustries, industry.id, { icon: value }); markChanged() }} />
-                  <label>Industry name<input value={industry.name} onChange={(event) => { updateCollection(setIndustries, industry.id, { name: event.target.value }); markChanged() }} /></label>
-                  <div className="row-actions">
-                    <span>{industry.enabled ? 'Visible' : 'Hidden'}</span><Toggle enabled={industry.enabled} onChange={(enabled) => { updateCollection(setIndustries, industry.id, { enabled }); markChanged() }} />
-                    <button type="button" className="delete-item" onClick={() => { removeItem(setIndustries, industry.id); markChanged() }} aria-label={`Remove ${industry.name}`}><Trash2 size={15} /></button>
+                  <div className="industry-card-content">
+                    <label>Industry name<input value={industry.name} onChange={(event) => { updateCollection(setIndustries, industry.id, { name: event.target.value }); markChanged() }} /></label>
+                    <div className="row-actions">
+                      <span>{industry.enabled ? 'Visible' : 'Hidden'}</span><Toggle enabled={industry.enabled} onChange={(enabled) => { updateCollection(setIndustries, industry.id, { enabled }); markChanged() }} />
+                      <button type="button" className="delete-item" onClick={() => { removeItem(setIndustries, industry.id); markChanged() }} aria-label={`Remove ${industry.name}`}><Trash2 size={15} /></button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -546,10 +548,12 @@ export default function HomePageManagement() {
         .hero-preview div { display: grid; grid-template-columns: 1fr 1fr auto; overflow: hidden; border-radius: 6px; background: #fff; }
         .hero-preview button { min-height: 37px; border: 0; border-right: 1px solid #edf0f5; background: #fff; color: #76849e; padding: 0 9px; text-align: left; font-size: 10px; }
         .hero-preview .preview-search { border: 0; background: #ffa300; color: #fff; display: inline-flex; align-items: center; gap: 5px; font-weight: 800; }
-        /* Ensure industry list renders as a 4-column card grid on desktop */
+        /* Four consistent industry cards per desktop row, with controls beneath the field. */
         .home-section .compact-list { padding: 5px 21px 18px; display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 18px; }
-        .home-section .compact-list > .compact-row { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; padding: 14px; border: 1px solid #edf1f6; border-radius: 10px; background: #fff; width: auto; box-sizing: border-box; }
-        .compact-row.industry-row { grid-template-columns: 44px 1fr auto; align-items: center; }
+        .home-section .compact-list > .compact-row { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 10px 12px; align-items: start; padding: 14px; border: 1px solid #edf1f6; border-radius: 10px; background: #fff; width: auto; box-sizing: border-box; }
+        .compact-row.industry-row { grid-template-columns: 44px minmax(0, 1fr); align-items: start; }
+        .industry-card-content { min-width: 0; display: grid; gap: 10px; }
+        .industry-card-content .row-actions { justify-self: start; }
         .compact-row:last-child { border-bottom: 0; } .row-marker { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 7px; background: #f2f6fc; color: #5270aa; margin-bottom: 0; }
         .row-actions { min-height: 36px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .row-actions > span { color: #6e809e; font-size: 10px; font-weight: 700; }
         .delete-item, .delete-text { border: 0; color: #c84b4b; background: #fff1f1; border-radius: 6px; padding: 7px; display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; } .delete-text { margin-top: 5px; width: max-content; }
@@ -620,7 +624,7 @@ export default function HomePageManagement() {
         
         @media (max-width: 1150px) { 
           .stats-editor { grid-template-columns: repeat(2, minmax(0, 1fr)); } 
-          .compact-list { grid-template-columns: repeat(3, minmax(0, 1fr)); } 
+          .home-section .compact-list { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
           .recruiter-grid { grid-template-columns: 1fr; } 
           .recruiter-grid > :nth-child(-n + 2) { height: auto; }
           .suggestions-panel { position: static; min-height: 350px; }
@@ -631,7 +635,7 @@ export default function HomePageManagement() {
           .hero-editor-grid { grid-template-columns: 1fr; padding: 16px; }
           .search-field-grid { grid-template-columns: 1fr; }
           .two-column-row { grid-template-columns: 1fr; gap: 12px; }
-          .compact-list { grid-template-columns: 1fr; padding: 5px 16px 16px; }
+          .home-section .compact-list { grid-template-columns: 1fr !important; padding: 5px 16px 16px; }
           .compact-row, .compact-row.industry-row { grid-template-columns: 44px 1fr; }
           .compact-row .row-actions { grid-column: 1 / -1; }
           .stats-editor { grid-template-columns: 1fr; padding: 16px; }
