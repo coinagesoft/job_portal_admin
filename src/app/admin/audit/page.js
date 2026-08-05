@@ -25,6 +25,16 @@ function formatAction(action) {
     .join(' ')
 }
 
+// ── Actor type → color + label mapping ──
+// Maps 1:1 to a backend `actor_type` enum: admin | sub_admin | recruiter | candidate | system
+const ACTOR_TYPE_STYLES = {
+  admin: { color: '#122359', bg: '#e8eaf6', label: 'Admin' },
+  sub_admin: { color: '#5e35b1', bg: '#ede7f6', label: 'Sub-Admin' },
+  recruiter: { color: '#00695c', bg: '#e0f2f1', label: 'Recruiter' },
+  candidate: { color: '#ad1457', bg: '#fce4ec', label: 'Candidate' },
+  system: { color: '#555', bg: '#f5f5f5', label: 'System' },
+}
+
 // ── Severity → color mapping (single source of truth, used everywhere) ──
 const SEVERITY_STYLES = {
   critical: { color: '#c62828', bg: '#fdecea', label: 'Critical' },
@@ -38,6 +48,10 @@ const ACTION_STYLES = {
   DATA_EXPORT_DPDP: { color: '#b36b00', bg: '#fff3e0' },
   CONFIG_CHANGE: { color: '#2e7d32', bg: '#e8f5e9' },
   LOGIN_SUCCESS: { color: '#555', bg: '#f5f5f5' },
+  CANDIDATE_PROFILE_UNLOCKED: { color: '#00695c', bg: '#e0f2f1' },
+  CV_DOWNLOADED: { color: '#00695c', bg: '#e0f2f1' },
+  CONSENT_REVOKED: { color: '#ad1457', bg: '#fce4ec' },
+  APPLICANT_STATUS_CHANGED: { color: '#5e35b1', bg: '#ede7f6' },
 }
 
 // ── Mock data — every row now carries the full field set so the detail
@@ -47,6 +61,7 @@ const logsData = [
     ts: '2023-11-24\n14:22:01',
     actor: 'sarah.admin@skillbridge.io',
     actor_id: 'ADM-001',
+    actor_type: 'admin',
     action: 'USER_SUSPENDED',
     severity: 'critical',
     session_id: 'SES-77821',
@@ -59,9 +74,26 @@ const logsData = [
     hash: 'a8f5f167f44f4964e6c998dee827110c',
   },
   {
+    ts: '2023-11-24\n13:45:20',
+    actor: 'rahul.recruiter@techcorp.io',
+    actor_id: 'REC-208',
+    actor_type: 'recruiter',
+    action: 'CANDIDATE_PROFILE_UNLOCKED',
+    severity: 'info',
+    session_id: 'SES-77840',
+    entity: 'Alexander Wright',
+    target_id: 'USR-1287',
+    ip: '103.22.14.9',
+    change_reason: 'Unlocked using 1 credit',
+    old_value: 'Locked',
+    new_value: 'Unlocked',
+    hash: 'f1c6c0b7a2e4d9f83a5b6c7d8e9f0a1b',
+  },
+  {
     ts: '2023-11-24\n13:05:12',
     actor: 'system.automator',
     actor_id: 'SYS-000',
+    actor_type: 'system',
     action: 'BATCH_PAYMENT_INIT',
     severity: 'info',
     session_id: 'SES-77821',
@@ -74,9 +106,26 @@ const logsData = [
     hash: 'e3b0c44298fc1c149afbf4c8996fb924',
   },
   {
+    ts: '2023-11-24\n12:18:47',
+    actor: 'alexander.wright@gmail.com',
+    actor_id: 'USR-1287',
+    actor_type: 'candidate',
+    action: 'CONSENT_REVOKED',
+    severity: 'warning',
+    session_id: 'SES-77835',
+    entity: 'Profile Visibility Consent',
+    target_id: 'USR-1287',
+    ip: '49.207.11.3',
+    change_reason: 'Candidate opted out of recruiter visibility',
+    old_value: 'Granted',
+    new_value: 'Revoked',
+    hash: 'b7d4f1e2c3a4956b8c7d6e5f4a3b2c1d',
+  },
+  {
     ts: '2023-11-24\n11:45:55',
     actor: 'mike.finance@skillbridge.io',
     actor_id: 'ADM-014',
+    actor_type: 'sub_admin',
     action: 'DATA_EXPORT_DPDP',
     severity: 'warning',
     session_id: 'SES-77821',
@@ -89,9 +138,26 @@ const logsData = [
     hash: '9f86d081884c7d659a2feaa0c55ad015',
   },
   {
+    ts: '2023-11-24\n10:30:02',
+    actor: 'priya.subadmin@skillbridge.io',
+    actor_id: 'SUB-004',
+    actor_type: 'sub_admin',
+    action: 'APPLICANT_STATUS_CHANGED',
+    severity: 'info',
+    session_id: 'SES-77828',
+    entity: 'Application #A-5521',
+    target_id: 'APP-5521',
+    ip: '192.168.5.140',
+    change_reason: 'Moved to interview stage',
+    old_value: 'Shortlisted',
+    new_value: 'Interviewing',
+    hash: 'c3d4e5f6a7b8091a2b3c4d5e6f708192',
+  },
+  {
     ts: '2023-11-24\n09:12:30',
     actor: 'admin.super',
     actor_id: 'ADM-000',
+    actor_type: 'admin',
     action: 'CONFIG_CHANGE',
     severity: 'warning',
     session_id: 'SES-77821',
@@ -107,6 +173,7 @@ const logsData = [
     ts: '2023-11-24\n08:30:00',
     actor: 'sarah.admin@skillbridge.io',
     actor_id: 'ADM-001',
+    actor_type: 'admin',
     action: 'LOGIN_SUCCESS',
     severity: 'info',
     session_id: 'SES-77821',
@@ -181,6 +248,7 @@ export default function AuditLogsPage() {
   const [actionFilter, setActionFilter] = useState('')
   const [dateFilter, setDateFilter] = useState('')
   const [severityFilter, setSeverityFilter] = useState('')
+  const [actorTypeFilter, setActorTypeFilter] = useState('')
   const [openInspection, setOpenInspection] = useState(null)
   const [openRow, setOpenRow] = useState(null)
   const [exportMsg, setExportMsg] = useState('')
@@ -217,11 +285,12 @@ export default function AuditLogsPage() {
     const matchesAction = l.action.toLowerCase().includes(actionFilter.toLowerCase())
     const matchesSeverity = severityFilter === '' || l.severity === severityFilter
     const matchesDate = dateFilter === '' || l.ts.startsWith(dateFilter)
-    return matchesActor && matchesAction && matchesSeverity && matchesDate
-  }), [actorFilter, actionFilter, severityFilter, dateFilter])
+    const matchesActorType = actorTypeFilter === '' || l.actor_type === actorTypeFilter
+    return matchesActor && matchesAction && matchesSeverity && matchesDate && matchesActorType
+  }), [actorFilter, actionFilter, severityFilter, dateFilter, actorTypeFilter])
 
   const criticalCount = logsData.filter(l => l.severity === 'critical').length
-  const hasActiveFilters = actorFilter || actionFilter || dateFilter || severityFilter
+  const hasActiveFilters = actorFilter || actionFilter || dateFilter || severityFilter || actorTypeFilter
 
   function handleExport(kind) {
     setExportMsg(kind === 'csv' ? 'CSV export started…' : 'Preparing DPDP-compliant export…')
@@ -326,54 +395,69 @@ export default function AuditLogsPage() {
 
               {/* Filter bar */}
               <div
-                className="d-flex align-items-center justify-content-between"
+                className="d-flex align-items-center"
                 style={{
                   padding: '12px 20px',
                   borderBottom: '1px solid #eee',
                   gap: '8px',
-                  flexWrap: 'nowrap',
-                  overflowX: 'auto'
+                  flexWrap: 'wrap',
                 }}
               >
-                <div style={{ position: 'relative', minWidth: '160px' }}>
+                <div style={{ position: 'relative', width: '130px' }}>
                   <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#aaa' }} />
                   <input
                     className="form-control font-xs"
                     placeholder="Actor"
                     value={actorFilter}
                     onChange={(e) => setActorFilter(e.target.value)}
-                    style={{ paddingLeft: '30px', height: '42px' }}
+                    style={{ paddingLeft: '30px', height: '42px', width: '100%' }}
                   />
                 </div>
 
-                <div style={{ position: 'relative', minWidth: '170px' }}>
+                <div style={{ position: 'relative', width: '130px' }}>
                   <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#aaa' }} />
                   <input
                     className="form-control font-xs"
                     placeholder="Action"
                     value={actionFilter}
                     onChange={(e) => setActionFilter(e.target.value)}
-                    style={{ paddingLeft: '30px', height: '42px' }}
+                    style={{ paddingLeft: '30px', height: '42px', width: '100%' }}
                   />
                 </div>
 
-                <div style={{ position: 'relative', minWidth: '170px', maxWidth: '170px' }}>
+                <div style={{ position: 'relative', width: '145px' }}>
                   <Calendar size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#aaa', pointerEvents: 'none' }} />
                   <input
                     type="date"
                     className="form-control font-xs date-filter-input"
                     value={dateFilter}
                     onChange={(e) => setDateFilter(e.target.value)}
-                    style={{ height: '42px', fontSize: '12px', padding: '4px 10px 4px 30px' }}
+                    style={{ height: '42px', fontSize: '12px', padding: '4px 8px 4px 30px', width: '100%' }}
                   />
                 </div>
 
-                <div style={{ minWidth: '150px' }}>
+                <div style={{ width: '125px' }}>
+                  <select
+                    className="form-control font-xs"
+                    value={actorTypeFilter}
+                    onChange={(e) => setActorTypeFilter(e.target.value)}
+                    style={{ height: '42px', width: '100%' }}
+                  >
+                    <option value="">Actor Type</option>
+                    <option value="admin">Admin</option>
+                    <option value="sub_admin">Sub-Admin</option>
+                    <option value="recruiter">Recruiter</option>
+                    <option value="candidate">Candidate</option>
+                    <option value="system">System</option>
+                  </select>
+                </div>
+
+                <div style={{ width: '115px' }}>
                   <select
                     className="form-control font-xs"
                     value={severityFilter}
                     onChange={(e) => setSeverityFilter(e.target.value)}
-                    style={{ height: '42px' }}
+                    style={{ height: '42px', width: '100%' }}
                   >
                     <option value="">Severity</option>
                     <option value="critical">Critical</option>
@@ -389,6 +473,7 @@ export default function AuditLogsPage() {
                     setActionFilter('')
                     setDateFilter('')
                     setSeverityFilter('')
+                    setActorTypeFilter('')
                   }}
                   disabled={!hasActiveFilters}
                   style={{
@@ -396,6 +481,7 @@ export default function AuditLogsPage() {
                     opacity: hasActiveFilters ? 1 : 0.5,
                     cursor: hasActiveFilters ? 'pointer' : 'default',
                     whiteSpace: 'nowrap',
+                    marginLeft: 'auto',
                   }}
                 >
                   <X size={14} /> Clear Filters
@@ -410,18 +496,18 @@ export default function AuditLogsPage() {
 
               {/* Table */}
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '650px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '620px' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid #eee' }}>
                       {[
-                        'Timestamp', 'Admin', 'Action', 'Target Entity',
+                        'Timestamp', 'Admin', 'Actor Type', 'Action', 'Target Entity',
                         'IP Address', 'Severity', 'Session', ''
                       ].map((label, idx) => (
                         <th key={idx} className="font-xs color-text-paragraph-2"
                           style={{
-                            padding: '12px 10px', textAlign: 'left',
+                            padding: '10px 8px', textAlign: 'left',
                             fontWeight: 600, textTransform: 'uppercase',
-                            letterSpacing: '0.4px', fontSize: '10px', whiteSpace: 'nowrap',
+                            letterSpacing: '0.3px', fontSize: '9px', whiteSpace: 'nowrap',
                           }}>{label}</th>
                       ))}
                     </tr>
@@ -439,22 +525,27 @@ export default function AuditLogsPage() {
                             onClick={() => setOpenRow(isOpen ? null : i)}
                             style={{ borderBottom: isOpen ? 'none' : '1px solid #f5f5f5', cursor: 'pointer' }}
                           >
-                            <td style={{ padding: '14px 10px', verticalAlign: 'top', whiteSpace: 'pre', lineHeight: 1.6 }}>
+                            <td style={{ padding: '12px 8px', verticalAlign: 'top', whiteSpace: 'pre', lineHeight: 1.6 }}>
                               <span className="font-xs" style={{ color: '#122359', fontWeight: 500 }}>{row.ts}</span>
                             </td>
-                            <td style={{ padding: '14px 10px', verticalAlign: 'top' }}>
+                            <td style={{ padding: '12px 8px', verticalAlign: 'top' }}>
                               <span className="font-xs" style={{ fontWeight: 600, color: '#122359', wordBreak: 'break-all' }}>{row.actor}</span>
                             </td>
-                            <td style={{ padding: '14px 10px' }}>
+                            <td style={{ padding: '12px 8px' }}>
+                              <Badge color={(ACTOR_TYPE_STYLES[row.actor_type] || ACTOR_TYPE_STYLES.system).color} bg={(ACTOR_TYPE_STYLES[row.actor_type] || ACTOR_TYPE_STYLES.system).bg}>
+                                {(ACTOR_TYPE_STYLES[row.actor_type] || ACTOR_TYPE_STYLES.system).label}
+                              </Badge>
+                            </td>
+                            <td style={{ padding: '12px 8px' }}>
                               <Badge color={act.color} bg={act.bg} pill={false}>{formatAction(row.action)}</Badge>
                             </td>
-                            <td style={{ padding: '14px 10px' }}>{row.entity}</td>
-                            <td style={{ padding: '14px 10px' }}>{row.ip}</td>
-                            <td style={{ padding: '14px 10px' }}>
+                            <td style={{ padding: '12px 8px' }}>{row.entity}</td>
+                            <td style={{ padding: '12px 8px' }}>{row.ip}</td>
+                            <td style={{ padding: '12px 8px' }}>
                               <Badge color={sev.color} bg={sev.bg}>{sev.label}</Badge>
                             </td>
-                            <td style={{ padding: '14px 10px' }}>{row.session_id || '-'}</td>
-                            <td style={{ padding: '14px 10px', textAlign: 'right' }}>
+                            <td style={{ padding: '12px 8px' }}>{row.session_id || '-'}</td>
+                            <td style={{ padding: '12px 8px', textAlign: 'right' }}>
                               <ChevronDown
                                 size={16}
                                 color="#888"
@@ -465,7 +556,7 @@ export default function AuditLogsPage() {
 
                           {isOpen && (
                             <tr key={`${i}-detail`} style={{ borderBottom: '1px solid #f5f5f5' }}>
-                              <td colSpan={8} style={{ padding: '0' }}>
+                              <td colSpan={9} style={{ padding: '0' }}>
                                 <div style={{
                                   background: '#F8FAFF',
                                   borderLeft: `3px solid ${sev.color}`,
@@ -521,7 +612,7 @@ export default function AuditLogsPage() {
 
                     {filtered.length === 0 && (
                       <tr>
-                        <td colSpan={8} style={{ padding: '30px', textAlign: 'center' }}>
+                        <td colSpan={9} style={{ padding: '30px', textAlign: 'center' }}>
                           <span className="font-sm color-text-paragraph-2">No logs match your filters.</span>
                         </td>
                       </tr>

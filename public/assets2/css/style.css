@@ -5256,7 +5256,7 @@ option {
   content: "";
   height: 28px;
   width: 28px;
-  background: #ffc151;
+  /* background: #ffc151; */
   opacity: 0.3;
   border-radius: 50%;
   position: absolute;
@@ -5268,7 +5268,7 @@ option {
   content: "";
   height: 28px;
   width: 28px;
-  background: #ffc151;
+  /* background: #ffc151; */
   opacity: 0.3;
   border-radius: 50%;
   position: absolute;
