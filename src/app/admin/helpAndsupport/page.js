@@ -347,8 +347,8 @@ const filteredData = data.filter((r) => {
       {/* ACTIONS */}
       <div className="d-flex gap-2 flex-wrap">
         <button className="btn btn-default">Send Reply</button>
-        <button className="btn btn-grey-small">Mark In Progress</button>
-        <button className="btn btn-grey-small">Resolve</button>
+        <button className="btn btn-default">Mark In Progress</button>
+        <button className="btn btn-default">Resolve</button>
       </div>
 
     </div>
