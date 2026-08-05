@@ -4,6 +4,7 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import TextAlign from '@tiptap/extension-text-align'
 import Placeholder from '@tiptap/extension-placeholder'
+import Underline from '@tiptap/extension-underline'
 import Footer from '../../../components/Footer'
 
 export default function LegalContentPage() {
@@ -16,7 +17,6 @@ export default function LegalContentPage() {
 
   const DEFAULT_PRIVACY =
     '<h2>Privacy Policy</h2>' +
-    '<p><em>Last updated: —</em></p>' +
     '<p>Write or paste your privacy policy here. Use the toolbar above to add headings, bold or italic emphasis, lists, and section breaks.</p>' +
     '<h3>1. Information We Collect</h3>' +
     '<p>Describe what data is collected and how.</p>' +
@@ -25,12 +25,18 @@ export default function LegalContentPage() {
 
   const DEFAULT_TERMS =
     '<h2>Terms &amp; Conditions</h2>' +
-    '<p><em>Last updated: —</em></p>' +
     '<p>Write or paste your terms of service here.</p>' +
     '<h3>1. Acceptance of Terms</h3>' +
     '<p>Describe the terms of use.</p>' +
     '<h3>2. User Responsibilities</h3>' +
     '<p>Describe user obligations.</p>'
+
+  const todayISO = () => new Date().toISOString().slice(0, 10)
+  const formatDate = (iso) => {
+    if (!iso) return '—'
+    const d = new Date(`${iso}T00:00:00`)
+    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+  }
 
   // ── which document is being edited ──
   const [activeTab, setActiveTab] = useState('privacy') // 'privacy' | 'terms'
@@ -39,12 +45,24 @@ export default function LegalContentPage() {
 
   // ── document content + save state, one per document ──
   const [docs, setDocs] = useState({
-    privacy: { html: DEFAULT_PRIVACY, savedHtml: DEFAULT_PRIVACY, lastSaved: 'Not yet published' },
-    terms:   { html: DEFAULT_TERMS,   savedHtml: DEFAULT_TERMS,   lastSaved: 'Not yet published' },
+    privacy: {
+      html: DEFAULT_PRIVACY, savedHtml: DEFAULT_PRIVACY,
+      effectiveDate: '', savedEffectiveDate: '',
+      lastSaved: 'Not yet published', status: 'draft',
+    },
+    terms: {
+      html: DEFAULT_TERMS, savedHtml: DEFAULT_TERMS,
+      effectiveDate: '', savedEffectiveDate: '',
+      lastSaved: 'Not yet published', status: 'draft',
+    },
   })
 
   const current = docs[activeTab]
-  const isDirty = current.html !== current.savedHtml
+  const isDirty = current.html !== current.savedHtml || current.effectiveDate !== current.savedEffectiveDate
+
+  const setEffectiveDate = (value) => {
+    setDocs(d => ({ ...d, [activeTab]: { ...d[activeTab], effectiveDate: value } }))
+  }
 
   // ── Tiptap editor instance (single instance, content swapped per tab) ──
   const editor = useEditor({
@@ -58,6 +76,7 @@ export default function LegalContentPage() {
       }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Placeholder.configure({ placeholder: 'Start writing…' }),
+      Underline,
     ],
     onUpdate: ({ editor }) => {
       const html = editor.getHTML()
@@ -84,12 +103,22 @@ export default function LegalContentPage() {
     setSymbolsOpen(false)
   }
 
+  // ── preview + publish-confirmation modals ──
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+
+  const requestPublish = () => setConfirmOpen(true)
+
   const handleSave = () => {
+    setConfirmOpen(false)
     setDocs(d => ({
       ...d,
       [activeTab]: {
         ...d[activeTab],
         savedHtml: d[activeTab].html,
+        effectiveDate: d[activeTab].effectiveDate || todayISO(),
+        savedEffectiveDate: d[activeTab].effectiveDate || todayISO(),
+        status: 'published',
         lastSaved: new Date().toLocaleString('en-US', {
           month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
         }),
@@ -99,8 +128,24 @@ export default function LegalContentPage() {
 
   const handleDiscard = () => {
     editor?.commands.setContent(current.savedHtml, { emitUpdate: false })
-    setDocs(d => ({ ...d, [activeTab]: { ...d[activeTab], html: d[activeTab].savedHtml } }))
+    setDocs(d => ({
+      ...d,
+      [activeTab]: { ...d[activeTab], html: d[activeTab].savedHtml, effectiveDate: d[activeTab].savedEffectiveDate },
+    }))
   }
+
+  // ── word / character counts for the doc being edited ──
+  const plainText = (editor?.getText() || '').trim()
+  const wordCount = plainText ? plainText.split(/\s+/).length : 0
+  const charCount = plainText.length
+
+  // ── warn before leaving the tab with unsaved changes ──
+  const anyDirty = Object.values(docs).some(d => d.html !== d.savedHtml || d.effectiveDate !== d.savedEffectiveDate)
+  useEffect(() => {
+    const handler = (e) => { if (anyDirty) { e.preventDefault(); e.returnValue = '' } }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [anyDirty])
 
   // ── toolbar button ──
   const ToolBtn = ({ active, onClick, title, children }) => (
@@ -169,7 +214,7 @@ export default function LegalContentPage() {
             }}
           >
             {t.label}
-            {docs[t.key].html !== docs[t.key].savedHtml && (
+            {(docs[t.key].html !== docs[t.key].savedHtml || docs[t.key].effectiveDate !== docs[t.key].savedEffectiveDate) && (
               <span style={{
                 width: '7px', height: '7px', borderRadius: '50%',
                 background: activeTab === t.key ? '#fff' : '#e53935',
@@ -183,12 +228,46 @@ export default function LegalContentPage() {
       <div className="section-box">
         <div className="panel-white">
           <div className="panel-head">
-            <div className="d-flex align-items-center justify-content-between" style={{ flexWrap: 'wrap', gap: '10px' }}>
+            <div className="d-flex align-items-center justify-content-between" style={{ flexWrap: 'wrap', gap: '14px' }}>
               <div>
-                <h5 className="mb-0">{tabs.find(t => t.key === activeTab).label}</h5>
+                <div className="d-flex align-items-center" style={{ gap: '8px' }}>
+                  <h5 className="mb-0">{tabs.find(t => t.key === activeTab).label}</h5>
+                  <span style={{
+                    fontSize: '10px', fontWeight: 700, letterSpacing: '.03em', textTransform: 'uppercase',
+                    padding: '3px 8px', borderRadius: '20px',
+                    background: current.status === 'published' ? '#E9F7EF' : '#FFF4E0',
+                    color: current.status === 'published' ? '#2e7d32' : '#b26a00',
+                  }}>
+                    {current.status === 'published' ? 'Published' : 'Draft'}
+                  </span>
+                </div>
                 <p className="font-xs color-text-paragraph-2 mb-0">
                   {isDirty ? 'Unsaved changes' : `Last published: ${current.lastSaved}`}
                 </p>
+              </div>
+
+              <div className="d-flex align-items-center" style={{ gap: '18px', flexWrap: 'wrap' }}>
+                <label className="d-flex align-items-center font-xs" style={{ gap: '8px', color: navy, fontWeight: 600 }}>
+                  Effective date
+                  <input
+                    type="date"
+                    value={current.effectiveDate}
+                    onChange={e => setEffectiveDate(e.target.value)}
+                    style={{
+                      height: '32px', borderRadius: '7px', border: `1px solid ${border}`,
+                      fontSize: '12px', color: navy, padding: '0 8px', background: '#fff',
+                    }}
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  className="btn btn-secondary hover-up"
+                  onClick={() => setPreviewOpen(true)}
+                  style={{ padding: '8px 16px', fontSize: '12px', fontWeight: 600 }}
+                >
+                  Preview
+                </button>
               </div>
             </div>
           </div>
@@ -294,6 +373,16 @@ export default function LegalContentPage() {
           <div className="panel-body" style={{ padding: 0 }}>
             <EditorContent editor={editor} />
           </div>
+
+          {/* ── word / character count ── */}
+          <div style={{
+            display: 'flex', justifyContent: 'flex-end', gap: '16px',
+            padding: '8px 20px', borderTop: `1px solid ${border}`,
+            fontSize: '11px', color: '#8592aa', fontWeight: 600,
+          }}>
+            <span>{wordCount} {wordCount === 1 ? 'word' : 'words'}</span>
+            <span>{charCount} {charCount === 1 ? 'character' : 'characters'}</span>
+          </div>
         </div>
       </div>
 
@@ -327,7 +416,7 @@ export default function LegalContentPage() {
               </button>
               <button
                 className="btn btn-primary hover-up"
-                onClick={handleSave}
+                onClick={requestPublish}
                 disabled={!isDirty}
                 style={{
                   padding: '10px 24px', fontSize: '13px', fontWeight: 600,
@@ -342,19 +431,131 @@ export default function LegalContentPage() {
         </div>
       </div>
 
+      {/* ── PREVIEW MODAL ── */}
+      {previewOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setPreviewOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(18,35,89,0.55)',
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+            padding: '40px 20px', overflowY: 'auto',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: 'min(760px, 100%)', background: '#fff', borderRadius: '14px',
+              boxShadow: '0 24px 70px rgba(0,0,0,0.3)', overflow: 'hidden',
+            }}
+          >
+            <div className="d-flex align-items-center justify-content-between" style={{
+              padding: '16px 24px', borderBottom: `1px solid ${border}`, background: '#FAFBFD',
+            }}>
+              <div>
+                <strong style={{ fontSize: '13px', color: navy }}>Preview — {tabs.find(t => t.key === activeTab).label}</strong>
+                <p className="font-xs color-text-paragraph-2 mb-0">How this page will appear to candidates and employers</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewOpen(false)}
+                aria-label="Close preview"
+                style={{
+                  width: '30px', height: '30px', borderRadius: '8px', border: `1px solid ${border}`,
+                  background: '#fff', color: navy, fontSize: '16px', lineHeight: 1, cursor: 'pointer',
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ padding: '32px 40px', maxHeight: '65vh', overflowY: 'auto' }}>
+              <p className="font-xs" style={{ color: '#8592aa', fontWeight: 600, marginBottom: '18px' }}>
+                Effective {formatDate(current.effectiveDate || todayISO())}
+              </p>
+              <div
+                className="legal-preview"
+                dangerouslySetInnerHTML={{ __html: current.html }}
+              />
+            </div>
+
+            <div style={{
+              padding: '14px 24px', borderTop: `1px solid ${border}`, background: '#FAFBFD',
+              display: 'flex', justifyContent: 'flex-end',
+            }}>
+              <button
+                type="button"
+                className="btn btn-secondary hover-up"
+                onClick={() => setPreviewOpen(false)}
+                style={{ padding: '8px 18px', fontSize: '12px', fontWeight: 600 }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── PUBLISH CONFIRMATION MODAL ── */}
+      {confirmOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setConfirmOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(18,35,89,0.55)',
+            display: 'grid', placeItems: 'center', padding: '20px',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: 'min(420px, 100%)', background: '#fff', borderRadius: '14px',
+              boxShadow: '0 24px 70px rgba(0,0,0,0.3)', padding: '26px',
+            }}
+          >
+            <h5 className="mb-10">Publish {tabs.find(t => t.key === activeTab).label}?</h5>
+            <p className="font-sm color-text-paragraph-2">
+              This replaces the version currently shown to candidates and employers, effective{' '}
+              <strong style={{ color: navy }}>{formatDate(current.effectiveDate || todayISO())}</strong>. This can't be undone automatically — you'll need to edit and republish to make further changes.
+            </p>
+            <div className="d-flex justify-content-end" style={{ gap: '10px', marginTop: '18px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary hover-up"
+                onClick={() => setConfirmOpen(false)}
+                style={{ padding: '9px 18px', fontSize: '13px' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary hover-up"
+                onClick={handleSave}
+                style={{ padding: '9px 20px', fontSize: '13px', fontWeight: 600 }}
+              >
+                Confirm &amp; Publish
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Editor typography rules, scoped to this page ── */}
       <style jsx global>{`
-        .legal-editor h2 { font-size: 22px; font-weight: 700; color: ${navy}; margin: 0 0 10px; }
-        .legal-editor h3 { font-size: 17px; font-weight: 700; color: ${navy}; margin: 22px 0 8px; }
-        .legal-editor h4 { font-size: 15px; font-weight: 700; color: ${navy}; margin: 18px 0 6px; }
+        .legal-editor h2, .legal-preview h2 { font-size: 22px; font-weight: 700; color: ${navy}; margin: 0 0 10px; }
+        .legal-editor h3, .legal-preview h3 { font-size: 17px; font-weight: 700; color: ${navy}; margin: 22px 0 8px; }
+        .legal-editor h4, .legal-preview h4 { font-size: 15px; font-weight: 700; color: ${navy}; margin: 18px 0 6px; }
         .legal-editor { min-height: 440px; padding: 28px 32px; outline: none; font-size: 14.5px; line-height: 1.75; color: ${navy}; }
-        .legal-editor p { margin: 0 0 12px; }
-        .legal-editor ul, .legal-editor ol { margin: 0 0 12px; padding-left: 22px; }
-        .legal-editor blockquote {
+        .legal-preview { font-size: 14.5px; line-height: 1.75; color: ${navy}; }
+        .legal-editor p, .legal-preview p { margin: 0 0 12px; }
+        .legal-editor ul, .legal-editor ol, .legal-preview ul, .legal-preview ol { margin: 0 0 12px; padding-left: 22px; }
+        .legal-editor blockquote, .legal-preview blockquote {
           margin: 0 0 12px; padding: 8px 16px; border-left: 3px solid ${gold};
           background: #FFF9EE; color: ${navy}; font-style: italic;
         }
-        .legal-editor hr { border: none; border-top: 1px solid ${border}; margin: 20px 0; }
+        .legal-editor hr, .legal-preview hr { border: none; border-top: 1px solid ${border}; margin: 20px 0; }
         .legal-editor p.is-editor-empty:first-child::before {
           content: attr(data-placeholder); float: left; color: #9aa0ac; pointer-events: none; height: 0;
         }

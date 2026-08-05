@@ -74,6 +74,28 @@ export default function RecruiterPage() {
   const [plan, setPlan] = useState("");
   const [gst, setGst] = useState("");
   const [status, setStatus] = useState("");
+  const [page, setPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
+
+  const handleSearchChange = (value) => {
+    setSearch(value);
+    setPage(1);
+  };
+
+  const handlePlanChange = (value) => {
+    setPlan(value);
+    setPage(1);
+  };
+
+  const handleGstChange = (value) => {
+    setGst(value);
+    setPage(1);
+  };
+
+  const handleStatusChange = (value) => {
+    setStatus(value);
+    setPage(1);
+  };
 
   const handleToggleVerification = (id) => {
     setRecruitersList((prev) =>
@@ -122,6 +144,13 @@ export default function RecruiterPage() {
       (status === "" || r.status === status)
     );
   });
+
+  const pageCount = Math.max(1, Math.ceil(filteredRecruiters.length / ITEMS_PER_PAGE));
+  const currentPage = Math.min(page, pageCount);
+  const visibleRecruiters = filteredRecruiters.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   const verifiedCount = recruitersList.filter(r => r.gst === 'Verified').length;
   const verificationRate = recruitersList.length > 0 ? Math.round((verifiedCount / recruitersList.length) * 100) : 0;
@@ -249,7 +278,7 @@ export default function RecruiterPage() {
                   className="form-control"
                   placeholder="Search by Company, Contact or Email..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                 />
               </div>
 
@@ -261,7 +290,7 @@ export default function RecruiterPage() {
                     <select
                       className="form-control filter-select"
                       value={plan}
-                      onChange={(e) => setPlan(e.target.value)}
+                      onChange={(e) => handlePlanChange(e.target.value)}
                     >
                       <option value="">Plan: All</option>
                       <option value="Paid">Paid</option>
@@ -274,7 +303,7 @@ export default function RecruiterPage() {
                     <select
                       className="form-control filter-select"
                       value={gst}
-                      onChange={(e) => setGst(e.target.value)}
+                      onChange={(e) => handleGstChange(e.target.value)}
                     >
                       <option value="">GST: All</option>
                       <option value="Verified">Verified</option>
@@ -288,7 +317,7 @@ export default function RecruiterPage() {
                     <select
                       className="form-control filter-select"
                       value={status}
-                      onChange={(e) => setStatus(e.target.value)}
+                      onChange={(e) => handleStatusChange(e.target.value)}
                     >
                       <option value="">Status: All</option>
                       <option value="Active">Active</option>
@@ -306,6 +335,7 @@ export default function RecruiterPage() {
                         setStatus("");
                         setPlan("");
                         setGst("");
+                        setPage(1);
                       }}
                     >
                       Clear Filters
@@ -345,7 +375,7 @@ export default function RecruiterPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredRecruiters.map((r) => (
+                    visibleRecruiters.map((r) => (
                       <tr key={r.id}>
 
                         {/* Company */}
@@ -615,27 +645,82 @@ export default function RecruiterPage() {
               </table>
             </div>
 
-            <div className="paginations mt-25">
-              <div className="row align-items-center g-2">
-                <div className="col-lg-6">
-                  <p className="font-sm color-text-paragraph-2 mb-0">
-                    Showing 1–{filteredRecruiters.length} of <strong>{recruitersList.length}</strong> recruiters
-                  </p>
-                </div>
+            {filteredRecruiters.length > 0 && (
+              <div className="table-pagination">
+                <span>
+                  Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–
+                  {Math.min(currentPage * ITEMS_PER_PAGE, filteredRecruiters.length)}{" "}
+                  of {filteredRecruiters.length} recruiters
+                </span>
 
-                <div className="col-lg-6 text-lg-end">
-                  <ul className="pager justify-content-lg-end">
-                    <li><a className="pager-prev"></a></li>
-                    <li><a className="pager-number active">1</a></li>
-                    <li><a className="pager-next"></a></li>
-                  </ul>
+                <div>
+                  <button
+                    disabled={currentPage === 1}
+                    onClick={() => setPage((prev) => prev - 1)}
+                  >
+                    Previous
+                  </button>
+
+                  {Array.from({ length: pageCount }, (_, index) => (
+                    <button
+                      key={index}
+                      className={currentPage === index + 1 ? "active" : ""}
+                      onClick={() => setPage(index + 1)}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+
+                  <button
+                    disabled={currentPage === pageCount}
+                    onClick={() => setPage((prev) => prev + 1)}
+                  >
+                    Next
+                  </button>
                 </div>
               </div>
-            </div>
+            )}
 
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        .table-pagination {
+          padding: 15px 20px;
+          border-top: 1px solid #edf1f6;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          color: #7b8aa5;
+          font-size: 12px;
+        }
+        .table-pagination div {
+          display: flex;
+          gap: 5px;
+        }
+        .table-pagination button {
+          height: 30px;
+          min-width: 30px;
+          padding: 0 9px;
+          border: 1px solid #dce4ef;
+          border-radius: 5px;
+          background: #fff;
+          color: #5f7194;
+          font-size: 11px;
+          font-weight: 700;
+        }
+        .table-pagination button.active {
+          color: #fff;
+          background: #ffa300;
+          border-color: #ffa300;
+        }
+        .table-pagination button:disabled {
+          opacity: 0.45;
+          cursor: not-allowed;
+        }
+      `}</style>
       <Footer />
     </>
   )
