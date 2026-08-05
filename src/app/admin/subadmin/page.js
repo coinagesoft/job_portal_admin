@@ -166,7 +166,7 @@ const SAMPLE_ADMINS = [
   },
 ]
 
-const BLANK = { name: '', email: '', phone: '', password: '', role: 'Verification Officer', presets: ['Verification Officer'], status: 'Active', access: [...PRESETS['Verification Officer']] }
+const BLANK = { name: '', email: '', phone: '', role: 'Verification Officer', presets: ['Verification Officer'], status: 'Active', access: [...PRESETS['Verification Officer']] }
 
 function StatusBadge({ status }) {
   const s = status === 'Active'
@@ -265,7 +265,7 @@ export default function SubAdminPage() {
   const openEdit = (a) => {
     setSearch('')
     setPage(1)
-    setForm({ name: a.name, email: a.email, phone: a.phone, password: '', role: a.role, presets: PRESETS[a.role] ? [a.role] : [], status: a.status, access: [...a.access] })
+    setForm({ name: a.name, email: a.email, phone: a.phone, role: a.role, presets: PRESETS[a.role] ? [a.role] : [], status: a.status, access: [...a.access] })
     setEditId(a.id)
     setDrawer('edit')
   }
@@ -666,14 +666,6 @@ export default function SubAdminPage() {
                     <option value="Read Only">Read Only</option>
                     <option value="Custom">Custom</option>
                   </select>
-                </div>
-                <div className="col-12 mb-15">
-                  <label className="font-xs color-text-paragraph-2 mb-5"
-                    style={{ display: 'block', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                    {drawer === 'create' ? 'Password *' : 'New Password (leave blank to keep)'}
-                  </label>
-                  <input className="form-control" type="password" placeholder="Min 8 characters"
-                    value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
                 </div>
                 <div className="col-12 mb-15">
                   <label className="font-xs color-text-paragraph-2 mb-5"
