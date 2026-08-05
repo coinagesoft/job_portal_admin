@@ -485,8 +485,8 @@ export default function DashboardPage() {
               <div className="panel-white">
                 <div className="panel-head">
                   <h5>Recent Payments</h5>
-                  <Link href="/admin/finance" className="font-sm color-brand-1">
-                    Finance ›
+                  <Link href="/admin/revenue" className="font-sm color-brand-1">
+                    Revenue ›
                   </Link>
                 </div>
                 <div className="panel-body" style={{ overflowX: 'auto' }}>
