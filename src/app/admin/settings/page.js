@@ -179,28 +179,7 @@ export default function SettingsPage() {
                   last
                 />
 
-                {/* Platform Entry Fee */}
-                <div className="form-group mt-20 mb-5">
-                  <label className="font-xs color-text-paragraph-2 mb-5" style={fieldLabelStyle}>
-                    Platform Entry Fee
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <span style={{
-                      position: 'absolute', left: '14px', top: '50%',
-                      transform: 'translateY(-50%)', color: '#888', fontWeight: 600,
-                    }}>$</span>
-                    <input
-                      className="form-control"
-                      type="number"
-                      value={platformFee}
-                      onChange={e => { setPlatformFee(e.target.value); changed() }}
-                      style={{ paddingLeft: '28px' }}
-                    />
-                  </div>
-                  <p className="font-xs color-text-paragraph-2 mt-5 mb-0" style={{ fontStyle: 'italic' }}>
-                    One-time registration fee for premium employers.
-                  </p>
-                </div>
+               
 
               </div>
             </div>
