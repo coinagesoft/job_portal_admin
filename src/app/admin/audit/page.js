@@ -403,7 +403,7 @@ export default function AuditLogsPage() {
                   flexWrap: 'wrap',
                 }}
               >
-                <div style={{ position: 'relative', width: '130px' }}>
+                <div style={{ position: 'relative', width: '150px' }}>
                   <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#aaa' }} />
                   <input
                     className="form-control font-xs"
@@ -414,7 +414,7 @@ export default function AuditLogsPage() {
                   />
                 </div>
 
-                <div style={{ position: 'relative', width: '130px' }}>
+                <div style={{ position: 'relative', width: '150px' }}>
                   <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#aaa' }} />
                   <input
                     className="form-control font-xs"
@@ -425,7 +425,7 @@ export default function AuditLogsPage() {
                   />
                 </div>
 
-                <div style={{ position: 'relative', width: '145px' }}>
+                <div style={{ position: 'relative', width: '150px' }}>
                   <Calendar size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#aaa', pointerEvents: 'none' }} />
                   <input
                     type="date"
@@ -436,7 +436,7 @@ export default function AuditLogsPage() {
                   />
                 </div>
 
-                <div style={{ width: '125px' }}>
+                <div style={{ width: '145px' }}>
                   <select
                     className="form-control font-xs"
                     value={actorTypeFilter}
@@ -452,7 +452,7 @@ export default function AuditLogsPage() {
                   </select>
                 </div>
 
-                <div style={{ width: '115px' }}>
+                <div style={{ width: '145px' }}>
                   <select
                     className="form-control font-xs"
                     value={severityFilter}
