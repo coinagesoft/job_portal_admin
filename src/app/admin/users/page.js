@@ -240,6 +240,7 @@ export default function SubAdminPage() {
   const [admins, setAdmins] = useState(SAMPLE_ADMINS)
   const [superAdmin, setSuperAdmin] = useState(DEFAULT_SUPER_ADMIN)
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
   const [drawer, setDrawer] = useState(false)     // 'create' | 'edit' | false
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState(BLANK)
@@ -268,7 +269,8 @@ export default function SubAdminPage() {
   }, [superAdmin, hydrated])
 
   const filtered = admins.filter(a =>
-    [a.name, a.email, a.role].some(v => v.toLowerCase().includes(search.toLowerCase()))
+    [a.name, a.email, a.role].some(v => v.toLowerCase().includes(search.toLowerCase())) &&
+    (!statusFilter || a.status === statusFilter)
   )
   const pageCount = Math.max(1, Math.ceil(filtered.length / ADMINS_PER_PAGE))
   const currentPage = Math.min(page, pageCount)
@@ -449,6 +451,17 @@ export default function SubAdminPage() {
                   style={{ paddingLeft: '12px', width: '320px' }}
                 />
               </div>
+              <select
+                className="form-control font-xs"
+                value={statusFilter}
+                onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
+                aria-label="Filter by status"
+                style={{ width: '150px', flexShrink: 0 }}
+              >
+                <option value="">All Statuses</option>
+                <option value="Active">Active</option>
+                <option value="Suspended">Suspended</option>
+              </select>
               <button
                 className="btn btn-default hover-up d-flex align-items-center gap-2"
                 onClick={openCreate}
