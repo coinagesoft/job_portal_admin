@@ -3,7 +3,14 @@
 import Footer from "../../../components/Footer";
 import Link from "next/link";
 import { useState } from "react";
-import { UserCheck, Clock } from "lucide-react";
+import {
+  UserCheck,
+  Ban,
+  ShieldCheck,
+  Eye,
+  HardHat,
+  CalendarPlus,
+} from "lucide-react";
 
 const initialCandidates = [
   {
@@ -13,6 +20,7 @@ const initialCandidates = [
     email: "a.wright@techflow.io",
     nationalId: "9823-1120-X",
     accountType: "Candidate",
+    trade: "Electrician",
     status: "Active",
     company: "TechFlow Solutions",
     joined: "Oct 12, 2023",
@@ -24,7 +32,8 @@ const initialCandidates = [
     email: "sarah.j@gmail.com",
     nationalId: "1244-9981-A",
     accountType: "Candidate",
-    status: "Pending",
+    trade: "Plumber",
+    status: "Active",
     company: "N/A",
     joined: "Oct 15, 2023",
   },
@@ -35,6 +44,7 @@ const initialCandidates = [
     email: "m.thorne@buildit.com",
     nationalId: "5562-0012-Q",
     accountType: "Candidate",
+    trade: "Mason",
     status: "Active",
     company: "BuildIt Construction",
     joined: "Sep 28, 2023",
@@ -46,6 +56,7 @@ const initialCandidates = [
     email: "elena.rod@outlook.com",
     nationalId: "2231-5540-L",
     accountType: "Candidate",
+    trade: "Welder",
     status: "Suspended",
     company: "N/A",
     joined: "Nov 02, 2023",
@@ -57,6 +68,7 @@ const initialCandidates = [
     email: "j.lee@healthnexus.org",
     nationalId: "7781-3321-K",
     accountType: "Candidate",
+    trade: "Carpenter",
     status: "Active",
     company: "HealthNexus",
     joined: "Oct 05, 2023",
@@ -68,7 +80,8 @@ const initialCandidates = [
     email: "olivia.carter@mail.com",
     nationalId: "6634-9920-M",
     accountType: "Candidate",
-    status: "Pending",
+    trade: "HVAC Technician",
+    status: "Active",
     company: "FutureCore",
     joined: "Nov 10, 2023",
   },
@@ -118,9 +131,13 @@ export default function CandidatesPage() {
   const activeCount = candidatesList.filter(
     (c) => c.status === "Active",
   ).length;
-  const pendingCount = candidatesList.filter(
-    (c) => c.status === "Pending",
-  ).length;
+  const currentMonth = new Date().toLocaleString("en-US", {
+    month: "short",
+  });
+
+  const joinedThisMonth = candidatesList.filter((c) => {
+    return c.joined.startsWith(currentMonth);
+  }).length;
   const suspendedCount = candidatesList.filter(
     (c) => c.status === "Suspended",
   ).length;
@@ -158,7 +175,7 @@ export default function CandidatesPage() {
       {/* Stats */}
       <div className="section-box">
         <div className="row">
-          <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6 col-sm-6">
+          <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6 col-sm-6 col-md-6 col-sm-6">
             <div className="card-style-1 hover-up">
               <div
                 className="card-image "
@@ -189,7 +206,7 @@ export default function CandidatesPage() {
             </div>
           </div>
 
-          <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6 col-sm-6">
+          <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6 col-sm-6 col-md-6 col-sm-6">
             <div className="card-style-1 hover-up">
               <div
                 className="card-image"
@@ -216,7 +233,6 @@ export default function CandidatesPage() {
               </div>
             </div>
           </div>
-
           <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6 col-sm-6">
             <div className="card-style-1 hover-up">
               <div
@@ -227,25 +243,26 @@ export default function CandidatesPage() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  marginRight: "0px",
+                  marginRight: 0,
                 }}
               >
-                <Clock size={28} strokeWidth={2.2} />
+                <CalendarPlus size={28} color="#2563eb" />
               </div>
+
               <div className="card-info">
                 <div className="card-title">
                   <h3>
-                    {pendingCount}
+                    {joinedThisMonth}
                     <br />
-                    <span className="font-sm status down">Pending</span>
+                    <span className="font-sm status up">This Month</span>
                   </h3>
                 </div>
-                <p className="color-text-paragraph-2">Pending Reviews</p>
+
+                <p className="color-text-paragraph-2">Candidates Joined</p>
               </div>
             </div>
           </div>
-
-          <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6 col-sm-6">
+          <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6 col-sm-6 col-md-6 col-sm-6">
             <div className="card-style-1 hover-up">
               <div
                 className="card-image"
@@ -312,14 +329,14 @@ export default function CandidatesPage() {
                     >
                       <option value="">All Status</option>
                       <option value="Active">Active</option>
-                      <option value="Pending">Pending</option>
                       <option value="Suspended">Suspended</option>
                     </select>
                   </div>
 
                   <div className="col-md-6 col-6">
                     <button
-                      className="btn btn-secondary w-100 py-3"
+                      type="button"
+                      className="btn btn-grey-small filter-clear w-100"
                       onClick={() => {
                         setSearch("");
                         setStatus("");
@@ -338,10 +355,11 @@ export default function CandidatesPage() {
               <table className="table table-hover align-middle">
                 <thead>
                   <tr>
-                    <th style={{ minWidth: "260px" }}>Candidate</th>
-                    <th style={{ minWidth: "130px" }}>Status</th>
-                    <th style={{ minWidth: "150px" }}>Joined Date</th>
-                    <th style={{ minWidth: "220px" }}>Actions</th>
+                    <th style={{ minWidth: "240px" }}>Candidate</th>
+                    <th style={{ minWidth: "150px" }}>Trade Category</th>
+                    <th style={{ minWidth: "120px" }}>Status</th>
+                    <th style={{ minWidth: "130px" }}>Joined Date</th>
+                    <th style={{ minWidth: "230px" }}>Actions</th>
                   </tr>
                 </thead>
 
@@ -349,7 +367,7 @@ export default function CandidatesPage() {
                   {filteredCandidates.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={4}
+                        colSpan={5}
                         className="text-center py-4 color-text-paragraph-2"
                       >
                         No candidates found.
@@ -386,33 +404,41 @@ export default function CandidatesPage() {
                         </td>
 
                         <td className="align-middle">
+                          <div className="d-flex align-items-center">
+                            {/* <HardHat
+                              size={16}
+                              color="#f59e0b"
+                              style={{ marginRight: 8, flexShrink: 0 }}
+                            /> */}
+                            <span
+                              style={{
+                                color: "#122359",
+                                fontWeight: 600,
+                                fontSize: "14px",
+                              }}
+                            >
+                              {c.trade || "Electrician"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="align-middle">
                           <span
                             style={{
                               fontSize: "11px",
-                              fontWeight: 600,
+                              fontWeight: 700,
                               padding: "4px 12px",
                               borderRadius: "20px",
                               display: "inline-block",
-                              width: "100px",
+                              width: "90px",
                               textAlign: "center",
                               background:
-                                c.status === "Active"
-                                  ? "#e8f5e9"
-                                  : c.status === "Pending"
-                                    ? "#fff3e0"
-                                    : "#fdecea",
+                                c.status === "Active" ? "#e8f5e9" : "#fdecea",
                               color:
-                                c.status === "Active"
-                                  ? "#2e7d32"
-                                  : c.status === "Pending"
-                                    ? "#e65100"
-                                    : "#c62828",
+                                c.status === "Active" ? "#2e7d32" : "#c62828",
                               border:
                                 c.status === "Active"
                                   ? "1px solid #a5d6a7"
-                                  : c.status === "Pending"
-                                    ? "1px solid #ffcc80"
-                                    : "1px solid #ef9a9a",
+                                  : "1px solid #ef9a9a",
                             }}
                           >
                             {c.status}
@@ -425,80 +451,29 @@ export default function CandidatesPage() {
                           <div className="d-flex align-items-center gap-2">
                             <Link
                               href={`/admin/candidates/candidateDetails?id=${c.id}`}
-                              className="btn hover-up"
-                              style={{
-                                background: "#f8fafc",
-                                color: "#334155",
-                                border: "1px solid #cbd5e1",
-                                borderRadius: "20px",
-                                padding: "5px 14px",
-                                fontSize: "12px",
-                                fontWeight: 600,
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "6px",
-                                transition: "all 0.2s ease",
-                              }}
-                              title="View Profile (Read-Only)"
+                              className="action-icon action-view"
+                              title="View Candidate"
                             >
-                              <i
-                                className="fi-rr-eye"
-                                style={{ fontSize: "13px", color: "#475569" }}
-                              ></i>
-                              <span>View Profile</span>
+                              <Eye size={18} />
                             </Link>
 
                             {c.status === "Suspended" ? (
                               <button
-                                className="btn hover-up"
-                                style={{
-                                  background: "#f0fdf4",
-                                  color: "#16a34a",
-                                  border: "1px solid #bbf7d0",
-                                  borderRadius: "20px",
-                                  padding: "5px 14px",
-                                  fontSize: "12px",
-                                  fontWeight: 600,
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "6px",
-                                  transition: "all 0.2s ease",
-                                }}
+                                className="action-icon action-active"
+                                title="Activate"
                                 onClick={() => handleSetStatus(c.id, "Active")}
-                                title="Activate Account"
                               >
-                                <i
-                                  className="fi-rr-check-circle"
-                                  style={{ fontSize: "13px" }}
-                                ></i>
-                                <span>Activate</span>
+                                <ShieldCheck size={18} />
                               </button>
                             ) : (
                               <button
-                                className="btn hover-up"
-                                style={{
-                                  background: "#fff1f2",
-                                  color: "#e11d48",
-                                  border: "1px solid #fecdd3",
-                                  borderRadius: "20px",
-                                  padding: "5px 14px",
-                                  fontSize: "12px",
-                                  fontWeight: 600,
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "6px",
-                                  transition: "all 0.2s ease",
-                                }}
+                                className="action-icon action-suspend"
+                                title="Suspend"
                                 onClick={() =>
                                   handleSetStatus(c.id, "Suspended")
                                 }
-                                title="Suspend Account"
                               >
-                                <i
-                                  className="fi-rr-ban"
-                                  style={{ fontSize: "13px" }}
-                                ></i>
-                                <span>Suspend</span>
+                                <Ban size={18} />
                               </button>
                             )}
                           </div>
@@ -543,6 +518,11 @@ export default function CandidatesPage() {
                         </div>
 
                         <div className="mb-10">
+                          <p className="font-sm mb-5 d-flex align-items-center gap-2">
+                            <HardHat size={14} color="#ffa300" />
+                            <strong>Trade:</strong> {c.trade}
+                          </p>
+
                           <p className="font-sm mb-5">
                             <strong>Joined:</strong> {c.joined}
                           </p>
@@ -552,28 +532,18 @@ export default function CandidatesPage() {
                             <span
                               style={{
                                 fontSize: "11px",
-                                fontWeight: 600,
+                                fontWeight: 700,
                                 padding: "2px 10px",
                                 borderRadius: "20px",
                                 display: "inline-block",
                                 background:
-                                  c.status === "Active"
-                                    ? "#e8f5e9"
-                                    : c.status === "Pending"
-                                      ? "#fff3e0"
-                                      : "#fdecea",
+                                  c.status === "Active" ? "#e8f5e9" : "#fdecea",
                                 color:
-                                  c.status === "Active"
-                                    ? "#2e7d32"
-                                    : c.status === "Pending"
-                                      ? "#e65100"
-                                      : "#c62828",
+                                  c.status === "Active" ? "#2e7d32" : "#c62828",
                                 border:
                                   c.status === "Active"
                                     ? "1px solid #a5d6a7"
-                                    : c.status === "Pending"
-                                      ? "1px solid #ffcc80"
-                                      : "1px solid #ef9a9a",
+                                    : "1px solid #ef9a9a",
                               }}
                             >
                               {c.status}
@@ -584,74 +554,26 @@ export default function CandidatesPage() {
                         <div className="d-flex gap-2 mt-15">
                           <Link
                             href={`/admin/candidates/candidateDetails?id=${c.id}`}
-                            className="btn hover-up w-100"
-                            style={{
-                              background: "#f8fafc",
-                              color: "#334155",
-                              border: "1px solid #cbd5e1",
-                              borderRadius: "20px",
-                              padding: "8px 14px",
-                              fontSize: "13px",
-                              fontWeight: 600,
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: "6px",
-                            }}
+                            className="btn hover-up w-100 action-btn action-btn-view justify-content-center"
                           >
-                            <i
-                              className="fi-rr-eye"
-                              style={{ fontSize: "13px", color: "#475569" }}
-                            ></i>
+                            <Eye size={13} />
                             View Profile
                           </Link>
 
                           {c.status === "Suspended" ? (
                             <button
-                              className="btn hover-up w-100"
-                              style={{
-                                background: "#f0fdf4",
-                                color: "#16a34a",
-                                border: "1px solid #bbf7d0",
-                                borderRadius: "20px",
-                                padding: "8px 14px",
-                                fontSize: "13px",
-                                fontWeight: 600,
-                                display: "inline-flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                gap: "6px",
-                              }}
+                              className="btn hover-up w-100 action-btn action-btn-activate justify-content-center"
                               onClick={() => handleSetStatus(c.id, "Active")}
                             >
-                              <i
-                                className="fi-rr-check-circle"
-                                style={{ fontSize: "13px" }}
-                              ></i>
+                              <ShieldCheck size={13} />
                               Activate
                             </button>
                           ) : (
                             <button
-                              className="btn hover-up w-100"
-                              style={{
-                                background: "#fff1f2",
-                                color: "#e11d48",
-                                border: "1px solid #fecdd3",
-                                borderRadius: "20px",
-                                padding: "8px 14px",
-                                fontSize: "13px",
-                                fontWeight: 600,
-                                display: "inline-flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                gap: "6px",
-                              }}
+                              className="btn hover-up w-100 action-btn action-btn-suspend justify-content-center"
                               onClick={() => handleSetStatus(c.id, "Suspended")}
                             >
-                              <i
-                                className="fi-rr-ban"
-                                style={{ fontSize: "13px" }}
-                              ></i>
+                              <Ban size={13} />
                               Suspend
                             </button>
                           )}
@@ -708,6 +630,58 @@ export default function CandidatesPage() {
       </div>
 
       <style jsx>{`
+        .action-btn {
+          border-radius: 8px;
+          padding: 7px 14px;
+          font-size: 12px;
+          font-weight: 700;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          transition: all 0.2s ease;
+          border: 1px solid transparent;
+        }
+        .action-btn-view {
+          background: #122359;
+          color: #fff;
+          border-color: #122359;
+        }
+        .action-btn-view:hover {
+          background: #1a2f6e;
+          color: #fff;
+        }
+        .action-btn-activate {
+          background: #16a34a;
+          color: #fff;
+          border-color: #16a34a;
+        }
+        .action-btn-activate:hover {
+          background: #128a3e;
+        }
+        .action-btn-suspend {
+          background: #ffa300;
+          color: #fff;
+          border-color: #ffa300;
+        }
+        .action-btn-suspend:hover {
+          background: #e69200;
+        }
+        .filter-clear {
+          height: 42px;
+          min-width: 104px;
+          border: 1px solid #f7b342;
+          border-radius: 8px;
+          background: #fff;
+          color: #9a6200;
+          font-size: 12px;
+          font-weight: 700;
+          box-shadow: none;
+        }
+        .filter-clear:hover {
+          background: #fff6e6;
+          border-color: #ffa300;
+          color: #122359;
+        }
         .table-pagination {
           padding: 15px 20px;
           border-top: 1px solid #edf1f6;

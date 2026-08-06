@@ -3,34 +3,120 @@
 import { useState } from "react"
 import Footer from "../../../../components/Footer"
 import Link from "next/link"
+import {
+  Eye, X, MapPin, HardHat, Briefcase, CreditCard,
+  CheckCircle2, Calendar, Mail, Phone, FileText,
+  ShieldAlert, UserPlus, ShieldCheck, Ban
+} from "lucide-react"
+
+/* ─── Document Preview Modal (theme-matched) ─── */
+function DocumentPreviewModal({ doc, onClose }) {
+  if (!doc) return null
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(10,20,50,0.72)', backdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#fff', borderRadius: '16px', maxWidth: '720px', width: '100%',
+          overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          padding: '16px 20px', display: 'flex',
+          alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0',
+        }}>
+          <div>
+            <p style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase',
+              letterSpacing: '0.5px', fontWeight: 600, margin: 0 }}>{doc.subtitle}</p>
+            <h6 style={{ margin: 0, color: '#122359', fontWeight: 700 }}>{doc.title}</h6>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button onClick={onClose} style={{
+              width: '32px', height: '32px', borderRadius: '8px',
+              background: '#f1f5f9', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <X size={16} color="#475569" />
+            </button>
+          </div>
+        </div>
+
+        {/* Image */}
+        <div style={{ background: '#f8fafc', padding: '20px', maxHeight: '55vh', overflow: 'auto' }}>
+          <img
+            src={doc.url}
+            alt={doc.title}
+            style={{ width: '100%', borderRadius: '10px', border: '1px solid #e2e8f0' }}
+          />
+        </div>
+
+        {/* Footer meta */}
+        <div style={{
+          padding: '14px 20px', borderTop: '1px solid #e2e8f0',
+          display: 'flex', gap: '14px', flexWrap: 'wrap',
+        }}>
+          <span style={{ fontSize: '12px', color: '#64748b' }}>
+            <strong style={{ color: '#334155' }}>Uploaded:</strong> {doc.uploadedOn}
+          </span>
+          <span style={{ fontSize: '12px', color: '#64748b' }}>
+            <strong style={{ color: '#334155' }}>Doc ID:</strong> {doc.docId}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function CandidateDetailsPage() {
   const [preview, setPreview] = useState(null)
   const [accountStatus, setAccountStatus] = useState("Active")
+
+  const candidate = {
+    tradeCategory: "Electrician",
+    experience: "5 Years",
+    location: "Mumbai, Maharashtra",
+    availableForWork: true,
+  }
 
   const documents = [
     {
       id: 1,
       title: 'Aadhaar Card',
       subtitle: 'Identity Document',
+      uploadedOn: 'Oct 12, 2023',
+      docId: 'AADHAAR-XXXX-1120',
       url: 'https://pvcprint.shop/wp-content/uploads/2025/04/aadhar-card-front.png'
     },
     {
       id: 2,
       title: 'ITI Certificate',
       subtitle: 'Education Certificate',
+      uploadedOn: 'Oct 12, 2023',
+      docId: 'ITI-CERT-4471',
       url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTTjV_NKW48YeqkUxUYHNN3mhKX-YybptO9Tg&s'
     },
     {
       id: 3,
       title: 'Resume',
       subtitle: 'Candidate Resume PDF',
+      uploadedOn: 'Oct 18, 2023',
+      docId: 'RESUME-AW-0092',
       url: 'https://via.placeholder.com/900x1200?text=Resume+Preview'
     },
     {
       id: 4,
       title: 'Police Clearance',
       subtitle: 'Background Check Document',
+      uploadedOn: 'Oct 20, 2023',
+      docId: 'PCC-2023-8834',
       url: 'https://via.placeholder.com/900x1200?text=Police+Clearance+Preview'
     }
   ]
@@ -101,10 +187,10 @@ export default function CandidateDetailsPage() {
                   COMPLETENESS
                 </p>
 
-                <div className="progress mt-5" style={{ height: "8px" }}>
+                <div className="progress mt-5" style={{ height: "8px", background: "#fdf1e0" }}>
                   <div
-                    className="progress-bar bg-primary"
-                    style={{ width: "85%" }}
+                    className="progress-bar"
+                    style={{ width: "85%", background: "#ffa300" }}
                   ></div>
                 </div>
 
@@ -112,16 +198,16 @@ export default function CandidateDetailsPage() {
 
                 <h4 className="mt-20 mb-10">Alexander Wright</h4>
 
-                <p className="font-sm color-text-paragraph-2 mb-5">
-                  a.wright@techflow.io
+                <p className="font-sm color-text-paragraph-2 mb-5 d-flex align-items-center justify-content-center gap-2">
+                  <Mail size={13} color="#66789C" /> a.wright@techflow.io
                 </p>
 
-                <p className="font-sm color-text-paragraph-2 mb-5">
-                  +91 98765 43210
+                <p className="font-sm color-text-paragraph-2 mb-5 d-flex align-items-center justify-content-center gap-2">
+                  <Phone size={13} color="#66789C" /> +91 98765 43210
                 </p>
 
-                <p className="font-sm color-text-paragraph-2">
-                  Registered Oct 12, 2023
+                <p className="font-sm color-text-paragraph-2 d-flex align-items-center justify-content-center gap-2">
+                  <Calendar size={13} color="#66789C" /> Registered Oct 12, 2023
                 </p>
 
               </div>
@@ -132,10 +218,10 @@ export default function CandidateDetailsPage() {
               <div className="col-6">
                 <div className="panel-white mb-20">
                   <div className="box-padding">
-                    <p className="font-xs color-text-paragraph-2 mb-5">
-                      ACCOUNT TYPE
+                    <p className="font-xs color-text-paragraph-2 mb-5 d-flex align-items-center gap-1">
+                      <HardHat size={12} color="#ffa300" /> TRADE CATEGORY
                     </p>
-                    <h6>Worker / Candidate</h6>
+                    <h6>{candidate.tradeCategory}</h6>
                   </div>
                 </div>
               </div>
@@ -143,8 +229,30 @@ export default function CandidateDetailsPage() {
               <div className="col-6">
                 <div className="panel-white mb-20">
                   <div className="box-padding">
-                    <p className="font-xs color-text-paragraph-2 mb-5">
-                      PAYMENT STATUS
+                    <p className="font-xs color-text-paragraph-2 mb-5 d-flex align-items-center gap-1">
+                      <MapPin size={12} color="#ffa300" /> LOCATION
+                    </p>
+                    <h6>{candidate.location}</h6>
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-6">
+                <div className="panel-white mb-20">
+                  <div className="box-padding">
+                    <p className="font-xs color-text-paragraph-2 mb-5 d-flex align-items-center gap-1">
+                      <Briefcase size={12} color="#ffa300" /> EXPERIENCE
+                    </p>
+                    <h6>{candidate.experience}</h6>
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-6">
+                <div className="panel-white mb-20">
+                  <div className="box-padding">
+                    <p className="font-xs color-text-paragraph-2 mb-5 d-flex align-items-center gap-1">
+                      <CreditCard size={12} color="#ffa300" /> PAYMENT STATUS
                     </p>
                     <h6 className="color-success">Paid ₹100</h6>
                   </div>
@@ -154,25 +262,12 @@ export default function CandidateDetailsPage() {
               <div className="col-6">
                 <div className="panel-white mb-20">
                   <div className="box-padding">
-                    <p className="font-xs color-text-paragraph-2 mb-5">
-                      CREDIT BALANCE
+                    <p className="font-xs color-text-paragraph-2 mb-5 d-flex align-items-center gap-1">
+                      <CheckCircle2 size={12} color="#ffa300" /> AVAILABILITY
                     </p>
-                    <h6>₹500.00</h6>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-6">
-                <div className="panel-white mb-20">
-                  <div className="box-padding">
-                    <p className="font-xs color-text-paragraph-2 mb-10">
-                      QUICK ACTIONS
-                    </p>
-
-                    <div className="d-grid gap-2">
-                      <button className="btn btn-grey-small">Notify</button>
-                      <button className="btn btn-grey-small">Reset</button>
-                    </div>
+                    <h6 style={{ color: candidate.availableForWork ? '#16a34a' : '#94a3b8' }}>
+                      {candidate.availableForWork ? 'Available for Work' : 'Not Available'}
+                    </h6>
                   </div>
                 </div>
               </div>
@@ -186,10 +281,13 @@ export default function CandidateDetailsPage() {
             {/* Billing */}
             <div className="panel-white mb-20">
               <div className="box-padding">
-                <h5 className="mb-20">Billing & Payments</h5>
+                <div className="d-flex align-items-center gap-2 mb-20">
+                  <CreditCard size={16} color="#ffa300" />
+                  <h5 className="mb-0">Billing & Payments</h5>
+                </div>
 
                 <div className="table-responsive">
-                  <table className="table">
+                  <table className="table table-hover">
                     <thead>
                       <tr>
                         <th>Transaction ID</th>
@@ -201,11 +299,23 @@ export default function CandidateDetailsPage() {
 
                     <tbody>
                       <tr>
-                        <td>#TXN-99210-AW</td>
-                        <td>Oct 12, 2023</td>
-                        <td>₹100.00</td>
                         <td>
-                          <span className="btn btn-tags-sm">Success</span>
+                          <span style={{ fontWeight: 600, color: '#122359' }}>#TXN-99210-AW</span>
+                        </td>
+                        <td>
+                          <span className="font-sm color-text-paragraph-2">Oct 12, 2023</span>
+                        </td>
+                        <td>
+                          <span style={{ fontWeight: 700, color: '#122359' }}>₹100.00</span>
+                        </td>
+                        <td>
+                          <span style={{
+                            fontSize: '11px', fontWeight: 700, padding: '4px 12px',
+                            borderRadius: '20px', background: '#e8f5e9', color: '#2e7d32',
+                            border: '1px solid #a5d6a7', whiteSpace: 'nowrap',
+                          }}>
+                            Success
+                          </span>
                         </td>
                       </tr>
                     </tbody>
@@ -240,15 +350,24 @@ export default function CandidateDetailsPage() {
                       {documents.map((doc) => (
                         <tr key={doc.id}>
                           <td>
-                            <strong>{doc.title}</strong>
+                            <div className="d-flex align-items-center gap-2">
+                              <FileText size={15} color="#94a3b8" />
+                              <strong>{doc.title}</strong>
+                            </div>
                           </td>
                           <td>{doc.subtitle}</td>
                           <td className="text-end">
                             <button
-                              className="btn btn-grey-small"
-                              onClick={() => setPreview(doc.url)}
+                              onClick={() => setPreview(doc)}
+                              title="Preview"
+                              style={{
+                                width: '32px', height: '32px', borderRadius: '8px',
+                                background: '#fff3da', border: '1px solid #ffe0a6',
+                                cursor: 'pointer', display: 'inline-flex',
+                                alignItems: 'center', justifyContent: 'center',
+                              }}
                             >
-                              Preview
+                              <Eye size={15} color="#a56600" />
                             </button>
                           </td>
                         </tr>
@@ -259,183 +378,135 @@ export default function CandidateDetailsPage() {
               </div>
             </div>
 
-            {/* Notes */}
-            <div className="panel-white mb-20">
-              <div className="box-padding">
-                <h5 className="mb-15">Internal Admin Notes</h5>
-
-                <textarea
-                  rows="5"
-                  className="form-control"
-                  defaultValue="User requested priority verification for upcoming job fair."
-                ></textarea>
-
-                <button className="btn btn-default mt-15">
-                  Save Notes
-                </button>
-              </div>
-            </div>
-
             {/* Audit Log */}
-            <div className="panel-white mb-20">
+            {/* <div className="panel-white mb-20">
               <div className="box-padding">
                 <h5 className="mb-20">Audit Log</h5>
 
-                <ul className="list-unstyled">
-                  <li className="mb-15">
-                    <strong>KYC Documents Uploaded</strong><br />
-                    <span className="font-sm color-text-paragraph-2">
-                      Oct 24, 14:32 - by System
-                    </span>
-                  </li>
+                <div style={{ position: 'relative' }}>
+                  {[
+                    {
+                      icon: ShieldCheck,
+                      iconColor: '#00695c',
+                      iconBg: '#e0f2f1',
+                      title: 'KYC Documents Uploaded',
+                      meta: 'Oct 24, 14:32 · by System',
+                    },
+                    {
+                      icon: ShieldAlert,
+                      iconColor: '#b36b00',
+                      iconBg: '#fff3e0',
+                      title: 'Profile Flagged for Priority Review',
+                      meta: 'Oct 23, 11:20 · by admin_sarah',
+                    },
+                    {
+                      icon: UserPlus,
+                      iconColor: '#122359',
+                      iconBg: '#e8eaf6',
+                      title: 'Account Registered',
+                      meta: 'Oct 12, 09:15 · by System',
+                    },
+                  ].map((item, idx, arr) => (
+                    <div key={item.title} className="d-flex" style={{ gap: '14px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <div style={{
+                          width: '34px', height: '34px', borderRadius: '50%',
+                          background: item.iconBg, display: 'flex',
+                          alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                        }}>
+                          <item.icon size={16} color={item.iconColor} />
+                        </div>
+                        {idx !== arr.length - 1 && (
+                          <div style={{ width: '2px', flex: 1, background: '#e2e8f0', margin: '4px 0' }} />
+                        )}
+                      </div>
+                      <div style={{ paddingBottom: idx !== arr.length - 1 ? '20px' : 0 }}>
+                        <p className="font-sm mb-0" style={{ fontWeight: 700, color: '#122359' }}>
+                          {item.title}
+                        </p>
+                        <span className="font-xs color-text-paragraph-2">{item.meta}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
-                  <li className="mb-15">
-                    <strong>Credit Balance Adjusted</strong><br />
-                    <span className="font-sm color-text-paragraph-2">
-                      Oct 23, 11:20 - by admin_sarah
-                    </span>
-                  </li>
-
-                  <li>
-                    <strong>Account Registered</strong><br />
-                    <span className="font-sm color-text-paragraph-2">
-                      Oct 12, 09:15 - by System
-                    </span>
-                  </li>
-                </ul>
-
-                <a href="#" className="font-sm color-brand-1">
+                <a href="#" className="font-sm mt-15 d-inline-block" style={{ color: '#ffa300', fontWeight: 600 }}>
                   View Full History
                 </a>
               </div>
+            </div> */}
+
+            {/* Account Status Action */}
+            <div className="panel-white">
+              <div className="box-padding">
+                <div className="d-flex align-items-center justify-content-between flex-wrap" style={{ gap: '14px' }}>
+                  <div>
+                    <p className="font-sm mb-5" style={{ fontWeight: 700, color: '#122359' }}>
+                      Account Status
+                    </p>
+                    <p className="font-xs color-text-paragraph-2 mb-0">
+                      {accountStatus === 'Suspended'
+                        ? 'This account is currently suspended and cannot access the platform.'
+                        : 'Suspending will immediately revoke this candidate\u2019s platform access.'}
+                    </p>
+                  </div>
+
+                  {accountStatus === 'Suspended' ? (
+                    <button
+                      className="btn hover-up"
+                      onClick={() => setAccountStatus('Active')}
+                      style={{
+                        background: '#f0fdf4',
+                        color: '#16a34a',
+                        border: '1px solid #bbf7d0',
+                        borderRadius: '10px',
+                        height: '42px',
+                        padding: '0 20px',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '7px',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <ShieldCheck size={15} />
+                      Activate Account
+                    </button>
+                  ) : (
+                    <button
+                      className="btn hover-up"
+                      onClick={() => setAccountStatus('Suspended')}
+                      style={{
+                        background: '#ffa300',
+                        color: '#fff',
+                        border: '1px solid #ffa300',
+                        borderRadius: '10px',
+                        height: '42px',
+                        padding: '0 20px',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '7px',
+                        flexShrink: 0,
+                        boxShadow: '0 8px 16px rgba(255,163,0,0.25)',
+                      }}
+                    >
+                      <Ban size={15} />
+                      Suspend Account
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
-
-            {/* Bottom Actions */}
-          {/* Bottom Actions */}
-<div className="panel-white">
-  <div className="box-padding">
-    <div className="action-bar d-flex align-items-center gap-3">
-      {accountStatus === 'Suspended' ? (
-        <button
-          className="btn hover-up"
-          onClick={() => setAccountStatus('Active')}
-          style={{
-            background: '#f0fdf4',
-            color: '#16a34a',
-            border: '1px solid #bbf7d0',
-            borderRadius: '20px',
-            height: '38px',
-            padding: '0 18px',
-            fontSize: '13px',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}
-        >
-          <i className="fi-rr-check-circle" style={{ fontSize: '14px' }}></i>
-          Activate Account
-        </button>
-      ) : (
-        <button
-          className="btn hover-up"
-          onClick={() => setAccountStatus('Suspended')}
-          style={{
-            background: '#fff1f2',
-            color: '#e11d48',
-            border: '1px solid #fecdd3',
-            borderRadius: '20px',
-            height: '38px',
-            padding: '0 18px',
-            fontSize: '13px',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}
-        >
-          <i className="fi-rr-ban" style={{ fontSize: '14px' }}></i>
-          Suspend Account
-        </button>
-      )}
-
-      <button
-        className="btn hover-up"
-        style={{
-          background: '#fef2f2',
-          color: '#991b1b',
-          border: '1px solid #fecaca',
-          borderRadius: '20px',
-          height: '38px',
-          padding: '0 18px',
-          fontSize: '13px',
-          fontWeight: 600,
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px'
-        }}
-      >
-        <i className="fi-rr-cross-circle" style={{ fontSize: '14px' }}></i>
-        Reject
-      </button>
-
-      <button
-        className="btn hover-up"
-        style={{
-          background: '#f0fdf4',
-          color: '#16a34a',
-          border: '1px solid #bbf7d0',
-          borderRadius: '20px',
-          height: '38px',
-          padding: '0 18px',
-          fontSize: '13px',
-          fontWeight: 600,
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px'
-        }}
-      >
-        <i className="fi-rr-check-circle" style={{ fontSize: '14px' }}></i>
-        Approve
-      </button>
-    </div>
-  </div>
-</div>
 
           </div>
         </div>
       </div>
 
       <Footer />
-      {preview && (
-  <div
-    onClick={() => setPreview(null)}
-    style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      background: 'rgba(0,0,0,0.7)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 9999
-    }}
-  >
-    <img
-      src={preview}
-      alt="Preview"
-      style={{
-        maxWidth: '90%',
-        maxHeight: '90%',
-        borderRadius: '10px',
-        background: '#fff',
-        padding: '6px'
-      }}
-    />
-  </div>
-)}
+      <DocumentPreviewModal doc={preview} onClose={() => setPreview(null)} />
     </>
   )
 }

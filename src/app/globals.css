@@ -272,7 +272,37 @@ margin-top: 0px !important;
 .section-box:last-child {
   margin-bottom: 0 !important;
 }
+.action-icon{
+    width:38px;
+    height:38px;
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:none;
+    cursor:pointer;
+    padding:0;
+    transition:none;
+}
 
+.action-view{
+    background:#EEF4FF;
+    color:#1D4ED8;
+}
+
+.action-active{
+    background:#ECFDF3;
+    color:#16A34A;
+}
+
+.action-suspend{
+    background:#FFF7ED;
+    color:#EA580C;
+}
+
+.action-icon:hover{
+    opacity:1;
+}
 @media(max-width:991px){
   .action-bar{
     grid-template-columns:1fr 1fr;
