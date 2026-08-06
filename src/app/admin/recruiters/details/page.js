@@ -9,9 +9,115 @@ import {
   Calendar,
   Briefcase,
   Wallet,
+  Download,
+  X,
+  Receipt,
 } from "lucide-react";
 export default function EmployerDetailsPage() {
   const [previewDoc, setPreviewDoc] = useState(null);
+  const [invoiceTxn, setInvoiceTxn] = useState(null);
+
+  const TRANSACTIONS = [
+    {
+      id: "REV-10491",
+      invoice: "INV-10491",
+      date: "25 Jul 2026",
+      description: "Enterprise Credit Pack",
+      type: "Credit Pack",
+      credits: "10,000",
+      amount: "₹10,000",
+      payment: "UPI",
+      status: "Paid",
+    },
+    {
+      id: "REV-10486",
+      invoice: "INV-10486",
+      date: "18 Jun 2026",
+      description: "Gold Credit Pack",
+      type: "Credit Pack",
+      credits: "5,000",
+      amount: "₹5,000",
+      payment: "Credit Card",
+      status: "Paid",
+    },
+    {
+      id: "REV-10462",
+      invoice: "INV-10462",
+      date: "12 Apr 2026",
+      description: "Silver Credit Pack",
+      type: "Credit Pack",
+      credits: "2,500",
+      amount: "₹2,500",
+      payment: "UPI",
+      status: "Pending",
+    },
+    {
+      id: "REV-10440",
+      invoice: "INV-10440",
+      date: "01 Jan 2026",
+      description: "Gold Membership (Annual)",
+      type: "Membership",
+      credits: "-",
+      amount: "₹4,999",
+      payment: "UPI",
+      status: "Paid",
+    },
+    {
+      id: "REV-10398",
+      invoice: "INV-10398",
+      date: "08 Feb 2025",
+      description: "Starter Credit Pack",
+      type: "Credit Pack",
+      credits: "500",
+      amount: "₹999",
+      payment: "Credit Card",
+      status: "Refunded",
+    },
+    {
+      id: "REV-10312",
+      invoice: "INV-10312",
+      date: "15 Oct 2023",
+      description: "Employer Registration Fee",
+      type: "Registration",
+      credits: "-",
+      amount: "₹499",
+      payment: "Net Banking",
+      status: "Paid",
+    },
+  ];
+
+  const STATUS_STYLE = {
+    Paid: { bg: "#e8f5e9", color: "#2e7d32" },
+    Pending: { bg: "#fff3e0", color: "#e65100" },
+    Refunded: { bg: "#ffebee", color: "#c62828" },
+  };
+
+  const handleDownloadInvoice = (txn) => {
+    const content = `JOBBOX
+Invoice ${txn.invoice}
+--------------------------------
+Payment received from Stellar Logistics Pvt. Ltd.
+
+${txn.description}                         ${txn.amount}
+
+Date: ${txn.date}
+Transaction ID: ${txn.id}
+Payment Method: ${txn.payment}
+Status: ${txn.status}
+--------------------------------
+Thank you for your business.
+`;
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${txn.invoice}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <>
       {/* ── PAGE HEADING: employer name + status + action buttons ── */}
@@ -264,202 +370,7 @@ export default function EmployerDetailsPage() {
             </div>
           </div>
 
-          {/* Credit Pack Purchase History */}
-          <div className="section-box">
-            <div className="panel-white">
-              <div className="panel-head d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 className="mb-0">Credit Pack Purchase History</h6>
-                  <p className="font-xs color-text-paragraph-2 mt-5 mb-0">
-                    Credit packs purchased by this recruiter.
-                  </p>
-                </div>
-              </div>
-
-              <div className="panel-body">
-                <div className="table-responsive">
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th>Purchase Date</th>
-                        <th>Credit Pack</th>
-                        <th>Credits</th>
-                        <th>Amount</th>
-                        <th>Payment</th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      <tr>
-                        <td>25 Jul 2026</td>
-                        <td>Enterprise Pack</td>
-                        <td>10,000</td>
-                        <td>₹10,000</td>
-                        <td>
-                          <span
-                            style={{
-                              background: "#e8f5e9",
-                              color: "#2e7d32",
-                              padding: "4px 10px",
-                              borderRadius: "20px",
-                              fontSize: "11px",
-                              fontWeight: 600,
-                            }}
-                          >
-                            Paid
-                          </span>
-                        </td>
-                      </tr>
-
-                      <tr>
-                        <td>18 Jun 2026</td>
-                        <td>Gold Pack</td>
-                        <td>5,000</td>
-                        <td>₹5,000</td>
-                        <td>
-                          <span
-                            style={{
-                              background: "#e8f5e9",
-                              color: "#2e7d32",
-                              padding: "4px 10px",
-                              borderRadius: "20px",
-                              fontSize: "11px",
-                              fontWeight: 600,
-                            }}
-                          >
-                            Paid
-                          </span>
-                        </td>
-                      </tr>
-
-                      <tr>
-                        <td>12 Apr 2026</td>
-                        <td>Silver Pack</td>
-                        <td>2,500</td>
-                        <td>₹2,500</td>
-                        <td>
-                          <span
-                            style={{
-                              background: "#fff3e0",
-                              color: "#e65100",
-                              padding: "4px 10px",
-                              borderRadius: "20px",
-                              fontSize: "11px",
-                              fontWeight: 600,
-                            }}
-                          >
-                            Pending
-                          </span>
-                        </td>
-                      </tr>
-
-                      <tr>
-                        <td>08 Feb 2026</td>
-                        <td>Starter Pack</td>
-                        <td>500</td>
-                        <td>₹999</td>
-                        <td>
-                          <span
-                            style={{
-                              background: "#ffebee",
-                              color: "#c62828",
-                              padding: "4px 10px",
-                              borderRadius: "20px",
-                              fontSize: "11px",
-                              fontWeight: 600,
-                            }}
-                          >
-                            Refunded
-                          </span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="section-box">
-            <div className="panel-white">
-              <div className="panel-head">
-                <h6 className="mb-0">Risk Analysis</h6>
-              </div>
-
-              <div className="panel-body">
-                <div className="row gx-3 gy-3">
-                  {[
-                    {
-                      title: "Document Validity",
-                      value: "1 Expired",
-                      description: "One uploaded document has expired",
-                      color: "#dc2626",
-                    },
-                    {
-                      title: "AI Confidence",
-                      value: "86%",
-                      description: "Overall verification confidence",
-                      color: "#ea580c",
-                    },
-                    {
-                      title: "Duplicate Company",
-                      value: "No Match",
-                      description: "No duplicate entity found",
-                      color: "#15803d",
-                    },
-                    {
-                      title: "Sanctions Check",
-                      value: "Clear",
-                      description: "No sanctions detected",
-                      color: "#047857",
-                    },
-                  ].map((item) => (
-                    <div key={item.title} className="col-sm-6">
-                      <div
-                        className="card-grid-2"
-                        style={{
-                          padding: "16px",
-                          borderRadius: "14px",
-                          border: "1px solid #e5e7eb",
-                        }}
-                      >
-                        <div className="d-flex align-items-start justify-content-between mb-12">
-                          <div>
-                            <p
-                              className="font-xs color-text-paragraph-2 mb-2"
-                              style={{
-                                textTransform: "uppercase",
-                                letterSpacing: "0.4px",
-                              }}
-                            >
-                              {item.title}
-                            </p>
-                            <p
-                              className="font-sm mb-0"
-                              style={{ fontWeight: 700, color: "#111827" }}
-                            >
-                              {item.value}
-                            </p>
-                          </div>
-                          <span
-                            style={{
-                              width: "12px",
-                              height: "12px",
-                              borderRadius: "50%",
-                              background: item.color,
-                              marginTop: "4px",
-                            }}
-                          ></span>
-                        </div>
-                        <p className="font-xs color-text-paragraph-2 mb-0">
-                          {item.description}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Risk Analysis section removed */}
 
           {/* Compliance Documents */}
           <div className="section-box">
@@ -817,7 +728,7 @@ export default function EmployerDetailsPage() {
 
         {/* ════ RIGHT SIDEBAR ════ */}
         <div className="col-xxl-4 col-xl-4 col-lg-4 col-md-12">
-          <div className="section-box">
+          {/* <div className="section-box">
             <div className="panel-white">
               <div className="panel-head">
                 <h6 className="mb-0">Verification Summary</h6>
@@ -846,7 +757,7 @@ export default function EmployerDetailsPage() {
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
           {/* Quick Insights */}
           <div className="section-box">
             <div className="panel-white">
@@ -975,29 +886,57 @@ export default function EmployerDetailsPage() {
                   Account Health
                 </h6>
               </div>
+
               <div className="panel-body">
                 <div className="d-flex align-items-center justify-content-between mb-10">
-                  <span className="font-sm color-text-paragraph-2">
+                  <span
+                    className="font-sm color-text-paragraph-2"
+                    style={{ fontWeight: 500 }}
+                  >
                     Profile Completion
                   </span>
-                  <strong className="font-sm color-brand-1">85%</strong>
+
+                  <strong
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      color: "#122359",
+                    }}
+                  >
+                    85%
+                  </strong>
                 </div>
-                <div className="box-progress-bar mb-10">
-                  <div className="progress">
-                    <div
-                      className="progress-bar bg-brand-2"
-                      role="progressbar"
-                      style={{
-                        width: "85%",
-                        borderRadius: "5px",
-                        background: "#ffa300",
-                      }}
-                    ></div>
-                  </div>
+
+                {/* Progress Bar */}
+                <div
+                  style={{
+                    width: "100%",
+                    height: "8px",
+                    background: "#e5e7eb",
+                    borderRadius: "999px",
+                    overflow: "hidden",
+                    marginBottom: "14px",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "85%",
+                      height: "100%",
+                      background: "#f59e0b",
+                      borderRadius: "999px",
+                      transition: "width .4s ease",
+                    }}
+                  />
                 </div>
-                <p className="font-xs color-text-paragraph-2 mt-10 mb-0">
-                  "RPSL documentation needs re-upload as the previous file has
-                  reached its expiry date."
+
+                <p
+                  className="font-xs color-text-paragraph-2 mb-0"
+                  style={{
+                    lineHeight: "20px",
+                  }}
+                >
+                  RPSL documentation needs re-upload as the previous file has
+                  reached its expiry date.
                 </p>
               </div>
             </div>
@@ -1063,6 +1002,242 @@ export default function EmployerDetailsPage() {
         </div>
         {/* end right sidebar */}
       </div>
+
+      {/* ── TRANSACTION HISTORY (full width, bottom of page) ── */}
+      <div className="section-box">
+        <div className="panel-white">
+          <div className="panel-head d-flex justify-content-between align-items-center">
+            <div>
+              <h6 className="mb-0">Transaction History</h6>
+              <p className="font-xs color-text-paragraph-2 mt-5 mb-0">
+                All payments made by this recruiter — memberships, credit
+                packs and fees.
+              </p>
+            </div>
+          </div>
+
+          <div className="panel-body">
+            <div className="table-responsive">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Payment</th>
+                    <th>Transaction ID</th>
+                    <th>Status</th>
+                    <th>Invoice</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {TRANSACTIONS.map((txn) => {
+                    const s = STATUS_STYLE[txn.status] || STATUS_STYLE.Paid;
+                    return (
+                      <tr key={txn.id}>
+                        <td>{txn.date}</td>
+                        <td style={{ fontWeight: 600, color: "#122359" }}>
+                          {txn.description}
+                        </td>
+                        <td>{txn.type}</td>
+                        <td>{txn.amount}</td>
+                        <td>{txn.payment}</td>
+                        <td>{txn.id}</td>
+                        <td>
+                          <span
+                            style={{
+                              background: s.bg,
+                              color: s.color,
+                              padding: "4px 10px",
+                              borderRadius: "20px",
+                              fontSize: "11px",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {txn.status}
+                          </span>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            onClick={() => setInvoiceTxn(txn)}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "5px",
+                              background: "#eef2ff",
+                              color: "#3730a3",
+                              border: "1px solid #c7d2fe",
+                              borderRadius: "8px",
+                              padding: "5px 12px",
+                              fontSize: "11px",
+                              fontWeight: 700,
+                              cursor: "pointer",
+                            }}
+                          >
+                            <Receipt size={12} />
+                            {txn.invoice}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="font-xs color-text-paragraph-2 mt-15 mb-0">
+              Showing {TRANSACTIONS.length} of {TRANSACTIONS.length}{" "}
+              transactions
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── INVOICE MODAL ── */}
+      {invoiceTxn && (
+        <div
+          onClick={() => setInvoiceTxn(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 10000,
+            background: "rgba(10,20,50,0.6)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#fff",
+              borderRadius: "16px",
+              maxWidth: "420px",
+              width: "100%",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+              padding: "24px",
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: "18px",
+              }}
+            >
+              <span
+                style={{
+                  fontWeight: 800,
+                  fontSize: "15px",
+                  color: "#ffa300",
+                  letterSpacing: "0.5px",
+                  textAlign: "left",
+                }}
+              >
+                JOBBOX
+              </span>
+              <button
+                onClick={() => setInvoiceTxn(null)}
+                style={{
+                  width: "30px",
+                  height: "30px",
+                  borderRadius: "8px",
+                  background: "#f1f5f9",
+                  border: "none",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <X size={15} color="#475569" />
+              </button>
+            </div>
+
+            <h5
+              style={{
+                margin: "0 0 6px",
+                color: "#122359",
+                fontWeight: 800,
+                textAlign: "left",
+              }}
+            >
+              Invoice {invoiceTxn.invoice}
+            </h5>
+            <p
+              className="font-sm color-text-paragraph-2"
+              style={{ margin: "0 0 18px", textAlign: "left" }}
+            >
+              Payment received from Stellar Logistics Pvt. Ltd.
+            </p>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                borderRadius: "10px",
+                padding: "14px 16px",
+                marginBottom: "16px",
+              }}
+            >
+              <span
+                style={{ fontWeight: 700, color: "#122359", fontSize: "14px" }}
+              >
+                {invoiceTxn.description}
+              </span>
+              <span
+                style={{ fontWeight: 800, color: "#122359", fontSize: "16px" }}
+              >
+                {invoiceTxn.amount}
+              </span>
+            </div>
+
+            <div style={{ textAlign: "left", marginBottom: "20px" }}>
+              <p className="font-sm mb-1" style={{ color: "#334155" }}>
+                Date: {invoiceTxn.date}
+              </p>
+              <p className="font-sm mb-1" style={{ color: "#334155" }}>
+                Transaction ID: {invoiceTxn.id}
+              </p>
+              <p className="font-sm mb-0" style={{ color: "#334155" }}>
+                Payment: {invoiceTxn.payment}
+              </p>
+            </div>
+
+            <button
+              onClick={() => handleDownloadInvoice(invoiceTxn)}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                background: "#ffa300",
+                color: "#fff",
+                border: "none",
+                borderRadius: "10px",
+                padding: "13px 0",
+                fontWeight: 700,
+                fontSize: "13px",
+                cursor: "pointer",
+              }}
+            >
+              <Download size={15} />
+              Download Invoice
+            </button>
+          </div>
+        </div>
+      )}
       {previewDoc && (
         <div
           onClick={() => setPreviewDoc(null)}

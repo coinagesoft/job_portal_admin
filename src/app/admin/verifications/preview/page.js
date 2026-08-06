@@ -51,11 +51,169 @@ const REQUEST_OPTIONS = [
 ]
 
 const STATUS_STYLE = {
-  'Verified':        { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' },
-  'Pending Review':  { bg: '#fffbeb', color: '#b45309', border: '#fde68a' },
+  'Verified': { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' },
+  'Pending Review': { bg: '#fffbeb', color: '#b45309', border: '#fde68a' },
   'Action Required': { bg: '#fff1f2', color: '#be123c', border: '#fecdd3' },
-  'Rejected':        { bg: '#fff1f2', color: '#be123c', border: '#fecdd3' },
-  'Resubmission':    { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+  'Rejected': { bg: '#fff1f2', color: '#be123c', border: '#fecdd3' },
+  'Resubmission': { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+}
+
+/* ─── Verify Confirm Modal ─── */
+function VerifyModal({ doc, onClose, onConfirm }) {
+  if (!doc) return null
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 10000,
+      background: 'rgba(10,20,50,0.6)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        background: '#fff', borderRadius: '16px', maxWidth: '440px', width: '100%',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: '18px 22px', borderBottom: '1px solid #f1f5f9',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div>
+            <p style={{
+              fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase',
+              letterSpacing: '0.5px', fontWeight: 600, margin: 0
+            }}>Verify Document</p>
+            <h6 style={{ margin: 0, color: '#122359', fontWeight: 700 }}>{doc.title}</h6>
+          </div>
+          <button onClick={onClose} style={{
+            width: '32px', height: '32px', borderRadius: '8px',
+            background: '#f1f5f9', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <X size={16} color="#475569" />
+          </button>
+        </div>
+        {/* Body */}
+        <div style={{ padding: '18px 22px' }}>
+          <div style={{
+            padding: '12px 14px', borderRadius: '10px',
+            background: '#f0fdf4', border: '1px solid #bbf7d0',
+            display: 'flex', alignItems: 'flex-start', gap: '10px',
+          }}>
+            <ShieldCheck size={16} color="#16a34a" style={{ flexShrink: 0, marginTop: '1px' }} />
+            <p style={{ fontSize: '12px', color: '#166534', margin: 0, fontWeight: 500, lineHeight: 1.5 }}>
+              This will mark <strong>{doc.title}</strong> as verified. The recruiter's profile
+              will reflect this document as approved. Are you sure you want to continue?
+            </p>
+          </div>
+        </div>
+        {/* Footer */}
+        <div style={{
+          padding: '14px 22px', borderTop: '1px solid #f1f5f9',
+          display: 'flex', gap: '10px', justifyContent: 'flex-end',
+        }}>
+          <button onClick={onClose} style={{
+            padding: '10px 20px', background: '#f8fafc', border: '1px solid #e2e8f0',
+            borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: '#475569', cursor: 'pointer',
+          }}>Cancel</button>
+          <button
+            onClick={() => { onConfirm(doc.id); onClose() }}
+            style={{
+              padding: '10px 20px', background: '#16a34a', color: '#fff',
+              border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '6px',
+            }}
+          ><ShieldCheck size={14} /> Confirm Verification</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Resubmission Request Modal ─── */
+function ResubmitModal({ doc, onClose, onConfirm }) {
+  const [message, setMessage] = useState('')
+  if (!doc) return null
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 10000,
+      background: 'rgba(10,20,50,0.6)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        background: '#fff', borderRadius: '16px', maxWidth: '480px', width: '100%',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: '18px 22px', borderBottom: '1px solid #f1f5f9',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div>
+            <p style={{
+              fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase',
+              letterSpacing: '0.5px', fontWeight: 600, margin: 0
+            }}>Request Resubmission</p>
+            <h6 style={{ margin: 0, color: '#122359', fontWeight: 700 }}>{doc.title}</h6>
+          </div>
+          <button onClick={onClose} style={{
+            width: '32px', height: '32px', borderRadius: '8px',
+            background: '#f1f5f9', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <X size={16} color="#475569" />
+          </button>
+        </div>
+        {/* Body */}
+        <div style={{ padding: '18px 22px' }}>
+          <div style={{
+            padding: '12px 14px', borderRadius: '10px',
+            background: '#eff6ff', border: '1px solid #bfdbfe', marginBottom: '16px',
+          }}>
+            <p style={{ fontSize: '12px', color: '#1d4ed8', margin: 0, fontWeight: 500 }}>
+              The recruiter will be notified and asked to re-upload this document.
+            </p>
+          </div>
+          <label style={{
+            fontSize: '11px', fontWeight: 700, color: '#475569',
+            textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px',
+          }}>
+            Message to Recruiter <span style={{ color: '#1d4ed8' }}>*</span>
+          </label>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="E.g. Please re-upload a clearer scan / the correct document version..."
+            style={{
+              width: '100%', minHeight: '100px', resize: 'vertical',
+              borderRadius: '10px', border: '1.5px solid #e2e8f0',
+              padding: '10px 12px', fontSize: '13px', fontFamily: 'inherit',
+              outline: 'none', boxSizing: 'border-box',
+            }}
+          />
+        </div>
+        {/* Footer */}
+        <div style={{
+          padding: '14px 22px', borderTop: '1px solid #f1f5f9',
+          display: 'flex', gap: '10px', justifyContent: 'flex-end',
+        }}>
+          <button onClick={onClose} style={{
+            padding: '10px 20px', background: '#f8fafc', border: '1px solid #e2e8f0',
+            borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: '#475569', cursor: 'pointer',
+          }}>Cancel</button>
+          <button
+            onClick={() => { if (message.trim()) { onConfirm(doc.id, message); onClose() } }}
+            disabled={!message.trim()}
+            style={{
+              padding: '10px 20px',
+              background: message.trim() ? '#1d4ed8' : '#e2e8f0',
+              color: message.trim() ? '#fff' : '#94a3b8',
+              border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 700,
+              cursor: message.trim() ? 'pointer' : 'not-allowed',
+            }}
+          >Confirm Request</button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 /* ─── Reject Reason Modal ─── */
@@ -78,8 +236,10 @@ function RejectModal({ doc, onClose, onConfirm }) {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
-            <p style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase',
-              letterSpacing: '0.5px', fontWeight: 600, margin: 0 }}>Reject Document</p>
+            <p style={{
+              fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase',
+              letterSpacing: '0.5px', fontWeight: 600, margin: 0
+            }}>Reject Document</p>
             <h6 style={{ margin: 0, color: '#122359', fontWeight: 700 }}>{doc.title}</h6>
           </div>
           <button onClick={onClose} style={{
@@ -145,7 +305,7 @@ function RejectModal({ doc, onClose, onConfirm }) {
 }
 
 /* ─── Document Preview Modal ─── */
-function PreviewModal({ doc, onClose, onVerify, onRejectOpen, onResubmit }) {
+function PreviewModal({ doc, onClose, onVerifyOpen, onRejectOpen, onResubmitOpen }) {
   if (!doc) return null
   const s = STATUS_STYLE[doc.status] || STATUS_STYLE['Pending Review']
   const isVerified = doc.status === 'Verified'
@@ -165,8 +325,10 @@ function PreviewModal({ doc, onClose, onVerify, onRejectOpen, onResubmit }) {
           alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0',
         }}>
           <div>
-            <p style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase',
-              letterSpacing: '0.5px', fontWeight: 600, margin: 0 }}>{doc.category}</p>
+            <p style={{
+              fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase',
+              letterSpacing: '0.5px', fontWeight: 600, margin: 0
+            }}>{doc.category}</p>
             <h6 style={{ margin: 0, color: '#122359', fontWeight: 700 }}>{doc.title}</h6>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -203,7 +365,7 @@ function PreviewModal({ doc, onClose, onVerify, onRejectOpen, onResubmit }) {
           </div>
           {!isVerified ? (
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button onClick={() => { onResubmit(doc.id); onClose() }} style={{
+              <button onClick={() => { onResubmitOpen(doc); onClose() }} style={{
                 padding: '9px 14px', background: '#eff6ff', border: '1px solid #bfdbfe',
                 borderRadius: '8px', fontSize: '12px', fontWeight: 600,
                 color: '#1d4ed8', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
@@ -217,7 +379,7 @@ function PreviewModal({ doc, onClose, onVerify, onRejectOpen, onResubmit }) {
               }}>
                 <ShieldX size={12} /> Reject
               </button>
-              <button onClick={() => { onVerify(doc.id); onClose() }} style={{
+              <button onClick={() => { onVerifyOpen(doc); onClose() }} style={{
                 padding: '9px 16px', background: '#16a34a', border: 'none',
                 borderRadius: '8px', fontSize: '12px', fontWeight: 700,
                 color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
@@ -226,8 +388,10 @@ function PreviewModal({ doc, onClose, onVerify, onRejectOpen, onResubmit }) {
               </button>
             </div>
           ) : (
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a',
-              display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <span style={{
+              fontSize: '12px', fontWeight: 700, color: '#16a34a',
+              display: 'flex', alignItems: 'center', gap: '5px'
+            }}>
               <ShieldCheck size={14} /> Verified by Admin
             </span>
           )}
@@ -238,7 +402,7 @@ function PreviewModal({ doc, onClose, onVerify, onRejectOpen, onResubmit }) {
 }
 
 /* ─── Document Card ─── */
-function DocCard({ doc, onPreview, onVerify, onRejectOpen, onResubmit }) {
+function DocCard({ doc, onPreview, onVerifyOpen, onRejectOpen, onResubmitOpen }) {
   const s = STATUS_STYLE[doc.status] || STATUS_STYLE['Pending Review']
   const isVerified = doc.status === 'Verified'
   return (
@@ -290,8 +454,10 @@ function DocCard({ doc, onPreview, onVerify, onRejectOpen, onResubmit }) {
 
       {/* Body */}
       <div style={{ padding: '12px 14px 14px', flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
-        <p style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600,
-          textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0 }}>{doc.category}</p>
+        <p style={{
+          fontSize: '10px', color: '#94a3b8', fontWeight: 600,
+          textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0
+        }}>{doc.category}</p>
         <p style={{ fontSize: '13px', fontWeight: 700, color: '#122359', margin: 0, lineHeight: 1.3 }}>{doc.title}</p>
         <p style={{ fontSize: '11px', color: '#64748b', margin: 0 }}>{doc.docId}</p>
         <div style={{ display: 'flex', gap: '8px', marginTop: '3px', flexWrap: 'wrap' }}>
@@ -306,6 +472,13 @@ function DocCard({ doc, onPreview, onVerify, onRejectOpen, onResubmit }) {
           <div style={{ marginTop: '6px', background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '6px', padding: '6px 10px' }}>
             <p style={{ fontSize: '10px', color: '#be123c', margin: 0, lineHeight: 1.4 }}>
               <strong>Rejected:</strong> {doc.rejectReason}
+            </p>
+          </div>
+        )}
+        {doc.status === 'Resubmission' && doc.resubmitNote && (
+          <div style={{ marginTop: '6px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', padding: '6px 10px' }}>
+            <p style={{ fontSize: '10px', color: '#1d4ed8', margin: 0, lineHeight: 1.4 }}>
+              <strong>Resubmission requested:</strong> {doc.resubmitNote}
             </p>
           </div>
         )}
@@ -327,7 +500,7 @@ function DocCard({ doc, onPreview, onVerify, onRejectOpen, onResubmit }) {
                 }}>
                   <ShieldX size={12} /> Reject
                 </button>
-                <button onClick={() => onVerify(doc.id)} style={{
+                <button onClick={() => onVerifyOpen(doc)} style={{
                   flex: 1, padding: '7px 0', background: '#16a34a', border: 'none',
                   borderRadius: '8px', fontSize: '11px', fontWeight: 700, color: '#fff', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
@@ -335,7 +508,7 @@ function DocCard({ doc, onPreview, onVerify, onRejectOpen, onResubmit }) {
                   <ShieldCheck size={12} /> Verify
                 </button>
               </div>
-              <button onClick={() => onResubmit(doc.id)} style={{
+              <button onClick={() => onResubmitOpen(doc)} style={{
                 width: '100%', padding: '6px 0', background: '#eff6ff', border: '1px solid #bfdbfe',
                 borderRadius: '8px', fontSize: '11px', fontWeight: 600, color: '#1d4ed8', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
@@ -371,6 +544,8 @@ export default function RecruiterDocumentsPage() {
   const [docs, setDocs] = useState(INITIAL_DOCS)
   const [previewDoc, setPreviewDoc] = useState(null)
   const [rejectTarget, setRejectTarget] = useState(null)
+  const [verifyTarget, setVerifyTarget] = useState(null)
+  const [resubmitTarget, setResubmitTarget] = useState(null)
   const [requestedDocs, setRequestedDocs] = useState([])
   const [selectedDocType, setSelectedDocType] = useState('')
   const [requestNote, setRequestNote] = useState('')
@@ -391,14 +566,9 @@ export default function RecruiterDocumentsPage() {
     showToast('Document rejected — recruiter notified', 'error')
   }
 
-  const handleResubmit = (id) => {
-    setDocs((prev) => prev.map((d) => d.id === id ? { ...d, status: 'Resubmission', rejectReason: null } : d))
+  const handleResubmit = (id, message) => {
+    setDocs((prev) => prev.map((d) => d.id === id ? { ...d, status: 'Resubmission', rejectReason: null, resubmitNote: message } : d))
     showToast('Resubmission request sent to recruiter', 'info')
-  }
-
-  const handleVerifyAll = () => {
-    setDocs((prev) => prev.map((d) => ({ ...d, status: 'Verified', rejectReason: null })))
-    showToast('All documents verified!', 'success')
   }
 
   const handleSendRequest = () => {
@@ -412,9 +582,9 @@ export default function RecruiterDocumentsPage() {
     setRequestNote('')
   }
 
-  const verified   = docs.filter((d) => d.status === 'Verified').length
-  const pending    = docs.filter((d) => d.status === 'Pending Review').length
-  const actionReq  = docs.filter((d) => d.status === 'Action Required' || d.status === 'Resubmission').length
+  const verified = docs.filter((d) => d.status === 'Verified').length
+  const pending = docs.filter((d) => d.status === 'Pending Review').length
+  const actionReq = docs.filter((d) => d.status === 'Action Required' || d.status === 'Resubmission').length
   const allVerified = verified === docs.length
   const pct = Math.round((verified / docs.length) * 100)
 
@@ -437,12 +607,14 @@ export default function RecruiterDocumentsPage() {
       )}
 
       {/* Modals */}
+      <VerifyModal doc={verifyTarget} onClose={() => setVerifyTarget(null)} onConfirm={handleVerify} />
       <RejectModal doc={rejectTarget} onClose={() => setRejectTarget(null)} onConfirm={handleReject} />
+      <ResubmitModal doc={resubmitTarget} onClose={() => setResubmitTarget(null)} onConfirm={handleResubmit} />
       <PreviewModal
         doc={previewDoc} onClose={() => setPreviewDoc(null)}
-        onVerify={handleVerify}
+        onVerifyOpen={(d) => { setPreviewDoc(null); setVerifyTarget(d) }}
         onRejectOpen={(d) => { setPreviewDoc(null); setRejectTarget(d) }}
-        onResubmit={handleResubmit}
+        onResubmitOpen={(d) => { setPreviewDoc(null); setResubmitTarget(d) }}
       />
 
       {/* PAGE HEADING */}
@@ -497,8 +669,10 @@ export default function RecruiterDocumentsPage() {
                   padding: '8px 14px', borderRadius: '10px', background: bg,
                   border: `1px solid ${border}`, textAlign: 'center', transition: 'all 0.3s',
                 }}>
-                  <p style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase',
-                    fontWeight: 600, letterSpacing: '0.5px', margin: '0 0 2px' }}>{label}</p>
+                  <p style={{
+                    fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase',
+                    fontWeight: 600, letterSpacing: '0.5px', margin: '0 0 2px'
+                  }}>{label}</p>
                   <span style={{ fontSize: '20px', fontWeight: 800, color }}>{val}</span>
                 </div>
               ))}
@@ -533,7 +707,7 @@ export default function RecruiterDocumentsPage() {
                     <div key={doc.id} className="col-xl-4 col-lg-4 col-md-6 col-sm-6 mb-20">
                       <DocCard
                         doc={doc} onPreview={setPreviewDoc}
-                        onVerify={handleVerify} onRejectOpen={setRejectTarget} onResubmit={handleResubmit}
+                        onVerifyOpen={setVerifyTarget} onRejectOpen={setRejectTarget} onResubmitOpen={setResubmitTarget}
                       />
                     </div>
                   ))}
@@ -620,26 +794,13 @@ export default function RecruiterDocumentsPage() {
                       borderRadius: '5px', transition: 'width 0.4s ease',
                     }} />
                   </div>
-                  <p style={{ fontSize: '12px', fontWeight: 700, margin: '6px 0 0',
-                    color: allVerified ? '#16a34a' : '#b45309' }}>
+                  <p style={{
+                    fontSize: '12px', fontWeight: 700, margin: '6px 0 0',
+                    color: allVerified ? '#16a34a' : '#b45309'
+                  }}>
                     {pct}% Complete
                   </p>
                 </div>
-                <button
-                  onClick={handleVerifyAll} disabled={allVerified}
-                  style={{
-                    width: '100%', padding: '12px 0',
-                    background: allVerified ? '#f0fdf4' : '#16a34a',
-                    color: allVerified ? '#16a34a' : '#fff',
-                    border: `1px solid ${allVerified ? '#bbf7d0' : 'transparent'}`,
-                    borderRadius: '10px', fontSize: '13px', fontWeight: 700,
-                    cursor: allVerified ? 'default' : 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
-                  }}
-                >
-                  <ShieldCheck size={15} />
-                  {allVerified ? 'All Documents Verified' : 'Verify All Documents'}
-                </button>
               </div>
             </div>
           </div>
@@ -660,25 +821,80 @@ export default function RecruiterDocumentsPage() {
               </div>
               <div className="panel-body">
                 <div className="form-group mb-15">
-                  <label style={{ fontSize: '9px', fontWeight: 700, color: '#475569',
-                    textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>
+                  <label style={{
+                    fontSize: '9px', fontWeight: 700, color: '#475569',
+                    textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px'
+                  }}>
                     Document Type
                   </label>
-                  <div style={{ position: 'relative' }}>
-                    <select className="form-control font-sm" value={selectedDocType}
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <select
+                      value={selectedDocType}
                       onChange={(e) => setSelectedDocType(e.target.value)}
-                      style={{ height: '42px', paddingRight: '36px', appearance: 'none', borderRadius: '10px', border: '1.5px solid #e2e8f0' }}>
-                      <option value="">-- Select document to request --</option>
-                      {REQUEST_OPTIONS.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+                      style={{
+                        width: '100%',
+                        height: '44px',
+                        padding: '0 42px 0 14px',
+
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        color: '#334155',
+                        lineHeight: '44px',
+
+                        background: '#fff',
+                        border: '1.5px solid #e2e8f0',
+                        borderRadius: '10px',
+
+                        outline: 'none',
+                        boxShadow: 'none',
+
+                        appearance: 'none',
+                        WebkitAppearance: 'none',
+                        MozAppearance: 'none',
+
+                        boxSizing: 'border-box',
+                        cursor: 'pointer',
+
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#ffa300';
+                        e.target.style.boxShadow = '0 0 0 3px rgba(255,163,0,.12)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = '#e2e8f0';
+                        e.target.style.boxShadow = 'none';
+                      }}
+                    >
+                      <option value="">Select document to request</option>
+
+                      {REQUEST_OPTIONS.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
                     </select>
-                    <ChevronDown size={15} color="#94a3b8" style={{
-                      position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none',
-                    }} />
+
+                    <ChevronDown
+                      size={16}
+                      color="#94a3b8"
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        right: '14px',
+                        transform: 'translateY(-50%)',
+                        pointerEvents: 'none',
+                      }}
+                    />
                   </div>
                 </div>
                 <div className="form-group mb-15">
-                  <label style={{ fontSize: '9px', fontWeight: 700, color: '#475569',
-                    textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>
+                  <label style={{
+                    fontSize: '9px', fontWeight: 700, color: '#475569',
+                    textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px'
+                  }}>
                     Message <span style={{ color: '#94a3b8', textTransform: 'none', fontSize: '11px' }}>(optional)</span>
                   </label>
                   <textarea className="form-control font-sm"
@@ -733,58 +949,58 @@ export default function RecruiterDocumentsPage() {
                   <span className="font-xs color-text-paragraph-2">Verification Progress</span>
                   <strong className="font-xs" style={{ color: '#122359' }}>{pct}%</strong>
                 </div>
-                <div className="box-progress-bar">
-                  <div className="progress">
-                    <div className="progress-bar" role="progressbar"
-                      style={{ width: `${pct}%`, borderRadius: '5px',
-                        background: allVerified ? '#16a34a' : '#ffa300', transition: 'width 0.4s ease' }} />
-                  </div>
+                <div
+                  style={{
+                    width: '100%',
+                    height: '8px',
+                    background: '#e5e7eb',
+                    borderRadius: '999px',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${pct}%`,
+                      height: '100%',
+                      background: allVerified ? '#16a34a' : '#ffa300',
+                      borderRadius: '999px',
+                      transition: 'width 0.4s ease',
+                    }}
+                  />
                 </div>
               </div>
             </div>
           </div>
-      </div>
+        </div>
 
-      {/* BOTTOM ACTION BAR */}
-      <div className="section-box">
-        <div className="panel-white" style={{ padding: '16px 20px' }}>
-          <div className="d-flex align-items-center justify-content-between" style={{ flexWrap: 'wrap', gap: '12px' }}>
-            <div>
-              <p className="font-sm mb-0" style={{ fontWeight: 600, color: '#122359' }}>
-                Review Actions — Stellar Logistics Pvt. Ltd.
-              </p>
-              <p className="font-xs color-text-paragraph-2 mb-0">
-                {verified} of {docs.length} documents verified
-                {allVerified && <span style={{ color: '#16a34a', fontWeight: 700, marginLeft: '8px' }}>✓ Verification Complete</span>}
-              </p>
-            </div>
-            <div className="d-flex gap-2 flex-wrap">
-              <a href="/admin/recruiters" className="btn hover-up font-sm" style={{
-                height: '44px', padding: '0 18px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: '#f8fafc', border: '1px solid #e2e8f0',
-                color: '#475569', borderRadius: '10px', fontWeight: 600,
-              }}>
-                Back to Recruiters
-              </a>
-              <button onClick={handleVerifyAll} disabled={allVerified} className="btn hover-up font-sm" style={{
-                height: '44px', padding: '0 20px',
-                background: allVerified ? '#bbf7d0' : '#16a34a',
-                border: `1px solid ${allVerified ? '#86efac' : 'transparent'}`,
-                color: allVerified ? '#16a34a' : '#fff',
-                borderRadius: '10px', fontWeight: 700,
-                cursor: allVerified ? 'default' : 'pointer',
-                display: 'flex', alignItems: 'center', gap: '7px',
-              }}>
-                <ShieldCheck size={15} />
-                {allVerified ? 'All Verified' : 'Approve All Documents'}
-              </button>
+        {/* BOTTOM ACTION BAR */}
+        <div className="section-box">
+          <div className="panel-white" style={{ padding: '16px 20px' }}>
+            <div className="d-flex align-items-center justify-content-between" style={{ flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <p className="font-sm mb-0" style={{ fontWeight: 600, color: '#122359' }}>
+                  Review Actions — Stellar Logistics Pvt. Ltd.
+                </p>
+                <p className="font-xs color-text-paragraph-2 mb-0">
+                  {verified} of {docs.length} documents verified
+                  {allVerified && <span style={{ color: '#16a34a', fontWeight: 700, marginLeft: '8px' }}>✓ Verification Complete</span>}
+                </p>
+              </div>
+              <div className="d-flex gap-2 flex-wrap">
+                <a href="/admin/recruiters" className="btn hover-up font-sm" style={{
+                  height: '44px', padding: '0 18px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: '#f8fafc', border: '1px solid #e2e8f0',
+                  color: '#475569', borderRadius: '10px', fontWeight: 600,
+                }}>
+                  Back to Recruiters
+                </a>
+              </div>
             </div>
           </div>
         </div>
       </div>
-              </div>
-              
+
       <style>{`
         @keyframes slideIn {
           from { transform: translateX(30px); opacity: 0; }
