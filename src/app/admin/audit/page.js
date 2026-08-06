@@ -1,5 +1,5 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, Fragment } from 'react'
 import Footer from '../../../components/Footer'
 import {
   Monitor,
@@ -12,8 +12,6 @@ import {
   Check,
   X,
   Calendar,
-  Flag,
-  FlagOff
 } from "lucide-react"
 
 // SNAKE_CASE action code → readable label, e.g. USER_SUSPENDED → "User Suspended"
@@ -187,12 +185,6 @@ const logsData = [
   },
 ];
 
-// Logs pre-flagged for review on load (in a real app this comes from the backend)
-const initialFlags = {
-  'a8f5f167f44f4964e6c998dee827110c': { status: 'open', note: 'Repeated violations — confirm no prior warnings were missed.' },
-  '2c624232cdd221771294dfbb310aca00': { status: 'open', note: 'Fee change — verify finance sign-off is on file.' },
-}
-
 const dpdpRules = [
   { rule: 'Notice of Purpose', status: 'Compliant', statusColor: '#2e7d32', statusBg: '#e8f5e9', desc: 'Admin must state why data is accessed.' },
   { rule: 'Data Minimization', status: 'Compliant', statusColor: '#2e7d32', statusBg: '#e8f5e9', desc: 'Only required fields were exported in the last 24h.' },
@@ -217,6 +209,16 @@ function Badge({ color, bg, children, pill = true }) {
     </span>
   )
 }
+
+// yyyy-mm-dd (native date input value) → "24 Nov 2023"
+function formatDisplayDate(iso) {
+  if (!iso) return ''
+  const d = new Date(`${iso}T00:00:00`)
+  const day = String(d.getDate()).padStart(2, '0')
+  const month = d.toLocaleString('en-US', { month: 'short' })
+  return `${day} ${month} ${d.getFullYear()}`
+}
+const TODAY_ISO = new Date().toISOString().slice(0, 10)
 
 function CopyHash({ hash }) {
   const [copied, setCopied] = useState(false)
@@ -249,37 +251,9 @@ export default function AuditLogsPage() {
   const [dateFilter, setDateFilter] = useState('')
   const [severityFilter, setSeverityFilter] = useState('')
   const [actorTypeFilter, setActorTypeFilter] = useState('')
-  const [openInspection, setOpenInspection] = useState(null)
   const [openRow, setOpenRow] = useState(null)
   const [exportMsg, setExportMsg] = useState('')
-  const [flags, setFlags] = useState(initialFlags)
   const [page, setPage] = useState(1)
-
-  function toggleFlag(hash) {
-    setFlags(prev => {
-      const next = { ...prev }
-      if (next[hash]) {
-        delete next[hash]
-      } else {
-        next[hash] = { status: 'open', note: '' }
-      }
-      return next
-    })
-  }
-
-  function toggleResolved(hash) {
-    setFlags(prev => ({
-      ...prev,
-      [hash]: { ...prev[hash], status: prev[hash].status === 'open' ? 'resolved' : 'open' }
-    }))
-  }
-
-  const flaggedLogs = useMemo(() => {
-    return logsData
-      .filter(l => flags[l.hash])
-      .map(l => ({ ...l, flagStatus: flags[l.hash].status, flagNote: flags[l.hash].note }))
-      .sort((a, b) => (a.flagStatus === b.flagStatus ? 0 : a.flagStatus === 'open' ? -1 : 1))
-  }, [flags])
 
   const filtered = useMemo(() => logsData.filter(l => {
     const matchesActor = l.actor.toLowerCase().includes(actorFilter.toLowerCase())
@@ -399,109 +373,366 @@ export default function AuditLogsPage() {
             <div className="panel-white">
 
               {/* Filter bar */}
-              <div
-                className="d-flex align-items-center"
-                style={{
-                  padding: '12px 20px',
-                  borderBottom: '1px solid #eee',
-                  gap: '8px',
-                  flexWrap: 'wrap',
-                }}
-              >
-                {/* <div style={{ position: 'relative', width: '150px' }}>
-                  <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#aaa' }} />
+              <div className="audit-toolbar">
+                <label className="audit-search-box">
+                  <Search size={16} />
                   <input
-                    className="form-control font-xs"
-                    placeholder="Actor"
-                    value={actorFilter}
-                    onChange={(e) => setActorFilter(e.target.value)}
-                    style={{ paddingLeft: '30px', height: '42px', width: '100%' }}
-                  />
-                </div> */}
-
-                <div style={{ position: 'relative', width: '310px' }}>
-                  <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#aaa' }} />
-                  <input
-                    className="form-control font-xs"
-                    placeholder="Action"
+                    type="text"
+                    placeholder="Search by action, actor or session..."
                     value={actionFilter}
                     onChange={(e) => { setActionFilter(e.target.value); setPage(1) }}
-                    style={{ paddingLeft: '30px', height: '42px', width: '100%' }}
+                    autoComplete="off"
                   />
-                </div>
+                </label>
 
-                <div style={{ position: 'relative', width: '150px' }}>
-                  <Calendar size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#aaa', pointerEvents: 'none' }} />
-                  <input
-                    type="date"
-                    className="form-control font-xs date-filter-input"
-                    value={dateFilter}
-                    onChange={(e) => { setDateFilter(e.target.value); setPage(1) }}
-                    style={{ height: '42px', fontSize: '12px', padding: '4px 8px 4px 30px', width: '100%' }}
-                  />
-                </div>
+                <div className="audit-toolbar-filters">
+                  <label className="audit-date-field">
+                    <span className="audit-date-icon">
+                      <Calendar size={14} />
+                    </span>
 
-                <div style={{ width: '145px' }}>
+                    <div className="audit-date-body">
+                      <span className="audit-date-label">Date</span>
+
+                      <span
+                        className={`audit-date-value ${dateFilter ? "" : "is-placeholder"
+                          }`}
+                      >
+                        {dateFilter
+                          ? formatDisplayDate(dateFilter)
+                          : "Select date"}
+                      </span>
+                    </div>
+
+                    <input
+                      type="date"
+                      value={dateFilter}
+                      max={TODAY_ISO}
+                      onChange={(e) => {
+                        setDateFilter(e.target.value);
+                        setPage(1);
+                      }}
+                      aria-label="Filter by date"
+                      className="audit-date-input"
+                    />
+
+                    {dateFilter && (
+                      <button
+                        type="button"
+                        className="audit-date-clear"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDateFilter("");
+                          setPage(1);
+                        }}
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </label>
+
                   <select
-                    className="form-control font-xs"
+                    className="audit-pill-select"
                     value={actorTypeFilter}
                     onChange={(e) => { setActorTypeFilter(e.target.value); setPage(1) }}
-                    style={{ height: '42px', width: '100%' }}
                   >
-                    <option value="">Actor Type</option>
+                    <option value="">Actor Type: All</option>
                     <option value="admin">Admin</option>
                     <option value="sub_admin">Sub-Admin</option>
-             
                   </select>
-                </div>
 
-                <div style={{ width: '145px' }}>
                   <select
-                    className="form-control font-xs"
+                    className="audit-pill-select"
                     value={severityFilter}
                     onChange={(e) => { setSeverityFilter(e.target.value); setPage(1) }}
-                    style={{ height: '42px', width: '100%' }}
                   >
-                    <option value="">Severity</option>
+                    <option value="">Severity: All</option>
                     <option value="critical">Critical</option>
                     <option value="warning">Warning</option>
                     <option value="info">Info</option>
                   </select>
-                </div>
 
-                <button
-                  className="btn btn-secondary py-3"
-                  onClick={() => {
-                    setActorFilter('')
-                    setActionFilter('')
-                    setDateFilter('')
-                    setSeverityFilter('')
-                    setActorTypeFilter('')
-                    setPage(1)
-                  }}
-                  disabled={!hasActiveFilters}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    opacity: hasActiveFilters ? 1 : 0.5,
-                    cursor: hasActiveFilters ? 'pointer' : 'default',
-                    whiteSpace: 'nowrap',
-                    marginLeft: 'auto',
-                  }}
-                >
-                  <X size={14} /> Clear Filters
-                </button>
+                  <button
+                    type="button"
+                    className="audit-clear-btn"
+                    onClick={() => {
+                      setActorFilter('')
+                      setActionFilter('')
+                      setDateFilter('')
+                      setSeverityFilter('')
+                      setActorTypeFilter('')
+                      setPage(1)
+                    }}
+                    disabled={!hasActiveFilters}
+                  >
+                    <X size={13} /> Clear Filters
+                  </button>
+                </div>
               </div>
               <style jsx>{`
-                .date-filter-input::-webkit-calendar-picker-indicator {
-                  filter: invert(0.5);
+                .audit-toolbar {
+                  display: flex;
+                  align-items: center;
+                  gap: 10px;
+                  flex-wrap: wrap;
+                  padding: 16px 20px;
+                  border-bottom: 1px solid #eee;
+                }
+                .audit-search-box {
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  height: 42px;
+                  padding: 0 14px;
+
+                  background: #fff;
+                  border: 1px solid #e3e8f4;
+                  border-radius: 9px;
+                  overflow: hidden;
+
+                  flex: 1 1 180px;
+                  min-width: 120px;
+                  max-width: 340px;
+
+                  transition: border-color .15s ease,
+                              box-shadow .15s ease,
+                              background .15s ease;
+                }
+
+                .audit-search-box:focus-within {
+                  border-color: #ffcb80;
+                  box-shadow: 0 0 0 3px rgba(239,150,0,.1);
+                }
+
+                .audit-search-box svg {
+                  color: #94a3c4;
+                  flex-shrink: 0;
+                }
+
+                .audit-search-box input {
+                  flex: 1;
+                  width: 100%;
+                  height: 100%;
+
+                  border: none !important;
+                  border-left: 0 !important;
+                  border-right: 0 !important;
+                  outline: none !important;
+                  box-shadow: none !important;
+
+                  background: transparent !important;
+                  appearance: none;
+                  -webkit-appearance: none;
+
+                  padding: 0;
+                  margin: 0;
+
+                  font-size: 13px;
+                  font-weight: 500;
+                  color: #33415c;
+                }
+
+                .audit-search-box input:focus,
+                .audit-search-box input:hover,
+                .audit-search-box input:active {
+                  border: none !important;
+                  outline: none !important;
+                  box-shadow: none !important;
+                  background: transparent !important;
+                }
+
+                .audit-search-box input::placeholder {
+                  color: #94a3c4;
+                  font-weight: 500;
+                }
+
+                .audit-search-box input::-webkit-search-decoration,
+                .audit-search-box input::-webkit-search-cancel-button,
+                .audit-search-box input::-webkit-search-results-button,
+                .audit-search-box input::-webkit-search-results-decoration {
+                  -webkit-appearance: none;
+                }
+                .audit-toolbar-filters {
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  margin-left: auto;
+                  flex-wrap: wrap;
+                  flex-shrink: 0;
+                }
+                .audit-date-field {
+                  position: relative;
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+
+                  height: 42px;
+                  min-width: 160px;
+
+                  padding: 0 12px;
+                  border: 1px solid #e3e8f4;
+                  border-radius: 9px;
+
+                  background: #fff;
                   cursor: pointer;
+
+                  transition: border-color .15s ease,
+                              box-shadow .15s ease;
+                }
+
+                .audit-date-field:hover,
+                .audit-date-field:focus-within {
+                  border-color: #ffcb80;
+                  box-shadow: 0 0 0 3px rgba(239,150,0,.1);
+                }
+
+                .audit-date-input {
+                  position: absolute;
+                  inset: 0;
+
+                  width: 100%;
+                  height: 100%;
+
+                  opacity: 0;
+                  cursor: pointer;
+
+                  border: 0;
+                  outline: 0;
+                }
+
+                .audit-date-input::-webkit-calendar-picker-indicator {
+                  position: absolute;
+                  inset: 0;
+                  width: 100%;
+                  height: 100%;
+                  cursor: pointer;
+                }
+                .audit-date-icon {
+                  display: grid;
+                  place-items: center;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 6px;
+                  background: #fff1d7;
+                  color: #ed9600;
+                  flex-shrink: 0;
+                  pointer-events: none;
+                }
+                .audit-date-body {
+                  display: flex;
+                  flex-direction: column;
+                  justify-content: center;
+                  gap: 1px;
+                  line-height: 1;
+                  pointer-events: none;
+                  min-width: 66px;
+                }
+                .audit-date-label {
+                  color: #96a2ba;
+                  font-size: 9px;
+                  font-weight: 800;
+                  text-transform: uppercase;
+                  letter-spacing: .04em;
+                }
+                .audit-date-value {
+                  color: #33415c;
+                  font-size: 12px;
+                  font-weight: 700;
+                  white-space: nowrap;
+                  line-height: 16px;
+                }
+                .audit-date-value.is-placeholder {
+                  color: #9aa5c4;
+                  font-weight: 600;
+                }
+                .audit-date-field input[type="date"] {
+                  position: absolute;
+                  inset: 0;
+                  width: 100%;
+                  height: 100%;
+                  box-sizing: border-box;
+                  border: 0;
+                  outline: 0;
+                  margin: 0;
+                  padding: 0;
+                  opacity: 0;
+                  cursor: pointer;
+                  color-scheme: light;
+                }
+                .audit-date-clear {
+                  display: grid;
+                  place-items: center;
+                  width: 20px;
+                  height: 20px;
+                  border: 0;
+                  border-radius: 50%;
+                  background: #fff;
+                  color: #7382a1;
+                  cursor: pointer;
+                  flex-shrink: 0;
+                  z-index: 1;
+                }
+                .audit-date-clear:hover {
+                  background: #ffe9e9;
+                  color: #c62828;
+                }
+                .audit-pill-select {
+                  height: 40px;
+                  width: 138px;
+                  flex: 0 0 138px;
+                  padding: 0 10px;
+                  border: 1px solid #e3e8f4;
+                  border-radius: 9px;
+                  background: #f5f7fc;
+                  color: #33415c;
+                  font-size: 12px;
+                  font-weight: 600;
+                  outline: none;
+                  cursor: pointer;
+                  box-sizing: border-box;
+                  flex-shrink: 0;
+                  transition: border-color .15s ease, background .15s ease;
+                }
+                .audit-pill-select:hover, .audit-pill-select:focus {
+                  border-color: #ffcb80;
+                  background: #fff;
+                }
+                .audit-clear-btn {
+                  height: 40px;
+                  padding: 0 14px;
+                  border: 1.5px solid #f39b00;
+                  background: #fff;
+                  color: #f39b00;
+                  border-radius: 9px;
+                  font-size: 12px;
+                  font-weight: 700;
+                  white-space: nowrap;
+                  flex-shrink: 0;
+                  cursor: pointer;
+                  transition: background .15s ease, color .15s ease;
+                  display: inline-flex;
+                  align-items: center;
+                  gap: 6px;
+                }
+                .audit-clear-btn:hover {
+                  background: #fff8ec;
+                }
+                .audit-clear-btn:disabled {
+                  opacity: .5;
+                  cursor: not-allowed;
                 }
                 .audit-table-pagination { padding: 15px 20px; border-top: 1px solid #edf1f6; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #7b8aa5; font-size: 12px; }
                 .audit-table-pagination > div { display: flex; gap: 5px; }
                 .audit-table-pagination button { height: 30px; min-width: 30px; padding: 0 9px; border: 1px solid #dce4ef; border-radius: 5px; background: #fff; color: #5f7194; font-size: 11px; font-weight: 700; }
                 .audit-table-pagination button.active { color: #fff; background: #ffa300; border-color: #ffa300; }
                 .audit-table-pagination button:disabled { opacity: .45; cursor: not-allowed; }
-                @media (max-width: 576px) { .audit-table-pagination { align-items: flex-start; flex-direction: column; } }
+                @media (max-width: 640px) {
+                  .audit-toolbar { padding: 12px 12px; }
+                  .audit-search-box { flex: 1 1 100%; max-width: none; }
+                  .audit-toolbar-filters { width: 100%; margin-left: 0; }
+                  .audit-table-pagination { align-items: flex-start; flex-direction: column; }
+                }
               `}</style>
 
               {/* Table */}
@@ -528,7 +759,7 @@ export default function AuditLogsPage() {
                       const act = ACTION_STYLES[row.action] || { color: '#122359', bg: '#f0f0f0' }
                       const isOpen = openRow === row.hash
                       return (
-                        <>
+                        <Fragment key={row.hash}>
                           <tr
                             key={row.hash}
                             className="hover-up"
@@ -564,7 +795,7 @@ export default function AuditLogsPage() {
                           </tr>
 
                           {isOpen && (
-                            <tr key={`${i}-detail`} style={{ borderBottom: '1px solid #f5f5f5' }}>
+                            <tr key={`${row.hash}-detail`} style={{ borderBottom: '1px solid #f5f5f5' }}>
                               <td colSpan={9} style={{ padding: '0' }}>
                                 <div style={{
                                   background: '#F8FAFF',
@@ -590,29 +821,14 @@ export default function AuditLogsPage() {
                                     <p className="font-xs color-text-paragraph-2 mb-5">Change</p>
                                     <span className="font-sm">{row.old_value} <span style={{ color: '#aaa' }}>→</span> {row.new_value}</span>
                                   </div>
-                                
+
                                   <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); toggleFlag(row.hash) }}
-                                      className="font-xs"
-                                      style={{
-                                        display: 'inline-flex', alignItems: 'center', gap: '6px',
-                                        border: `1px solid ${flags[row.hash] ? '#c62828' : '#ddd'}`,
-                                        background: flags[row.hash] ? '#fdecea' : '#fff',
-                                        color: flags[row.hash] ? '#c62828' : '#555',
-                                        borderRadius: '4px', padding: '6px 10px', cursor: 'pointer', fontWeight: 600,
-                                      }}
-                                    >
-                                      {flags[row.hash]
-                                        ? <><FlagOff size={13} /> Unflag</>
-                                        : <><Flag size={13} /> Flag for Review</>}
-                                    </button>
                                   </div>
                                 </div>
                               </td>
                             </tr>
                           )}
-                        </>
+                        </Fragment>
                       )
                     })}
 
@@ -646,107 +862,6 @@ export default function AuditLogsPage() {
       </div>
 
       <div className='row'>
-        {/* LEFT COLUMN */}
-        <div className="col-xxl-8 col-xl-8 col-lg-8 col-md-12">
-          <div className="section-box">
-            <div className="panel-white">
-              <div className="panel-head">
-                <div className="d-flex align-items-center justify-content-between">
-                  <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-                    <Flag size={16} color="#c62828" />
-                    <h5 className="mb-0">Flagged for Review</h5>
-                  </div>
-                  {flaggedLogs.length > 0 && (
-                    <span className="font-xs color-text-paragraph-2">
-                      {flaggedLogs.filter(l => l.flagStatus === 'open').length} open · {flaggedLogs.filter(l => l.flagStatus === 'resolved').length} resolved
-                    </span>
-                  )}
-                </div>
-                <p className="font-xs color-text-paragraph-2 mb-0 mt-5">
-                  A short worklist of logs someone marked for follow-up — separate from the full table above, so you don't have to search through every log to find what still needs a decision.
-                </p>
-              </div>
-
-              <div className="panel-body" style={{ padding: '0' }}>
-                {flaggedLogs.length === 0 && (
-                  <div style={{ padding: '30px 20px', textAlign: 'center' }}>
-                    <span className="font-sm color-text-paragraph-2">
-                      Nothing flagged yet. Expand a row in the table above and click "Flag for Review" to track it here.
-                    </span>
-                  </div>
-                )}
-
-                {flaggedLogs.map((item, i) => {
-                  const lvl = SEVERITY_STYLES[item.severity] || SEVERITY_STYLES.info
-                  const isOpen = openInspection === item.hash
-                  const isResolved = item.flagStatus === 'resolved'
-                  return (
-                    <div key={item.hash}>
-                      <div
-                        className="hover-up"
-                        onClick={() => setOpenInspection(isOpen ? null : item.hash)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '12px',
-                          padding: '16px 20px',
-                          borderBottom: isOpen ? 'none' : (i < flaggedLogs.length - 1 ? '1px solid #f5f5f5' : 'none'),
-                          cursor: 'pointer',
-                          opacity: isResolved ? 0.6 : 1,
-                        }}
-                      >
-                        <Badge color={lvl.color} bg={lvl.bg}>{lvl.label}</Badge>
-
-                        <div style={{ flex: 1 }}>
-                          <span className="font-sm" style={{ fontWeight: 600, color: '#122359', textDecoration: isResolved ? 'line-through' : 'none' }}>
-                            {formatAction(item.action)}: {item.entity}
-                          </span>
-                          <span className="font-xs color-text-paragraph-2" style={{ marginLeft: '8px' }}>
-                            Actor: {item.actor}
-                          </span>
-                        </div>
-
-                        <button
-                          onClick={(e) => { e.stopPropagation(); toggleResolved(item.hash) }}
-                          className="font-xs"
-                          style={{
-                            border: `1px solid ${isResolved ? '#2e7d32' : '#ddd'}`,
-                            background: isResolved ? '#e8f5e9' : '#fff',
-                            color: isResolved ? '#2e7d32' : '#555',
-                            borderRadius: '20px', padding: '4px 12px', cursor: 'pointer', fontWeight: 600, fontSize: '11px',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {isResolved ? 'Resolved' : 'Mark Resolved'}
-                        </button>
-
-                        <ChevronDown
-                          size={16}
-                          color="#888"
-                          style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}
-                        />
-                      </div>
-
-                      {isOpen && (
-                        <div style={{
-                          padding: '16px 20px 20px',
-                          background: '#F8FAFF',
-                          borderLeft: `3px solid ${lvl.color}`,
-                          borderBottom: i < flaggedLogs.length - 1 ? '1px solid #f5f5f5' : 'none',
-                        }}>
-                          <p className="font-sm color-text-paragraph-2 mb-5">{item.flagNote || 'No note added.'}</p>
-                          <p className="font-xs color-text-paragraph-2 mb-0">
-                            {item.ts.replace('\n', ' ')} · IP {item.ip} · Session {item.session_id}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN */}
         <div className="col-xxl-4 col-xl-4 col-lg-4 col-md-12">
           <div className="section-box">
             <div className="container">
@@ -766,15 +881,9 @@ export default function AuditLogsPage() {
                         <span className="font-sm" style={{ fontWeight: 600, color: '#122359' }}>{item.rule}</span>
                         <Badge color={item.statusColor} bg={item.statusBg}>{item.status}</Badge>
                       </div>
-                      <p className="font-xs color-text-paragraph-2 mb-0">{item.desc}</p>
+                      <p className="font-xs color-text-paragraph-2 mb-0">{item.description}</p>
                     </div>
                   ))}
-                  <div className="mt-10">
-                    <a className="btn btn-grey-small hover-up" href="#"
-                      style={{ width: '100%', textAlign: 'center', display: 'block', padding: '10px', fontSize: '13px' }}>
-                      View Compliance Report
-                    </a>
-                  </div>
                 </div>
               </div>
             </div>

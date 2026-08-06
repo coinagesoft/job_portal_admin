@@ -1,4 +1,8 @@
 am5.ready(function () {
+    var chartHost = document.getElementById("chartdiv");
+    if (!chartHost) {
+        return;
+    }
     // Create root element
     // https://www.amcharts.com/docs/v5/getting-started/#Root_element
     var root = am5.Root.new("chartdiv");
