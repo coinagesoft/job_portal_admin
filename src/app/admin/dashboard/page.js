@@ -440,7 +440,7 @@ export default function DashboardPage() {
               <div className="row">
                 {[
                   { href: '/admin/Plans', icon: BadgeDollarSign, title: 'Plans', value: '3 active plans', detail: 'Recruiter, Candidate & Credit tiers' },
-                  { href: '/admin/subadmin', icon: UserCog, title: 'Sub-Admins', value: '6 accounts', detail: '5 active · 1 suspended' },
+                  { href: '/admin/users', icon: UserCog, title: 'Users', value: '6 accounts', detail: '5 active · 1 suspended' },
                   { href: '/admin/audit', icon: Monitor, title: 'Audit Logs', value: '2 critical events', detail: 'In the last 24 hours' },
                   { href: '/admin/managePolicies', icon: Scale, title: 'Legal Pages', value: 'Privacy & Terms', detail: 'Last published this week' },
                 ].map((m) => (

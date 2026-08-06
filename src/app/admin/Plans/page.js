@@ -94,21 +94,43 @@ export default function PlansPage() {
     setSaved(false);
   };
 
-  const addCreditPlan = () => {
-    const id = `credit-${Date.now()}`;
-    const newPlan = { id, name: 'New credit pack', credits: 100, price: 0, bonus: '', active: true };
+  const addPlan = (type = activeTab) => {
+    const id = `${type}-${Date.now()}`;
+    const membershipDefaults = type === 'recruiter'
+      ? {
+        name: 'New recruiter plan',
+        description: 'Describe the recruiter membership access',
+        price: 0,
+        period: 'one-time',
+        badge: '',
+        active: true,
+        features: ['Add a recruiter plan feature'],
+      }
+      : {
+        name: 'New candidate plan',
+        description: 'Describe the candidate membership access',
+        price: 0,
+        period: 'one-time',
+        badge: '',
+        active: true,
+        features: ['Add a candidate plan feature'],
+      };
+    const newPlan = type === 'credits'
+      ? { id, name: 'New credit pack', credits: 100, price: 0, bonus: '', active: true }
+      : { id, ...membershipDefaults };
     setPlansByRegion((current) => ({
       ...current,
-      [regionId]: { ...current[regionId], credits: [...current[regionId].credits, newPlan] },
+      [regionId]: { ...current[regionId], [type]: [...current[regionId][type], newPlan] },
     }));
+    setFeatureDraft(newPlan.features?.join('\n') ?? '');
     setEditingId(id);
     setSaved(false);
   };
 
-  const deleteCreditPlan = (id) => {
+  const deletePlan = (id, type = activeTab) => {
     setPlansByRegion((current) => ({
       ...current,
-      [regionId]: { ...current[regionId], credits: current[regionId].credits.filter((plan) => plan.id !== id) },
+      [regionId]: { ...current[regionId], [type]: current[regionId][type].filter((plan) => plan.id !== id) },
     }));
     setEditingId(null);
     setSaved(false);
@@ -207,12 +229,15 @@ export default function PlansPage() {
                 <button className={`plan-status ${plan.active ? 'is-active' : 'is-inactive'}`} onClick={() => updatePlan(plan.id, { active: !plan.active })} aria-label={`Set ${plan.name} ${plan.active ? 'inactive' : 'active'}`}>
                   <i /> {plan.active ? 'Active' : 'Inactive'}
                 </button>
-                {isEditing ? <button className="card-save" onClick={() => setEditingId(null)}><Save size={14} />Done</button> : activeTab === 'credits' && <button className="remove-plan" onClick={() => deleteCreditPlan(plan.id)} aria-label={`Remove ${plan.name}`}><Trash2 size={15} /></button>}
+                {isEditing ? <button className="card-save" onClick={() => setEditingId(null)}><Save size={14} />Done</button> : <button className="remove-plan" onClick={() => deletePlan(plan.id)} aria-label={`Remove ${plan.name}`}><Trash2 size={15} /></button>}
               </div>
             </article>
           );
         })}
-        {activeTab === 'credits' && <button className="add-plan" onClick={addCreditPlan}><Plus size={22} /><span>Add credit pack</span></button>}
+        <button className="add-plan" onClick={() => addPlan()}>
+          <Plus size={22} />
+          <span>{activeTab === 'credits' ? 'Add credit pack' : `Create ${activeTab} plan`}</span>
+        </button>
       </div>
 
       <style jsx>{`
@@ -227,7 +252,7 @@ export default function PlansPage() {
         .plans-tabs { border-bottom: 1px solid #dde4f0; display: flex; gap: 26px; margin-bottom: 25px; overflow-x: auto; }
         .plans-tabs button { border: 0; border-bottom: 3px solid transparent; background: transparent; color: #71809f; padding: 0 1px 13px; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; white-space: nowrap; }
         .plans-tabs button.active { color: #ff9e00; border-color: #ff9e00; }
-        .membership-grid { display: grid; grid-template-columns: minmax(290px, 430px); gap: 20px; align-items: stretch; } .credit-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch; }
+        .membership-grid, .credit-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch; }
         .plan-card { position: relative; overflow: hidden; border: 1px solid #e1e7f1; border-radius: 12px; background: #fff; padding: 25px 23px 18px; box-shadow: 0 6px 22px rgba(28, 50, 99, .04); min-height: 320px; display: flex; flex-direction: column; }
         .plan-card.featured { border: 2px solid #ffa300; padding: 24px 22px 17px; box-shadow: 0 9px 28px rgba(255, 163, 0, .12); }
         .plan-badge { position: absolute; top: 0; right: 0; border-radius: 0 10px 0 10px; padding: 6px 12px; background: #ffa300; color: white; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
@@ -245,7 +270,7 @@ export default function PlansPage() {
         .plan-footer { margin-top: auto; padding-top: 18px; border-top: 1px solid #edf0f5; display: flex; align-items: center; justify-content: space-between; } .plan-status { border: 0; background: transparent; padding: 0; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; } .plan-status i { width: 7px; height: 7px; border-radius: 50%; } .plan-status.is-active { color: #35a875; } .plan-status.is-active i { background: #35ba82; } .plan-status.is-inactive { color: #8b96a9; } .plan-status.is-inactive i { background: #aab3c1; } .card-save { border: 0; background: #172b60; color: #fff; border-radius: 5px; padding: 6px 9px; display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; }
         .credit-grid .plan-card { min-height: 250px; } .credit-details { margin-top: 2px; display: grid; gap: 14px; } .credit-details div { border-radius: 7px; background: #f5f8fc; padding: 11px 12px; display: flex; justify-content: space-between; align-items: center; color: #6c7e9d; font-size: 12px; } .credit-details b { color: #253a70; } .credit-bonus { color: #269b70; font-size: 12px; font-weight: 700; } .credit-bonus.muted { color: #8190aa; font-weight: 500; }
         .add-plan { min-height: 250px; border: 2px dashed #cdd7e8; border-radius: 12px; color: #6c7d9d; background: rgba(255,255,255,.52); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-size: 13px; font-weight: 700; } .add-plan:hover { color: #ff9e00; border-color: #ffb53d; background: #fff; }
-        @media (max-width: 991px) { .credit-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+        @media (max-width: 991px) { .membership-grid, .credit-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
         @media (max-width: 600px) { .plans-toolbar { align-items: flex-start; flex-direction: column; padding: 17px; } .country-select { min-width: min(340px, calc(100vw - 72px)); } .region-menu { width: min(330px, calc(100vw - 72px)); } .plans-save { width: 100%; justify-content: center; } .membership-grid, .credit-grid { grid-template-columns: 1fr; } .plans-tabs { gap: 18px; } }
       `}</style>
     </div>

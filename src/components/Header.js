@@ -1,10 +1,28 @@
 'use client';
 import Link from 'next/link'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 export default function Header() {
- useEffect(() => {
+  const [superAdmin, setSuperAdmin] = useState({ name: 'Steven Jobs', email: 'steven.jobs@jobbox.io' })
+
+  useEffect(() => {
     import('bootstrap/dist/js/bootstrap.bundle.min.js')
+  }, [])
+
+  useEffect(() => {
+    const loadSuperAdmin = () => {
+      try {
+        const saved = JSON.parse(window.localStorage.getItem('jobbox_superadmin') || 'null')
+        if (saved?.name && saved?.email) setSuperAdmin((current) => ({ ...current, ...saved }))
+      } catch { /* Keep the default profile when saved data is invalid. */ }
+    }
+    const handleProfileUpdate = (event) => {
+      if (event.detail?.name && event.detail?.email) setSuperAdmin((current) => ({ ...current, ...event.detail }))
+      else loadSuperAdmin()
+    }
+    loadSuperAdmin()
+    window.addEventListener('jobbox-superadmin-updated', handleProfileUpdate)
+    return () => window.removeEventListener('jobbox-superadmin-updated', handleProfileUpdate)
   }, [])
   return (
     <header className="header sticky-bar ">
@@ -66,7 +84,7 @@ export default function Header() {
               <div className="member-login">
                 <img alt="" src="/assets/imgs/page/dashboard/profile.png" />
                 <div className="info-member">
-                  <strong className="color-brand-1">Steven Jobs</strong>
+                  <strong className="color-brand-1">{superAdmin.name}</strong>
                   <div className="dropdown">
                     <a
                       className="font-xs color-text-paragraph-2 icon-down"

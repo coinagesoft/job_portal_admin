@@ -26,7 +26,7 @@ const navItems = [
   { href: '/admin/revenue', icon: '/assets/imgs/page/dashboard/tasks.svg', name: 'Revenue', accessKey: 'revenue.view' },
   { href: '/admin/Plans', icon: BadgeDollarSign, name: 'Plans', accessKey: 'plans.view' },
   { href: '/admin/homepage-management', icon: MonitorCog, name: 'Home Management' },
-  { href: '/admin/subadmin', icon: '/assets/imgs/page/dashboard/profiles.svg', name: 'Sub-Admin', accessKey: 'subadmin.view' },
+  { href: '/admin/users', icon: '/assets/imgs/page/dashboard/profiles.svg', name: 'Users', accessKey: 'subadmin.view' },
   { href: '/admin/helpAndsupport', icon:Headphones, name: 'Help & Support', accessKey: 'support.view' },
   { href: '/admin/audit', icon: FileText, name: 'Audit Logs', accessKey: 'audit.view' },
 { href: '/admin/managePolicies', icon:  Scale, name: 'Legal Pages', accessKey: 'legal.view' },
