@@ -50,15 +50,23 @@ export default function DashboardMenu() {
     return () => window.removeEventListener('storage', readAccess);
   }, []);
 
-  const isActive = (href) => {
-    // exact match
-    if (pathname === href) return true;
+ const isActive = (href) => {
+  // Keep Recruiters active for all recruiter-related pages
+  if (href === "/admin/recruiters") {
+    return (
+      pathname.startsWith("/admin/recruiters") ||
+      pathname.startsWith("/admin/verifications")
+    );
+  }
 
-    // sub routes match (IMPORTANT)
-    if (pathname.startsWith(href + '/')) return true;
+  // Exact match
+  if (pathname === href) return true;
 
-    return false;
-  };
+  // Child routes
+  if (pathname.startsWith(href + "/")) return true;
+
+  return false;
+};
   const visibleNavItems = subAdminAccess === null
     ? navItems
     : navItems.filter((item) => !item.accessKey || subAdminAccess.includes(item.accessKey));
