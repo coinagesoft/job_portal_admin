@@ -5,7 +5,18 @@ import { BriefcaseBusiness, CalendarDays, ChartNoAxesCombined, Coins, Download, 
 
 const countries = [['United States', 'USA'], ['India', 'IND'], ['United Kingdom', 'GBR'], ['Australia', 'AUS'], ['United Arab Emirates', 'UAE'], ['Saudi Arabia', 'KSA'], ['Qatar', 'QAT'], ['Kuwait', 'KWT'], ['Bahrain', 'BHR'], ['Oman', 'OMN'], ['Egypt', 'EGY'], ['Jordan', 'JOR'], ['Lebanon', 'LBN'], ['Turkey', 'TUR']];
 const customerNames = ['Nadia Rahman', 'Horizon Talent LLC', 'Apex Recruitment', 'Arjun Mehta', 'Northstar Hiring', 'Talent Bridge Co.', 'Maya Joseph', 'Gulf Talent Partners', 'Oliver James', 'Kareem Al-Sayed'];
-const dates = ['28 Oct 2023', '27 Oct 2023', '26 Oct 2023', '25 Oct 2023', '24 Oct 2023', '23 Oct 2023', '22 Oct 2023', '21 Oct 2023', '20 Oct 2023', '19 Oct 2023'];
+// Sample transaction dates, generated relative to today (last 10 days) so the date-range
+// filter — which is capped at today — always has matching demo data to show.
+function formatSampleDate(d) {
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = d.toLocaleString('en-US', { month: 'short' });
+  return `${day} ${month} ${d.getFullYear()}`;
+}
+const dates = Array.from({ length: 10 }, (_, index) => {
+  const d = new Date();
+  d.setDate(d.getDate() - index);
+  return formatSampleDate(d);
+});
 const transactions = ['candidate', 'recruiter', 'credits'].flatMap((type, typeIndex) => Array.from({ length: 10 }, (_, index) => {
   const [country, code] = countries[(index + typeIndex * 4) % countries.length];
   const number = 10482 - (typeIndex * 10 + index);
