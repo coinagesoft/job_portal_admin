@@ -16,132 +16,66 @@ import {
   Pencil,
   Trash2,
   Ban,
-  CheckCircle
+  CheckCircle,
+  Home,
+  Briefcase,
+  HelpCircle,
+  ScrollText,
+  FileText
 } from "lucide-react";
-// ── All pages/features the admin can grant access to ──
-const ACCESS_MODULES = [
-  {
-    group: 'Dashboard',
-    icon: LayoutDashboard,
-    items: [
-      { key: 'dashboard', label: 'Dashboard' },
-    ],
-  },
-  {
-    group: 'Candidate Access',
-    icon: Users,
-    items: [
-      { key: 'candidates.view', label: 'View Candidates' },
-      { key: 'candidates.approve', label: 'Approve / Reject Candidates' },
-      { key: 'candidates.suspend', label: 'Suspend / Delete Candidates' },
-    ],
-  },
-  {
-    group: 'Recruiter Access',
-    icon: Users,
-    items: [
-      { key: 'recruiters.view', label: 'View Recruiters' },
-      { key: 'employers.approve', label: 'Approve / Reject Employers' },
-      { key: 'employers.badges', label: 'Issue / Revoke Trust Badges' },
-    ],
-  },
-  {
-    group: 'Verification Queues',
-    icon: ShieldCheck,
-    items: [
-      { key: 'verify.kyc', label: 'KYC / National ID Queue' },
-      { key: 'verify.passport', label: 'Passport Queue' },
-      { key: 'verify.iti', label: 'ITI Certificate Review' },
-      { key: 'verify.gst', label: 'GST / PAN / Trade License' },
-      { key: 'verify.poe', label: 'POE License Queue' },
-      { key: 'verify.rpsl', label: 'RPSL License Queue' },
-      { key: 'verify.ai', label: 'Low AI Confidence Queue' },
-    ],
-  },
-  {
-    group: 'Revenue & Payments',
-    icon: CreditCard,
-    items: [
-      { key: 'revenue.view', label: 'View Revenue & Transactions' },
-      { key: 'finance.invoice', label: 'Download GST Invoices' },
-      { key: 'finance.refund', label: 'Process Refunds' },
-      { key: 'finance.deposit', label: 'Security Deposit Tracking' },
-    ],
-  },
-  {
-    group: 'Plans & Credits',
-    icon: CreditCard,
-    items: [
-      { key: 'plans.view', label: 'View Plans' },
-      { key: 'plans.edit', label: 'Create / Edit Plans' },
-    ],
-  },
-  {
-    group: 'Help & Support',
-    icon: ClipboardList,
-    items: [
-      { key: 'support.view', label: 'View Support Tickets' },
-      { key: 'support.reply', label: 'Reply / Resolve Tickets' },
-    ],
-  },
-  {
-    group: 'Legal Pages',
-    icon: ClipboardList,
-    items: [
-      { key: 'legal.view', label: 'View Legal Pages' },
-      { key: 'legal.edit', label: 'Edit Legal Pages' },
-    ],
-  },
-  {
-    group: 'Platform Settings',
-    icon: Settings,
-    items: [
-      { key: 'settings.view', label: 'View Settings' },
-      { key: 'settings.edit', label: 'Edit Platform Config' },
-      { key: 'settings.credits', label: 'Manage Credit Packs' },
-    ],
-  },
-  {
-    group: 'Audit & Compliance',
-    icon: ClipboardList,
-    items: [
-      { key: 'audit.view', label: 'View Audit Logs' },
-      { key: 'audit.export', label: 'Export Reports / DPDP' },
-    ],
-  },
-  {
-    group: 'Sub Admin',
-    icon: Key,
-    items: [
-      { key: 'subadmin.view', label: 'View Sub Admins' },
-      { key: 'subadmin.create', label: 'Create Sub Admins' },
-      { key: 'subadmin.edit', label: 'Edit Permissions' },
-      { key: 'subadmin.delete', label: 'Delete Sub Admins' },
-    ],
-  },
+
+// ── Sidebar tabs the admin can grant access to ──
+// This list mirrors the admin sidebar 1:1 (in the same order). A sub admin
+// will only ever see the tabs whose `key` is present in their `access` array.
+// "Logout" is intentionally NOT in this list — every sub admin can always log out.
+const TABS = [
+  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { key: 'candidates', label: 'Candidates', icon: Users },
+  { key: 'recruiters', label: 'Recruiters', icon: Briefcase },
+  { key: 'revenue', label: 'Revenue', icon: CreditCard },
+  { key: 'plans', label: 'Plans', icon: CreditCard },
+  { key: 'home_management', label: 'Home Management', icon: Home },
+  { key: 'users', label: 'Users', icon: Key },
+  { key: 'help_support', label: 'Help & Support', icon: HelpCircle },
+  { key: 'audit_logs', label: 'Audit Logs', icon: ScrollText },
+  { key: 'legal_pages', label: 'Legal Pages', icon: FileText },
+  { key: 'settings', label: 'Settings', icon: Settings },
 ]
 
-// Preset roles
+// Preset roles — each preset is just a list of TABS keys now
 const PRESETS = {
-  'Verification Officer': [
-    'dashboard',
-    'candidates.view', 'recruiters.view',
-    'verify.kyc', 'verify.passport', 'verify.iti',
-    'verify.gst', 'verify.poe', 'verify.rpsl', 'verify.ai',
-  ],
-  'Finance Admin': [
-    'dashboard',
-    'revenue.view', 'finance.invoice', 'finance.refund', 'finance.deposit',
-  ],
-  'Employer Manager': [
-    'dashboard',
-    'recruiters.view', 'employers.approve', 'employers.badges',
-  ],
-  'Read Only': ['dashboard', 'candidates.view', 'recruiters.view', 'revenue.view', 'plans.view', 'support.view', 'audit.view', 'legal.view'],
+  'Verification Officer': ['dashboard', 'candidates', 'recruiters'],
+  'Finance Admin': ['dashboard', 'revenue'],
+  'Employer Manager': ['dashboard', 'recruiters'],
+  'Read Only': ['dashboard', 'candidates', 'recruiters', 'revenue', 'plans'],
 }
 
-const ALL_KEYS = ACCESS_MODULES.flatMap(m => m.items.map(i => i.key))
+const ALL_KEYS = TABS.map(t => t.key)
 const ADMINS_PER_PAGE = 10
+
+// Sub admins created before this change may still have old, granular
+// feature-level keys saved in localStorage (e.g. "candidates.view").
+// This maps those legacy keys onto the new tab-level keys so old data
+// keeps working instead of breaking.
+const LEGACY_TO_TAB = {
+  candidates: 'candidates', 'candidates.view': 'candidates', 'candidates.approve': 'candidates', 'candidates.suspend': 'candidates',
+  employers: 'recruiters', 'recruiters.view': 'recruiters', 'employers.approve': 'recruiters', 'employers.badges': 'recruiters',
+  'revenue.view': 'revenue', 'finance.view': 'revenue', 'finance.invoice': 'revenue', 'finance.refund': 'revenue', 'finance.deposit': 'revenue',
+  'plans.view': 'plans', 'plans.edit': 'plans',
+  'verify.kyc': 'candidates', 'verify.passport': 'candidates', 'verify.iti': 'candidates', 'verify.gst': 'candidates', 'verify.poe': 'candidates', 'verify.rpsl': 'candidates', 'verify.ai': 'candidates',
+  'support.view': 'help_support', 'support.reply': 'help_support',
+  'legal.view': 'legal_pages', 'legal.edit': 'legal_pages',
+  'settings.view': 'settings', 'settings.edit': 'settings', 'settings.credits': 'settings',
+  'audit.view': 'audit_logs', 'audit.export': 'audit_logs',
+  'subadmin.view': 'users', 'subadmin.create': 'users', 'subadmin.edit': 'users', 'subadmin.delete': 'users',
+}
+
+// Helper you can import into the sidebar component to decide which tabs to
+// render for the logged-in sub admin. Logout is always allowed.
+export function canAccessTab(access, key) {
+  if (key === 'logout') return true
+  return Array.isArray(access) && access.includes(key)
+}
 
 const SAMPLE_ADMINS = [
   {
@@ -190,29 +124,10 @@ function StatusBadge({ status }) {
   )
 }
 
-// Toggle switch
-const PARENT_FEATURES = {
-  'candidates.approve': 'candidates.view',
-  'candidates.suspend': 'candidates.view',
-  'employers.approve': 'recruiters.view',
-  'employers.badges': 'recruiters.view',
-  'finance.invoice': 'revenue.view',
-  'finance.refund': 'revenue.view',
-  'finance.deposit': 'revenue.view',
-  'plans.edit': 'plans.view',
-  'support.reply': 'support.view',
-  'legal.edit': 'legal.view',
-  'settings.edit': 'settings.view',
-  'settings.credits': 'settings.view',
-  'audit.export': 'audit.view',
-  'subadmin.create': 'subadmin.view',
-  'subadmin.edit': 'subadmin.view',
-  'subadmin.delete': 'subadmin.view',
-}
-
+// Migrate any legacy granular keys to tab-level keys, and drop anything unknown.
 function normalizeAccess(access = []) {
-  const legacyKeys = { candidates: 'candidates.view', employers: 'recruiters.view', 'finance.view': 'revenue.view' }
-  return [...new Set(access.map((key) => legacyKeys[key] || key))]
+  const mapped = access.map((key) => LEGACY_TO_TAB[key] || key)
+  return [...new Set(mapped.filter((key) => ALL_KEYS.includes(key)))]
 }
 
 function Toggle({ value, onChange, disabled = false }) {
@@ -291,41 +206,27 @@ export default function SubAdminPage() {
     setEditId(a.id)
     setDrawer('edit')
   }
-  const applyPreset = (role) => {
-    setForm((current) => {
-      const selected = current.presets || []
-      const presets = selected.includes(role) ? selected.filter((preset) => preset !== role) : [...selected, role]
-      const access = [...new Set(presets.flatMap((preset) => PRESETS[preset] || []))]
-      return { ...current, presets, role: presets.length === 1 ? presets[0] : 'Custom', access }
-    })
+  const selectRole = (role) => {
+    setForm(f => ({
+      ...f,
+      role,
+    }))
   }
 
-  const toggleKey = (key) => {
+  const toggleTab = (key) => {
     setForm(f => {
       const has = f.access.includes(key)
-      const dependentKeys = Object.entries(PARENT_FEATURES).filter(([, parent]) => parent === key).map(([child]) => child)
-      const nextAccess = has
-        ? f.access.filter(k => k !== key && !dependentKeys.includes(k))
-        : [...new Set([...f.access, ...(PARENT_FEATURES[key] ? [PARENT_FEATURES[key]] : []), key])]
-      return { ...f, presets: [], role: 'Custom', access: nextAccess }
+      return {
+        ...f,
+        access: has ? f.access.filter(k => k !== key) : [...f.access, key],
+      }
     })
-  }
-
-  const toggleGroup = (module) => {
-    const keys = module.items.map(i => i.key)
-    const allOn = keys.every(k => form.access.includes(k))
-    setForm(f => ({
-      ...f, presets: [], role: 'Custom',
-      access: allOn ? f.access.filter(k => !keys.includes(k)) : [...new Set([...f.access, ...keys])]
-    }))
   }
 
   const toggleAll = () => {
     const allOn = ALL_KEYS.every(k => form.access.includes(k))
-    setForm(f => ({ ...f, presets: [], role: allOn ? 'Custom' : 'Super Admin', access: allOn ? [] : [...ALL_KEYS] }))
+    setForm(f => ({ ...f, access: allOn ? [] : [...ALL_KEYS] }))
   }
-
-  const itemIsDisabled = (key) => Boolean(PARENT_FEATURES[key] && !form.access.includes(PARENT_FEATURES[key]))
 
   const handleSave = () => {
     if (!form.name.trim() || !form.email.trim()) return
@@ -711,26 +612,13 @@ export default function SubAdminPage() {
                     className="form-control"
                     value={form.role}
                     disabled={drawer === 'super'}
-                    onChange={(e) => {
-                      const role = e.target.value;
-                      setForm(f => ({
-                        ...f,
-                        role,
-                        presets: drawer === 'super' ? [] : role !== 'Custom' ? [role] : [],
-                        access: drawer === 'super'
-                          ? f.access
-                          : PRESETS[role]
-                          ? [...PRESETS[role]]
-                          : f.access
-                      }));
-                    }}
+                    onChange={(e) => selectRole(e.target.value)}
                   >
                     {drawer === 'super' && <option value="Super Admin">Super Admin</option>}
                     <option value="Verification Officer">Verification Officer</option>
                     <option value="Finance Admin">Finance Admin</option>
                     <option value="Employer Manager">Employer Manager</option>
                     <option value="Read Only">Read Only</option>
-                    <option value="Custom">Custom</option>
                   </select>
                 </div>
                 <div className="col-12 mb-15">
@@ -746,92 +634,36 @@ export default function SubAdminPage() {
                 </div>
               </div>
 
-              {/* ── Role Preset ── */}
-              <p className="font-xs color-text-paragraph-2 mb-15 mt-10"
-                style={{ textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 700, borderBottom: '1px solid #eee', paddingBottom: '8px' }}>
-                Role Preset
-              </p>
-              <p className="font-xs color-text-paragraph-2 mb-10">
-                Select one or more presets to combine their permissions, or adjust individual features below.
-              </p>
-              <div className="preset-picker">
-                {Object.keys(PRESETS).map(preset => (
-                  <button key={preset} onClick={() => applyPreset(preset)} disabled={drawer === 'super'}
-                    className={`preset-option ${(form.presets || []).includes(preset) ? 'is-selected' : ''}`}
-                    aria-pressed={(form.presets || []).includes(preset)}>
-                    <span className="preset-check">✓</span>{preset}
-                  </button>
-                ))}
-                {form.role === 'Custom' && (
-                  <span className="custom-role-badge">
-                    Custom permissions
-                  </span>
-                )}
-              </div>
-              <p className="preset-summary">{(form.presets || []).length ? `${form.presets.length} preset${form.presets.length > 1 ? 's' : ''} selected` : 'No preset selected — using custom permissions'}</p>
-              {drawer === 'super' && <p className="preset-summary" style={{ color: '#a56600' }}>Role presets are locked because they change feature access.</p>}
-
               {/* ── Access Control ── */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px solid #eee', paddingBottom: '8px' }}>
                 <p className="font-xs color-text-paragraph-2 mb-0"
                   style={{ textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 700 }}>
-                  Page & Feature Access
+                  Sidebar Tab Access
                 </p>
                 <button onClick={toggleAll} disabled={drawer === 'super'}
                   style={{ background: 'none', border: '1px solid #ddd', borderRadius: '6px', padding: '4px 10px', cursor: drawer === 'super' ? 'not-allowed' : 'pointer', fontSize: '11px', fontWeight: 600, color: '#ffa300', opacity: drawer === 'super' ? .5 : 1 }}>
                   {ALL_KEYS.every(k => form.access.includes(k)) ? 'Deselect All' : 'Select All'}
                 </button>
               </div>
+              <p className="font-xs color-text-paragraph-2 mb-15">
+                Turn on the tabs this sub admin should see in the sidebar. Everything else stays hidden for them — "Logout" is always visible to everyone.
+              </p>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {ACCESS_MODULES.map(module => {
-                  const keys = module.items.map(i => i.key)
-                  const allOn = keys.every(k => form.access.includes(k))
-                  const someOn = keys.some(k => form.access.includes(k))
+              {/* Flat list — one toggle per sidebar tab */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {TABS.map(tab => {
+                  const on = form.access.includes(tab.key)
+                  const Icon = tab.icon
                   return (
-                    <div key={module.group} className={`permission-module ${someOn ? 'has-access' : ''}`}>
-
-                      {/* Group header */}
-                      <div style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '13px 16px',
-                        background: allOn ? '#fff8ea' : someOn ? '#fbfcff' : '#fff',
-                        cursor: 'pointer',
-                      }} onClick={() => drawer !== 'super' && toggleGroup(module)}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {(() => {
-                            const Icon = module.icon;
-                            return <Icon size={16} strokeWidth={2.2} />;
-                          })()}
-
-                          <span className="font-sm" style={{ fontWeight: 700, color: '#122359' }}>
-                            {module.group}
-                          </span>
-
-                          <span style={{ fontSize: '10px', color: '#888' }}>
-                            ({module.items.filter(i => form.access.includes(i.key)).length}/{module.items.length})
-                          </span>
-                        </div>
-                        <Toggle value={allOn} disabled={drawer === 'super'} onChange={() => toggleGroup(module)} />
+                    <div key={tab.key} className={`permission-tab ${on ? 'is-enabled' : ''}`}
+                      onClick={() => drawer !== 'super' && toggleTab(tab.key)}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Icon size={16} strokeWidth={2.2} />
+                        <span className="font-sm" style={{ fontWeight: 700, color: on ? '#122359' : '#526685' }}>
+                          {tab.label}
+                        </span>
                       </div>
-
-                      {/* Individual items */}
-                      <div className="permission-items">
-                        {module.items.map(item => {
-                          const on = form.access.includes(item.key)
-                          const disabled = itemIsDisabled(item.key)
-                          return (
-                            <div key={item.key} className={`permission-item ${on ? 'is-enabled' : ''} ${disabled ? 'is-disabled' : ''}`}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: on ? '#ffa300' : '#ddd', flexShrink: 0 }}></span>
-                                <span className="font-xs" style={{ color: disabled ? '#aab2c3' : on ? '#122359' : '#888', fontWeight: on ? 600 : 400 }}>{item.label}</span>
-                              </div>
-                              <Toggle value={on} disabled={drawer === 'super' || disabled} onChange={() => toggleKey(item.key)} />
-                            </div>
-                          )
-                        })}
-                      </div>
-
+                      <Toggle value={on} disabled={drawer === 'super'} onChange={() => toggleTab(tab.key)} />
                     </div>
                   )
                 })}
@@ -840,7 +672,7 @@ export default function SubAdminPage() {
               {/* Access summary */}
               <div style={{ marginTop: '20px', padding: '12px 16px', background: '#F8FAFF', borderRadius: '8px', border: '1px solid #ffc151' }}>
                 <p className="font-xs mb-0" style={{ color: '#ffa300', fontWeight: 600 }}>
-                  ✓ {form.access.length} of {ALL_KEYS.length} features selected
+                  ✓ {form.access.length} of {ALL_KEYS.length} tabs selected
                 </p>
               </div>
 
@@ -896,18 +728,11 @@ export default function SubAdminPage() {
         .preset-option { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 0 12px; border: 1px solid #dce3ef; border-radius: 8px; background: #fff; color: #526685; font-size: 12px; font-weight: 700; cursor: pointer; transition: .2s ease; }
         .preset-option:hover { border-color: #ffa300; color: #122359; background: #fffaf1; }
         .preset-option.is-selected { border-color: #ffa300; background: #fff3dc; color: #a56600; box-shadow: 0 3px 8px rgba(255,163,0,.12); }
-        .preset-check { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; width: 16px; height: 16px; min-width: 16px; padding: 0; border: 1px solid #cbd4e3; border-radius: 4px; color: transparent; font-size: 10px; line-height: 1; }
-        .is-selected .preset-check { border-color: #ffa300; background: #ffa300; color: #fff; }
         .custom-role-badge { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border: 1px solid #ffd28a; border-radius: 8px; background: #fff8ea; color: #a56600; font-size: 12px; font-weight: 700; }
         .preset-summary { margin: 0 0 18px; color: #7182a1; font-size: 11px; }
-        .permission-module { overflow: hidden; border: 1px solid #e0e6f0; border-radius: 12px; background: #fff; box-shadow: 0 2px 8px rgba(18,35,89,.025); transition: border-color .2s, box-shadow .2s; }
-        .permission-module.has-access { border-color: #ffd28a; }
-        .permission-module:hover { border-color: #ffa300; box-shadow: 0 8px 18px rgba(18,35,89,.06); }
-        .permission-items { display: flex; flex-direction: column; gap: 2px; padding: 8px 16px 12px; border-top: 1px solid #edf0f5; background: #fff; }
-        .permission-item { display: flex; align-items: center; justify-content: space-between; min-height: 34px; padding: 5px 0; border-bottom: 1px solid #f3f5f8; }
-        .permission-item:last-child { border-bottom: 0; }
-        .permission-item.is-enabled { background: linear-gradient(90deg, rgba(255,163,0,.055), transparent 70%); }
-        .permission-item.is-disabled { opacity: .7; }
+        .permission-tab { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border: 1px solid #e0e6f0; border-radius: 12px; background: #fff; cursor: pointer; box-shadow: 0 2px 8px rgba(18,35,89,.025); transition: border-color .2s, box-shadow .2s, background .2s; }
+        .permission-tab:hover { border-color: #ffa300; box-shadow: 0 8px 18px rgba(18,35,89,.06); }
+        .permission-tab.is-enabled { border-color: #ffd28a; background: #fff8ea; }
         .role-badge { display: inline-flex; align-items: center; min-height: 25px; padding: 4px 10px; border: 1px solid #ffd28a; border-radius: 20px; background: #fff3dc; color: #9b5d00; font-size: 12px; font-weight: 700; line-height: 1; white-space: nowrap; }
         .super-admin-access { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 4px 10px; border: 1px solid #b9d9c7; border-radius: 7px; background: #edf9f1; color: #28754a; font-size: 11px; font-weight: 700; white-space: nowrap; }
         .super-admin-actions { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
