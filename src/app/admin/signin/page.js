@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { authService } from '../../../services/authService'
 
 // ── Decorative background corners (same set used on the recruiter login) ──
 function BackgroundArt() {
@@ -206,18 +207,16 @@ export default function LoginPage() {
 
   const [step, setStep] = useState(1)
   const [identifier, setIdentifier] = useState('')
-  const [dummyOtp, setDummyOtp] = useState('')
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [resendTimer, setResendTimer] = useState(30)
+  const [resendTimer, setResendTimer] = useState(60)
   const [canResend, setCanResend] = useState(false)
 
   const otpRefs = useRef([])
 
   useEffect(() => {
     if (step !== 2) return
-    setResendTimer(30)
     setCanResend(false)
     const interval = setInterval(() => {
       setResendTimer(t => {
@@ -227,8 +226,6 @@ export default function LoginPage() {
     }, 1000)
     return () => clearInterval(interval)
   }, [step])
-
-  const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000))
 
   // ── STEP 1: Send OTP ──
   const handleSendOtp = (e) => {
@@ -247,18 +244,22 @@ export default function LoginPage() {
     }
 
     setLoading(true)
-    setTimeout(() => {
-      const otp6 = generateOtp()
-      setDummyOtp(otp6)
-      setOtp(['', '', '', '', '', ''])
-      setLoading(false)
-      setStep(2)
-
-      // ── Show OTP in browser alert (dev/demo only — remove when real SMS/email API is wired) ──
-      alert(`\nYour OTP for ${identifier} is:\n${otp6}\n(This alert will not appear in production.)`)
-
-      setTimeout(() => otpRefs.current[0]?.focus(), 50)
-    }, 1000)
+    authService.sendOtp(identifier)
+      .then((res) => {
+        setLoading(false)
+        setOtp(['', '', '', '', '', ''])
+        if (res?.resendAfterSeconds) {
+          setResendTimer(res.resendAfterSeconds)
+        } else {
+          setResendTimer(60)
+        }
+        setStep(2)
+        setTimeout(() => otpRefs.current[0]?.focus(), 50)
+      })
+      .catch((err) => {
+        setLoading(false)
+        setError(err.message || 'Failed to send OTP. Please try again.')
+      })
   }
 
   const handleOtpChange = (index, value) => {
@@ -296,31 +297,34 @@ export default function LoginPage() {
       return
     }
     setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      if (entered !== dummyOtp) {
-        setError('Invalid OTP. Please check and try again.')
-        return
-      }
-      setStep(3)
-      setTimeout(() => router.push('/admin/dashboard'), 1800)
-    }, 1000)
+    authService.verifyOtp(identifier, entered, true)
+      .then(() => {
+        setLoading(false)
+        setStep(3)
+        setTimeout(() => router.push('/admin/dashboard'), 1800)
+      })
+      .catch((err) => {
+        setLoading(false)
+        setError(err.message || 'Invalid OTP or login failed. Please check and try again.')
+      })
   }
 
   const handleResend = () => {
     if (!canResend) return
-    const otp6 = generateOtp()
-    setDummyOtp(otp6)
-    setOtp(['', '', '', '', '', ''])
+    setLoading(true)
     setError('')
-
-    alert(`[DEV MODE]\n\nNew OTP for ${identifier} is:\n\n${otp6}`)
-
-    setStep(1)
-    setTimeout(() => {
-      setStep(2)
-      setTimeout(() => otpRefs.current[0]?.focus(), 100)
-    }, 50)
+    authService.resendOtp(identifier)
+      .then((res) => {
+        setLoading(false)
+        setOtp(['', '', '', '', '', ''])
+        setResendTimer(res?.resendAfterSeconds || 60)
+        setCanResend(false)
+        setTimeout(() => otpRefs.current[0]?.focus(), 50)
+      })
+      .catch((err) => {
+        setLoading(false)
+        setError(err.message || 'Failed to resend OTP. Please try again.')
+      })
   }
 
   // ════ STEP 1 — Enter Email / Mobile ════

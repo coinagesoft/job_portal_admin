@@ -102,7 +102,7 @@ export default function Header() {
                     >
                       {/* <li><Link className="dropdown-item" href="/profile">Profiles</Link></li>
                       <li><Link className="dropdown-item" href="/resume">CV Manager</Link></li> */}
-                      <li><Link className="dropdown-item" href="/">Logout</Link></li>
+                      <li><Link className="dropdown-item" href="/admin/logout">Logout</Link></li>
                     </ul>
                   </div>
                 </div>
