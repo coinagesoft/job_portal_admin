@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import React from 'react'; // ensure import
 import Footer from '../../../components/Footer'
+import { subAdminService } from '../../../services/subAdminService'
 import {
   Users,
   UserCheck,
@@ -151,8 +152,87 @@ function Toggle({ value, onChange, disabled = false }) {
   )
 }
 
+const mapApiToUi = (apiItem) => {
+  const access = [];
+  if (apiItem.permissions) {
+    Object.entries(apiItem.permissions).forEach(([key, allowed]) => {
+      if (allowed) access.push(key);
+    });
+  }
+  
+  // Format joined date
+  let joinedStr = 'Never';
+  if (apiItem.createdAt) {
+    try {
+      joinedStr = new Date(apiItem.createdAt).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+    } catch (e) {
+      joinedStr = apiItem.createdAt;
+    }
+  }
+
+  // Format last login
+  let lastLoginStr = 'Never';
+  if (apiItem.lastLoginAt) {
+    try {
+      const diffMs = Date.now() - new Date(apiItem.lastLoginAt).getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMins / 60);
+      const diffDays = Math.floor(diffHours / 24);
+      if (diffMins < 60) {
+        lastLoginStr = diffMins <= 1 ? 'Just now' : `${diffMins} minutes ago`;
+      } else if (diffHours < 24) {
+        lastLoginStr = `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+      } else {
+        lastLoginStr = `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+      }
+    } catch (e) {
+      lastLoginStr = apiItem.lastLoginAt;
+    }
+  }
+
+  return {
+    id: apiItem.adminId, // use adminId as the local id
+    userId: apiItem.userId,
+    name: apiItem.fullName || '',
+    email: apiItem.email || '',
+    phone: apiItem.mobileNumber || '',
+    role: apiItem.roleName || 'Verification Officer',
+    status: apiItem.isActive ? 'Active' : 'Suspended',
+    lastLogin: lastLoginStr,
+    joined: joinedStr,
+    img: 'avata2', // default fallback avatar
+    access: access
+  };
+};
+
+const mapUiToApi = (uiForm, isUpdate = false) => {
+  const permissions = {};
+  TABS.forEach(tab => {
+    permissions[tab.key] = uiForm.access.includes(tab.key);
+  });
+
+  const payload = {
+    fullName: uiForm.name,
+    mobileNumber: uiForm.phone,
+    countryCode: "+91",
+    roleName: uiForm.role,
+    permissions: permissions,
+    isActive: uiForm.status === 'Active'
+  };
+
+  if (!isUpdate) {
+    payload.email = uiForm.email;
+  }
+
+  return payload;
+};
+
 export default function SubAdminPage() {
-  const [admins, setAdmins] = useState(SAMPLE_ADMINS)
+  const [admins, setAdmins] = useState([])
   const [superAdmin, setSuperAdmin] = useState(DEFAULT_SUPER_ADMIN)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -162,12 +242,35 @@ export default function SubAdminPage() {
   const [delId, setDelId] = useState(null)      // confirm delete
   const [hydrated, setHydrated] = useState(false)
   const [page, setPage] = useState(1)
+  const [loadingList, setLoadingList] = useState(false)
+  const [totalCount, setTotalCount] = useState(0)
+  const [activeCount, setActiveCount] = useState(0)
+  const [suspendedCount, setSuspendedCount] = useState(0)
+
+  const fetchSubAdmins = () => {
+    setLoadingList(true)
+    subAdminService.getSubAdmins({
+      search: search,
+      status: statusFilter,
+      page: page,
+      pageSize: ADMINS_PER_PAGE
+    })
+    .then((res) => {
+      setLoadingList(false)
+      if (res && res.items) {
+        setAdmins(res.items.map(mapApiToUi));
+        setTotalCount(res.totalSubAdmins || res.totalCount || 0);
+        setActiveCount(res.activeCount || 0);
+        setSuspendedCount(res.suspendedCount || 0);
+      }
+    })
+    .catch((err) => {
+      setLoadingList(false)
+      console.error("Failed to fetch sub-admins:", err);
+    });
+  }
 
   useEffect(() => {
-    const saved = window.localStorage.getItem('jobbox_subadmins')
-    if (saved) {
-      try { setAdmins(JSON.parse(saved).map((admin) => ({ ...admin, access: normalizeAccess(admin.access) }))) } catch { window.localStorage.removeItem('jobbox_subadmins') }
-    }
     const savedSuperAdmin = window.localStorage.getItem('jobbox_superadmin')
     if (savedSuperAdmin) {
       try { setSuperAdmin((current) => ({ ...current, ...JSON.parse(savedSuperAdmin), role: 'Super Admin', status: 'Active' })) } catch { window.localStorage.removeItem('jobbox_superadmin') }
@@ -176,20 +279,18 @@ export default function SubAdminPage() {
   }, [])
 
   useEffect(() => {
-    if (hydrated) window.localStorage.setItem('jobbox_subadmins', JSON.stringify(admins))
-  }, [admins, hydrated])
+    if (hydrated) {
+      fetchSubAdmins();
+    }
+  }, [search, statusFilter, page, hydrated])
 
   useEffect(() => {
     if (hydrated) window.localStorage.setItem('jobbox_superadmin', JSON.stringify(superAdmin))
   }, [superAdmin, hydrated])
 
-  const filtered = admins.filter(a =>
-    [a.name, a.email, a.role].some(v => v.toLowerCase().includes(search.toLowerCase())) &&
-    (!statusFilter || a.status === statusFilter)
-  )
-  const pageCount = Math.max(1, Math.ceil(filtered.length / ADMINS_PER_PAGE))
-  const currentPage = Math.min(page, pageCount)
-  const visibleAdmins = filtered.slice((currentPage - 1) * ADMINS_PER_PAGE, currentPage * ADMINS_PER_PAGE)
+  const pageCount = Math.max(1, Math.ceil(totalCount / ADMINS_PER_PAGE))
+  const currentPage = page
+  const visibleAdmins = admins
 
   // ── form helpers ──
   const openCreate = () => {
@@ -230,26 +331,65 @@ export default function SubAdminPage() {
 
   const handleSave = () => {
     if (!form.name.trim() || !form.email.trim()) return
+    
     if (drawer === 'super') {
       const updatedProfile = { ...superAdmin, name: form.name.trim(), email: form.email.trim(), phone: form.phone, role: 'Super Admin', status: 'Active' }
       setSuperAdmin(updatedProfile)
       window.dispatchEvent(new CustomEvent('jobbox-superadmin-updated', { detail: updatedProfile }))
+      setDrawer(false)
     } else if (drawer === 'create') {
-      setAdmins(a => [...a, {
-        id: Date.now(), img: 'avata1',
-        lastLogin: 'Never',
-        joined: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-        ...form,
-      }])
+      const apiPayload = mapUiToApi(form);
+      subAdminService.createSubAdmin(apiPayload)
+        .then(() => {
+          fetchSubAdmins();
+          setPage(1);
+          setDrawer(false);
+        })
+        .catch((err) => {
+          alert(err.message || "Failed to create sub admin");
+        });
     } else {
-      setAdmins(a => a.map(ad => ad.id === editId ? { ...ad, ...form } : ad))
+      const apiPayload = mapUiToApi(form, true);
+      subAdminService.updateSubAdmin(editId, apiPayload)
+        .then(() => {
+          fetchSubAdmins();
+          setDrawer(false);
+        })
+        .catch((err) => {
+          alert(err.message || "Failed to update sub admin");
+        });
     }
-    setPage(1)
-    setDrawer(false)
   }
 
-  const handleDelete = (id) => { setAdmins(a => a.filter(ad => ad.id !== id)); setDelId(null) }
-  const toggleStatus = (id) => setAdmins(a => a.map(ad => ad.id === id ? { ...ad, status: ad.status === 'Active' ? 'Suspended' : 'Active' } : ad))
+  const handleDelete = (id) => {
+    subAdminService.deleteSubAdmin(id)
+      .then(() => {
+        fetchSubAdmins();
+        setDelId(null);
+      })
+      .catch((err) => {
+        alert(err.message || "Failed to delete sub admin");
+        setDelId(null);
+      });
+  }
+
+  const toggleStatus = (id) => {
+    const admin = admins.find(a => a.id === id);
+    if (!admin) return;
+    
+    const promise = admin.status === 'Active'
+      ? subAdminService.suspendSubAdmin(id, 'Suspended by admin')
+      : subAdminService.activateSubAdmin(id);
+      
+    promise
+      .then(() => {
+        fetchSubAdmins();
+      })
+      .catch((err) => {
+        alert(err.message || "Failed to toggle status");
+      });
+  }
+
   const openSuperAdminEditor = () => {
     setForm({ name: superAdmin.name, email: superAdmin.email, phone: superAdmin.phone || '', role: 'Super Admin', presets: [], status: 'Active', access: [...ALL_KEYS] })
     setDrawer('super')
@@ -281,17 +421,17 @@ export default function SubAdminPage() {
           {[
             {
               label: 'Total Users',
-              value: admins.length + 1,
+              value: totalCount + 1,
               icon: Users
             },
             {
               label: 'Active',
-              value: admins.filter(a => a.status === 'Active').length + (superAdmin.status === 'Active' ? 1 : 0),
+              value: activeCount + (superAdmin.status === 'Active' ? 1 : 0),
               icon: UserCheck
             },
             {
               label: 'Suspended',
-              value: admins.filter(a => a.status === 'Suspended').length + (superAdmin.status === 'Suspended' ? 1 : 0),
+              value: suspendedCount + (superAdmin.status === 'Suspended' ? 1 : 0),
               icon: UserX
             },
             {
@@ -404,7 +544,6 @@ export default function SubAdminPage() {
                   <td style={{ padding: '14px 12px', whiteSpace: 'nowrap' }}><span className="font-sm color-text-paragraph-2">{superAdmin.joined}</span></td>
                   <td style={{ padding: '14px 12px', textAlign: 'center' }}>
                     <div className="super-admin-actions">
-                      <button className="btn btn-grey-small" onClick={openSuperAdminEditor} title="Edit profile details" style={{ padding: '4px 6px' }}><Pencil size={15} /></button>
                       <span className="super-admin-access"><ShieldCheck size={15} /> Full access · locked</span>
                     </div>
                   </td>
@@ -503,7 +642,7 @@ export default function SubAdminPage() {
                   </React.Fragment>
                 ))}
 
-                {filtered.length === 0 && (
+                {admins.length === 0 && (
                   <tr>
                     <td colSpan={6} style={{ padding: '40px', textAlign: 'center' }}>
                       <span className="font-sm color-text-paragraph-2">No sub admins found.</span>
@@ -513,9 +652,9 @@ export default function SubAdminPage() {
               </tbody>
 
             </table>
-            {filtered.length > 0 && (
+            {totalCount > 0 && (
               <div className="subadmin-pagination">
-                <span>Showing {(currentPage - 1) * ADMINS_PER_PAGE + 1}–{Math.min(currentPage * ADMINS_PER_PAGE, filtered.length)} of {filtered.length} sub admins</span>
+                <span>Showing {(currentPage - 1) * ADMINS_PER_PAGE + 1}–{Math.min(currentPage * ADMINS_PER_PAGE, totalCount)} of {totalCount} sub admins</span>
                 <div>
                   <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Previous</button>
                   {Array.from({ length: pageCount }, (_, index) => (
@@ -585,7 +724,8 @@ export default function SubAdminPage() {
                     Email Address *
                   </label>
                   <input className="form-control" type="email" placeholder="admin@skillbridge.io"
-                    value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+                    value={form.email} disabled={drawer === 'edit' || drawer === 'super'}
+                    onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
                 </div>
                 <div className="col-12 mb-15">
                   <label className="font-xs color-text-paragraph-2 mb-5"
