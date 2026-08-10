@@ -12,17 +12,26 @@ export default function Header() {
   useEffect(() => {
     const loadSuperAdmin = () => {
       try {
-        const saved = JSON.parse(window.localStorage.getItem('jobbox_superadmin') || 'null')
-        if (saved?.name && saved?.email) setSuperAdmin((current) => ({ ...current, ...saved }))
+        const saved = JSON.parse(window.localStorage.getItem('jobbox_logged_in_admin') || window.localStorage.getItem('jobbox_superadmin') || 'null')
+        if (saved?.name && saved?.email) {
+          const role = saved.adminType === 'SubAdmin' ? 'Sub Admin' : 'Super Admin';
+          setSuperAdmin((current) => ({ ...current, ...saved, role }))
+        }
       } catch { /* Keep the default profile when saved data is invalid. */ }
     }
     const handleProfileUpdate = (event) => {
-      if (event.detail?.name && event.detail?.email) setSuperAdmin((current) => ({ ...current, ...event.detail }))
-      else loadSuperAdmin()
+      if (event.detail?.name && event.detail?.email) {
+        const role = event.detail.adminType === 'SubAdmin' ? 'Sub Admin' : 'Super Admin';
+        setSuperAdmin((current) => ({ ...current, ...event.detail, role }))
+      } else loadSuperAdmin()
     }
     loadSuperAdmin()
     window.addEventListener('jobbox-superadmin-updated', handleProfileUpdate)
-    return () => window.removeEventListener('jobbox-superadmin-updated', handleProfileUpdate)
+    window.addEventListener('storage', loadSuperAdmin)
+    return () => {
+      window.removeEventListener('jobbox-superadmin-updated', handleProfileUpdate)
+      window.removeEventListener('storage', loadSuperAdmin)
+    }
   }, [])
   return (
     <header className="header sticky-bar ">
@@ -94,7 +103,7 @@ export default function Header() {
                       aria-expanded="false"
                       data-bs-display="static"
                     >
-                      Super Admin
+                      {superAdmin.role || 'Super Admin'}
                     </a>
                     <ul
                       className="dropdown-menu dropdown-menu-light dropdown-menu-end"

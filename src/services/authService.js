@@ -30,12 +30,20 @@ export const authService = {
       localStorage.setItem('jobbox_refresh_token', data.refreshToken);
       
       // Keep superadmin layout sync
-      if (data.admin) {
+      const adminData = data.admin || data.item || data.data || data;
+      console.log('authService: verifyOtp response raw:', data);
+      console.log('authService: verifyOtp parsed adminData:', adminData);
+      if (adminData && adminData.adminType) {
         const adminInfo = {
-          name: data.admin.fullName || 'Admin User',
-          email: data.admin.email || email,
+          name: adminData.fullName || 'Admin User',
+          email: adminData.email || email,
+          adminType: adminData.adminType,
+          permissions: adminData.permissions,
         };
-        localStorage.setItem('jobbox_superadmin', JSON.stringify(adminInfo));
+        localStorage.setItem('jobbox_logged_in_admin', JSON.stringify(adminInfo));
+        if (adminData.adminType !== 'SubAdmin') {
+          localStorage.setItem('jobbox_superadmin', JSON.stringify(adminInfo));
+        }
         // Dispatch event for instant header update if header is mounted
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('jobbox-superadmin-updated', { detail: adminInfo }));
@@ -67,6 +75,7 @@ export const authService = {
       localStorage.removeItem('jobbox_access_token');
       localStorage.removeItem('jobbox_refresh_token');
       localStorage.removeItem('jobbox_superadmin');
+      localStorage.removeItem('jobbox_logged_in_admin');
     }
   },
 

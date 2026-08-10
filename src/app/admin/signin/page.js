@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { authService } from '../../../services/authService'
+import { subAdminService } from '../../../services/subAdminService'
 
 // ── Decorative background corners (same set used on the recruiter login) ──
 function BackgroundArt() {
@@ -298,10 +299,109 @@ export default function LoginPage() {
     }
     setLoading(true)
     authService.verifyOtp(identifier, entered, true)
-      .then(() => {
-        setLoading(false)
-        setStep(3)
-        setTimeout(() => router.push('/admin/dashboard'), 1800)
+      .then(async (res) => {
+        console.log('signin page: verifyOtp resolved with res:', res);
+        
+        try {
+          console.log('signin page: Fetching full profile from /api/admin/auth/me...');
+          const profileRes = await authService.getCurrentUser();
+          console.log('signin page: getCurrentUser response:', profileRes);
+          
+          const adminData = profileRes?.admin || profileRes?.item || profileRes?.data || profileRes;
+          if (adminData) {
+            let permissionsObject = {};
+
+            // Try to fetch sub-admins list to get the actual permissions object from the database
+            try {
+              const subAdminsRes = await subAdminService.getSubAdmins({ pageSize: 100 });
+              if (subAdminsRes && subAdminsRes.items) {
+                const currentSubAdmin = subAdminsRes.items.find(item => item.email === adminData.email || item.adminId === adminData.adminId);
+                if (currentSubAdmin && currentSubAdmin.permissions) {
+                  permissionsObject = currentSubAdmin.permissions;
+                  console.log('signin page: successfully synced permissions from sub-admin list:', permissionsObject);
+                }
+              }
+            } catch (subAdminErr) {
+              console.warn('signin page: could not fetch sub-admin list (likely restricted):', subAdminErr);
+            }
+
+            // Fallback to role preset permissions if permissions object remains empty
+            if (Object.keys(permissionsObject).length === 0) {
+              const roleName = adminData.roleName || adminData.role;
+              if (roleName === 'Finance Admin') {
+                permissionsObject = { revenue: true };
+              } else if (roleName === 'Verification Officer') {
+                permissionsObject = { dashboard: true, candidates: true, recruiters: true };
+              } else if (roleName === 'Employer Manager') {
+                permissionsObject = { dashboard: true, recruiters: true };
+              } else if (roleName === 'Read Only') {
+                permissionsObject = { dashboard: true, candidates: true, recruiters: true, revenue: true, plans: true };
+              } else {
+                // Otherwise, if the server permissions is an array, convert it to object if it has strings
+                if (Array.isArray(adminData.permissions)) {
+                  adminData.permissions.forEach(p => {
+                    permissionsObject[p] = true;
+                  });
+                } else if (typeof adminData.permissions === 'object') {
+                  permissionsObject = adminData.permissions || {};
+                }
+              }
+            }
+
+            const adminInfo = {
+              name: adminData.fullName || 'Admin User',
+              email: adminData.email,
+              adminType: adminData.adminType,
+              permissions: permissionsObject,
+            };
+            window.localStorage.setItem('jobbox_logged_in_admin', JSON.stringify(adminInfo));
+            if (adminData.adminType !== 'SubAdmin') {
+              window.localStorage.setItem('jobbox_superadmin', JSON.stringify(adminInfo));
+            }
+            
+            // Dispatch event to sync Header
+            window.dispatchEvent(new CustomEvent('jobbox-superadmin-updated', { detail: adminInfo }));
+            
+            let targetPath = '/admin/dashboard';
+            if (adminInfo.adminType === 'SubAdmin') {
+              const perms = adminInfo.permissions || {};
+              const routeOrder = [
+                { key: 'dashboard', path: '/admin/dashboard' },
+                { key: 'candidates', path: '/admin/candidates' },
+                { key: 'recruiters', path: '/admin/recruiters' },
+                { key: 'revenue', path: '/admin/revenue' },
+                { key: 'plans', path: '/admin/Plans' },
+                { key: 'home_management', path: '/admin/homepage-management' },
+                { key: 'users', path: '/admin/users' },
+                { key: 'help_support', path: '/admin/helpAndsupport' },
+                { key: 'audit_logs', path: '/admin/audit' },
+                { key: 'legal_pages', path: '/admin/managePolicies' },
+                { key: 'settings', path: '/admin/settings' }
+              ];
+              const firstAllowed = routeOrder.find(r => perms[r.key] === true);
+              if (firstAllowed) {
+                targetPath = firstAllowed.path;
+              } else {
+                targetPath = '/';
+              }
+            }
+            
+            setLoading(false);
+            setStep(3);
+            console.log('signin page: Redirecting to:', targetPath);
+            setTimeout(() => {
+              router.push(targetPath);
+            }, 1800);
+            return;
+          }
+        } catch (profileErr) {
+          console.error('signin page: Failed to fetch full profile after login:', profileErr);
+        }
+        
+        // Fallback redirection
+        setLoading(false);
+        setStep(3);
+        setTimeout(() => router.push('/admin/dashboard'), 1800);
       })
       .catch((err) => {
         setLoading(false)
