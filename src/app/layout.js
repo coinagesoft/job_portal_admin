@@ -20,7 +20,7 @@ export default function RootLayout({ children }) {
         <link
           rel="shortcut icon"
           type="image/x-icon"
-          href="/assets/imgs/template/favicon.svg"
+          href="/jobbox.svg"
         />
       </head>
 

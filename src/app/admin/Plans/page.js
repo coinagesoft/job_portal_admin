@@ -201,7 +201,7 @@ export default function PlansPage() {
           const isEditing = editingId === plan.id;
           return (
             <article className={`plan-card ${plan.badge ? 'featured' : ''}`} key={plan.id}>
-              {plan.badge && <span className="plan-badge">{plan.badge}</span>}
+              {/* {plan.badge && <span className="plan-badge">{plan.badge}</span>} */}
               <div className="plan-card-top">
                 <div>
                   {isEditing ? <input className="edit-name" autoFocus value={plan.name} onChange={(event) => updatePlan(plan.id, { name: event.target.value })} aria-label="Plan name" /> : <h4>{plan.name}</h4>}

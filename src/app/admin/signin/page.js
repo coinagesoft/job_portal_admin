@@ -339,7 +339,7 @@ export default function LoginPage() {
             Admin Login
           </h1>
           <p style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--color-text-secondary, #666)' }}>
-            Enter your registered email or mobile number to receive an OTP.
+            Enter your registered email to receive an OTP.
           </p>
         </div>
 
@@ -349,7 +349,7 @@ export default function LoginPage() {
               display: 'block', marginBottom: 8, fontSize: 14, fontWeight: 600,
               color: 'var(--color-text-secondary, #555)',
             }}>
-              Email or Mobile Number <span style={{ color: '#E24B4A' }}>*</span>
+              Email  <span style={{ color: '#E24B4A' }}>*</span>
             </label>
             <div style={{ position: 'relative' }}>
               <i
@@ -363,7 +363,7 @@ export default function LoginPage() {
               <input
                 className="form-control"
                 type="text"
-                placeholder="admin@skillbridge.io  or  +91 98000 00000"
+                placeholder="admin@skillbridge.io"
                 value={identifier}
                 onChange={e => { setIdentifier(e.target.value); setError('') }}
                 style={{
@@ -387,7 +387,7 @@ export default function LoginPage() {
           fontSize: 13, color: 'var(--color-text-tertiary, #999)',
           textAlign: 'center', marginTop: 20, marginBottom: 0,
         }}>
-          🛡 Protected by 2-Factor Authentication
+          Protected by 2-Factor Authentication
         </p>
       </Card>
     )
@@ -398,7 +398,7 @@ export default function LoginPage() {
     return (
       <Card step={2}>
         <div style={{ textAlign: 'center', marginBottom: 26 }}>
-          <div style={{ fontSize: 36, marginBottom: 10 }}>📱</div>
+         
           <h1 style={{
             fontSize: 24, fontWeight: 700, color: 'var(--color-text-primary, #122359)',
             marginBottom: 8, lineHeight: 1.2,
@@ -446,13 +446,13 @@ export default function LoginPage() {
             >
               {canResend ? '↺ Resend OTP' : `Resend in ${resendTimer}s`}
             </button>
-            <button
+            {/* <button
               type="button"
               onClick={() => { setStep(1); setOtp(['', '', '', '', '', '']); setError('') }}
               style={{ background: 'none', border: 'none', padding: 0, fontSize: 13, color: 'var(--color-text-tertiary, #888)', cursor: 'pointer' }}
             >
               ← Change Email / Number
-            </button>
+            </button> */}
           </div>
         </form>
       </Card>

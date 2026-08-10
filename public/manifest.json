@@ -8,7 +8,7 @@
   "theme_color": "#05264e",
   "icons": [
     {
-      "src": "/assets/imgs/template/favicon.svg",
+      "src": "assets/imgs/page/dashboard/jobhub-logo.svg",
       "sizes": "any",
       "type": "image/svg+xml"
     }
