@@ -12,6 +12,8 @@ import {
   Download,
   X,
   Receipt,
+  FileText,
+  Info,
 } from "lucide-react";
 export default function EmployerDetailsPage() {
   const [previewDoc, setPreviewDoc] = useState(null);
@@ -636,6 +638,168 @@ Thank you for your business.
               </div>
             </div>
           </div>
+
+          {/* ── Required Company Documents Checklist ── */}
+          <div className="section-box">
+            <div className="panel-white">
+              <div className="panel-head" style={{ alignItems: "center" }}>
+                <div>
+                  <div
+                    className="d-flex align-items-center"
+                    style={{ gap: "8px" }}
+                  >
+                    <Info size={18} className="color-brand-2" />
+                    <h6 className="mb-0">Required Company Documents</h6>
+                  </div>
+                  <p className="font-xs color-text-paragraph-2 mt-5 mb-0">
+                    Mandatory and conditional verification documents required for Stellar Logistics Pvt. Ltd.'s business profile.
+                  </p>
+                </div>
+              </div>
+              <div className="panel-body">
+                <div className="table-responsive">
+                  <table className="table font-sm" style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+                        <th style={{ padding: "12px 10px", fontWeight: "600", fontSize: "11px", color: "#475569", textTransform: "uppercase" }}>Document Type</th>
+                        <th style={{ padding: "12px 10px", fontWeight: "600", fontSize: "11px", color: "#475569", textTransform: "uppercase" }}>Category</th>
+                        <th style={{ padding: "12px 10px", fontWeight: "600", fontSize: "11px", color: "#475569", textTransform: "uppercase" }}>Requirement</th>
+                        <th style={{ padding: "12px 10px", fontWeight: "600", fontSize: "11px", color: "#475569", textTransform: "uppercase" }}>Status</th>
+                        <th style={{ padding: "12px 10px", fontWeight: "600", fontSize: "11px", color: "#475569", textTransform: "uppercase" }}>Description & Purpose</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        {
+                          name: "GST Certificate (GSTIN)",
+                          category: "Tax & Compliance",
+                          importance: "Mandatory",
+                          impColor: "#dc2626",
+                          impBg: "#fef2f2",
+                          status: "Verified",
+                          statusColor: "#2e7d32",
+                          statusBg: "#e8f5e9",
+                          desc: "Required for all Indian business entities. Verifies legal identity, active status, and tax registration details."
+                        },
+                        {
+                          name: "Corporate PAN Card",
+                          category: "Tax & Compliance",
+                          importance: "Mandatory",
+                          impColor: "#dc2626",
+                          impBg: "#fef2f2",
+                          status: "Verified",
+                          statusColor: "#2e7d32",
+                          statusBg: "#e8f5e9",
+                          desc: "Permanent Account Number registered in company name, validating legal identity and national tax standing."
+                        },
+                        {
+                          name: "Business Registration Certificate",
+                          category: "Company Identity",
+                          importance: "Mandatory",
+                          impColor: "#dc2626",
+                          impBg: "#fef2f2",
+                          status: "Verified",
+                          statusColor: "#2e7d32",
+                          statusBg: "#e8f5e9",
+                          desc: "Certificate of Incorporation (COI), Trade License, or Partnership Deed verifying the legal existence of the business."
+                        },
+                        {
+                          name: "Memorandum & Articles of Association (MOA/AOA)",
+                          category: "Company Governance",
+                          importance: "Mandatory",
+                          impColor: "#dc2626",
+                          impBg: "#fef2f2",
+                          status: "Missing / Required",
+                          statusColor: "#c62828",
+                          statusBg: "#ffebee",
+                          desc: "Bylaws, shareholding registry, and corporate structure documentation. Needed for Private/Public Limited company audits."
+                        },
+                        {
+                          name: "Proof of Establishment (POE)",
+                          category: "Office Verification",
+                          importance: "Mandatory",
+                          impColor: "#dc2626",
+                          impBg: "#fef2f2",
+                          status: "Verified",
+                          statusColor: "#2e7d32",
+                          statusBg: "#e8f5e9",
+                          desc: "Utility bill, rent agreement, or property registry matching the registered operating address of the company."
+                        },
+                        {
+                          name: "RPSL License Copy",
+                          category: "Recruitment License",
+                          importance: "Conditional",
+                          impColor: "#2563eb",
+                          impBg: "#eff6ff",
+                          status: "Pending Review",
+                          statusColor: "#e65100",
+                          statusBg: "#fff3e0",
+                          desc: "Required only for maritime recruitment placing seafarers. Must map to a valid DG Shipping license number."
+                        },
+                        {
+                          name: "POE License Copy",
+                          category: "Recruitment License",
+                          importance: "Conditional",
+                          impColor: "#2563eb",
+                          impBg: "#eff6ff",
+                          status: "Verified",
+                          statusColor: "#2e7d32",
+                          statusBg: "#e8f5e9",
+                          desc: "Required for overseas placement agencies under the Ministry of External Affairs / Protector of Emigrants."
+                        }
+                      ].map((item, idx) => (
+                        <tr key={idx} className="hover-up" style={{ borderBottom: "1px solid #f1f5f9" }}>
+                          <td style={{ padding: "14px 10px", fontWeight: "600", color: "#1e293b" }}>
+                            <div className="d-flex align-items-center" style={{ gap: "6px" }}>
+                              <FileText size={14} className="color-text-paragraph-2" />
+                              <span>{item.name}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: "14px 10px", color: "#475569" }}>
+                            {item.category}
+                          </td>
+                          <td style={{ padding: "14px 10px" }}>
+                            <span style={{
+                              display: "inline-block",
+                              fontSize: "10px",
+                              fontWeight: "700",
+                              padding: "2px 8px",
+                              borderRadius: "4px",
+                              background: item.impBg,
+                              color: item.impColor,
+                              letterSpacing: "0.2px",
+                              textTransform: "uppercase"
+                            }}>
+                              {item.importance}
+                            </span>
+                          </td>
+                          <td style={{ padding: "14px 10px" }}>
+                            <span style={{
+                              display: "inline-block",
+                              fontSize: "10px",
+                              fontWeight: "700",
+                              padding: "2px 8px",
+                              borderRadius: "4px",
+                              background: item.statusBg,
+                              color: item.statusColor,
+                              letterSpacing: "0.2px",
+                              textTransform: "uppercase"
+                            }}>
+                              {item.status}
+                            </span>
+                          </td>
+                          <td style={{ padding: "14px 10px", fontSize: "12px", color: "#64748b", lineHeight: "1.4", maxWidth: "320px" }}>
+                            {item.desc}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Trust & Verification Badges */}
           <div className="section-box">
             <div className="panel-white">

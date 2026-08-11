@@ -2,7 +2,7 @@
 
 import Footer from "../../../components/Footer"
 import { useRouter } from "next/navigation"
-import { ShieldCheck, FileText, Search, MoreVertical, Ban, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, FileText, Search, MoreVertical, Ban, CheckCircle2, Info } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 const initialRecruiters = [
@@ -81,17 +81,141 @@ const initialRecruiters = [
 export default function RecruiterPage() {
   const router = useRouter();
   const [recruitersList, setRecruitersList] = useState(initialRecruiters);
+  const [requiredDocs, setRequiredDocs] = useState({
+    gst: false,
+    pan: false,
+    brc: false,
+    moa: false,
+    poe: false,
+    rpsl: false,
+    poe_license: false,
+    cheque: false,
+    kyc: false,
+    trade: false,
+  });
+
+  const [docOptions, setDocOptions] = useState([
+    { key: "gst", label: "GST Certificate (GSTIN)" },
+    { key: "pan", label: "Corporate PAN Card" },
+    { key: "brc", label: "Business Reg Certificate" },
+    { key: "moa", label: "MOA / AOA Governance" },
+    { key: "poe", label: "Proof of Establishment" },
+    { key: "rpsl", label: "RPSL Maritime License" },
+    { key: "poe_license", label: "POE License Copy" },
+    { key: "cheque", label: "Cancelled Cheque" },
+    { key: "kyc", label: "Director KYC" },
+    { key: "trade", label: "Trade License" },
+  ]);
+
+  // Load initial requiredDocs and docOptions from localStorage if present
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedDocs = localStorage.getItem("requiredDocs");
+      if (savedDocs) {
+        try {
+          setRequiredDocs(JSON.parse(savedDocs));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      const savedOptions = localStorage.getItem("docOptions");
+      if (savedOptions) {
+        try {
+          setDocOptions(JSON.parse(savedOptions));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+  }, []);
+
+  const updateRequiredDocs = (newDocs) => {
+    setRequiredDocs(newDocs);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("requiredDocs", JSON.stringify(newDocs));
+    }
+  };
+
+  const updateDocOptions = (newOptions) => {
+    setDocOptions(newOptions);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("docOptions", JSON.stringify(newOptions));
+    }
+  };
+
+  const [customDocName, setCustomDocName] = useState("");
+
+  const handleAddCustomDoc = (e) => {
+    if (e) e.preventDefault();
+    if (!customDocName.trim()) return;
+
+    const newKey = customDocName.trim().toLowerCase().replace(/[^a-z0-9]/g, "_");
+    
+    // Prevent duplicates
+    if (docOptions.some(opt => opt.key === newKey)) {
+      setCustomDocName("");
+      return;
+    }
+
+    const newOption = { key: newKey, label: customDocName.trim() };
+    const updatedOptions = [...docOptions, newOption];
+    updateDocOptions(updatedOptions);
+    
+    const updatedDocs = { ...requiredDocs, [newKey]: true };
+    updateRequiredDocs(updatedDocs);
+    setCustomDocName("");
+  };
+
+  const recruiterDocs = {
+    1: ["gst", "pan", "brc", "moa", "poe", "rpsl", "poe_license", "cheque", "kyc", "trade"],
+    2: ["gst", "pan", "brc", "poe"],
+    3: ["gst", "pan", "brc", "poe", "kyc", "trade"],
+    4: ["gst", "pan", "brc", "moa", "poe", "rpsl", "poe_license", "cheque", "kyc", "trade"],
+    5: ["gst", "pan", "brc", "moa", "poe", "cheque", "kyc", "trade"],
+  };
+
+  const getRecruiterDocCounts = (recId, requiredDocsState) => {
+    const verifiedList = recruiterDocs[recId] || [];
+    let verifiedCount = 0;
+    let totalCount = 0;
+    
+    Object.keys(requiredDocsState).forEach((key) => {
+      if (requiredDocsState[key]) {
+        totalCount++;
+        if (verifiedList.includes(key)) {
+          verifiedCount++;
+        }
+      }
+    });
+    
+    return { verifiedCount, totalCount };
+  };
+
+  const handleDocCheckboxChange = (docKey) => {
+    const updated = {
+      ...requiredDocs,
+      [docKey]: !requiredDocs[docKey],
+    };
+    updateRequiredDocs(updated);
+  };
+
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
   const [openMenuId, setOpenMenuId] = useState(null);
   const ITEMS_PER_PAGE = 5;
 
-  // Close the actions menu on any click outside it.
+  // Close the actions menu or document dropdown on any click outside them.
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target.closest(".actions-menu")) {
         setOpenMenuId(null);
+      }
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
       }
     };
     document.addEventListener("click", handleClickOutside);
@@ -287,8 +411,260 @@ export default function RecruiterPage() {
         </div>
       </div>
 
-      {/* Filters & Table */}
+      {/* ── Company Document Standards Configuration ── */}
       <div className="section-box mt-20">
+        <div className="panel-white">
+          <div className="panel-head" style={{ alignItems: "center" }}>
+            <div>
+              <div className="d-flex align-items-center" style={{ gap: "8px" }}>
+                <Info size={18} className="color-brand-2" />
+                <h6 className="mb-0">Company Document Standards Configuration</h6>
+              </div>
+              <p className="font-xs color-text-paragraph-2 mt-5 mb-0">
+                Manage the mandatory and conditional document criteria required to approve and verify recruiter accounts on the platform.
+              </p>
+            </div>
+          </div>
+          <div className="panel-body" style={{ padding: "20px 24px" }}>
+            <div className="d-flex align-items-center" style={{ gap: "12px", position: "relative" }}>
+              <span className="font-sm" style={{ fontWeight: 600, color: "#122359", minWidth: "fit-content" }}>
+                Required Documents:
+              </span>
+              
+              <div ref={dropdownRef} style={{ position: "relative", width: "320px" }}>
+                <button
+                  type="button"
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  style={{
+                    width: "100%",
+                    height: "42px",
+                    background: "#fff",
+                    border: "1px solid #e3e8f4",
+                    borderRadius: "9px",
+                    padding: "0 14px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    cursor: "pointer",
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    color: "#122359",
+                    textAlign: "left",
+                    gap: "8px"
+                  }}
+                >
+                  <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {Object.values(requiredDocs).filter(Boolean).length === 0
+                      ? "None selected"
+                      : `${Object.values(requiredDocs).filter(Boolean).length} documents selected`}
+                  </span>
+                  <span style={{ fontSize: "10px", color: "#64748b" }}>
+                    {dropdownOpen ? "▲" : "▼"}
+                  </span>
+                </button>
+
+                {dropdownOpen && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "46px",
+                      left: 0,
+                      width: "100%",
+                      background: "#fff",
+                      border: "1px solid #e3e8f4",
+                      borderRadius: "9px",
+                      boxShadow: "0 10px 25px rgba(18, 35, 89, 0.08)",
+                      zIndex: 100,
+                      maxHeight: "340px",
+                      overflowY: "auto",
+                      padding: "10px"
+                    }}
+                  >
+                    <div style={{ maxHeight: "200px", overflowY: "auto" }}>
+                      {docOptions.map((doc) => {
+                        const isSelected = !!requiredDocs[doc.key];
+                        return (
+                          <div
+                            key={doc.key}
+                            onClick={() => handleDocCheckboxChange(doc.key)}
+                            className="d-flex align-items-center justify-content-between"
+                            style={{
+                              padding: "8px 12px",
+                              borderRadius: "6px",
+                              cursor: "pointer",
+                              userSelect: "none",
+                              margin: "2px 0",
+                              transition: "background 0.15s, color 0.15s",
+                              background: isSelected ? "#fff3e0" : "transparent",
+                              color: isSelected ? "#e65100" : "#475569",
+                              fontWeight: isSelected ? "600" : "400"
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isSelected) e.currentTarget.style.background = "#f5f7fc";
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isSelected) e.currentTarget.style.background = "transparent";
+                            }}
+                          >
+                            <span style={{ fontSize: "13px" }}>{doc.label}</span>
+                            {isSelected && (
+                              <span style={{ fontSize: "12px", fontWeight: "bold", color: "#e65100" }}>✓</span>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {/* Add Custom Doc Input */}
+                    <div style={{ borderTop: "1px solid #f1f5f9", marginTop: "8px", paddingTop: "8px" }}>
+                      <div className="d-flex" style={{ gap: "6px" }} onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="text"
+                          placeholder="Type custom doc name..."
+                          value={customDocName}
+                          onChange={(e) => setCustomDocName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleAddCustomDoc();
+                            }
+                          }}
+                          style={{
+                            flex: 1,
+                            height: "32px",
+                            border: "1px solid #e3e8f4",
+                            borderRadius: "6px",
+                            padding: "0 8px",
+                            fontSize: "12px",
+                            color: "#122359"
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddCustomDoc}
+                          style={{
+                            height: "32px",
+                            background: "#ffa300",
+                            border: "none",
+                            borderRadius: "6px",
+                            padding: "0 10px",
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            color: "#fff",
+                            cursor: "pointer"
+                          }}
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Reset to defaults button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setRequiredDocs({
+                    gst: true,
+                    pan: true,
+                    brc: true,
+                    moa: true,
+                    poe: true,
+                    rpsl: true,
+                    poe_license: true,
+                    cheque: true,
+                    kyc: true,
+                    trade: true,
+                  });
+                  setDocOptions([
+                    { key: "gst", label: "GST Certificate (GSTIN)" },
+                    { key: "pan", label: "Corporate PAN Card" },
+                    { key: "brc", label: "Business Reg Certificate" },
+                    { key: "moa", label: "MOA / AOA Governance" },
+                    { key: "poe", label: "Proof of Establishment" },
+                    { key: "rpsl", label: "RPSL Maritime License" },
+                    { key: "poe_license", label: "POE License Copy" },
+                    { key: "cheque", label: "Cancelled Cheque" },
+                    { key: "kyc", label: "Director KYC" },
+                    { key: "trade", label: "Trade License" },
+                  ]);
+                }}
+                style={{
+                  height: "42px",
+                  background: "#f5f7fc",
+                  border: "1px solid #e3e8f4",
+                  borderRadius: "9px",
+                  padding: "0 16px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: "#475569",
+                  cursor: "pointer",
+                  transition: "background 0.15s, border-color 0.15s"
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#eef2ff";
+                  e.currentTarget.style.borderColor = "#c7d2fe";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#f5f7fc";
+                  e.currentTarget.style.borderColor = "#e3e8f4";
+                }}
+              >
+                Reset Defaults
+              </button>
+            </div>
+
+            {/* Selected Documents Chips */}
+            <div className="d-flex flex-wrap mt-15" style={{ gap: "6px" }}>
+              {docOptions.map((opt) => {
+                if (!requiredDocs[opt.key]) return null;
+                return (
+                  <span
+                    key={opt.key}
+                    className="d-flex align-items-center"
+                    style={{
+                      background: "#fff3e0",
+                      color: "#e65100",
+                      border: "1px solid #ffe0b2",
+                      padding: "4px 10px",
+                      borderRadius: "20px",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      gap: "6px"
+                    }}
+                  >
+                    <span>{opt.label}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDocCheckboxChange(opt.key)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#e65100",
+                        padding: 0,
+                        cursor: "pointer",
+                        fontWeight: "bold",
+                        fontSize: "10px",
+                        lineHeight: 1,
+                        display: "flex",
+                        alignItems: "center"
+                      }}
+                      aria-label={`Remove ${opt.label}`}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters & Table */}
+      <div className="section-box" style={{ marginTop: "8px" }}>
         <div className="panel-white">
           <div className="box-padding">
 
@@ -403,7 +779,8 @@ export default function RecruiterPage() {
                         <td>
                           {(() => {
                             const v = getVerificationStyle(r.gst);
-                            const docsComplete = r.docsVerified >= r.docsTotal;
+                            const { verifiedCount, totalCount } = getRecruiterDocCounts(r.id, requiredDocs);
+                            const docsComplete = verifiedCount >= totalCount;
                             return (
                               <div className="verify-cell">
                                 <span
@@ -422,7 +799,7 @@ export default function RecruiterPage() {
                                 </span>
                                 <span className={`verify-docs-count ${docsComplete ? 'is-complete' : ''}`}>
                                   <FileText size={12} />
-                                  {r.docsVerified}/{r.docsTotal} docs
+                                  {verifiedCount}/{totalCount} docs
                                 </span>
                               </div>
                             )

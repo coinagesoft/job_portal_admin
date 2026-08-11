@@ -1,7 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Footer from '../../../../components/Footer'
-import { FileText, CheckCircle, Send, ChevronDown, X, Eye, ShieldCheck, ShieldX, RefreshCw } from 'lucide-react'
+import { FileText, CheckCircle, Send, ChevronDown, X, Eye, ShieldCheck, ShieldX, RefreshCw, AlertCircle } from 'lucide-react'
 
 /* ─── Initial document data ─── */
 const INITIAL_DOCS = [
@@ -402,7 +402,49 @@ function PreviewModal({ doc, onClose, onVerifyOpen, onRejectOpen, onResubmitOpen
 }
 
 /* ─── Document Card ─── */
-function DocCard({ doc, onPreview, onVerifyOpen, onRejectOpen, onResubmitOpen }) {
+function DocCard({ doc, onPreview, onVerifyOpen, onRejectOpen, onResubmitOpen, onRequestDocument }) {
+  if (doc.isMissing) {
+    return (
+      <div style={{
+        background: '#f8fafc', border: `1.5px dashed #cbd5e1`, borderRadius: '14px',
+        overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%',
+        minHeight: '290px', boxShadow: 'none'
+      }}>
+        {/* Empty preview area */}
+        <div style={{
+          height: '148px', background: '#e2e8f0', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '8px'
+        }}>
+          <AlertCircle size={32} color="#94a3b8" />
+          <span style={{
+            fontSize: '10px', fontWeight: 700, padding: '3px 9px',
+            borderRadius: '20px', background: '#fff1f2', color: '#be123c', border: '1px solid #fecdd3'
+          }}>Missing / Required</span>
+        </div>
+        
+        {/* Body */}
+        <div style={{ padding: '12px 14px 14px', flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <p style={{
+            fontSize: '10px', color: '#94a3b8', fontWeight: 600,
+            textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0
+          }}>{doc.category}</p>
+          <p style={{ fontSize: '13px', fontWeight: 700, color: '#122359', margin: 0, lineHeight: 1.3 }}>{doc.title}</p>
+          <p style={{ fontSize: '11px', color: '#64748b', margin: 0 }}>Not Uploaded by Recruiter</p>
+          
+          <div style={{ marginTop: 'auto', paddingTop: '10px' }}>
+            <button onClick={() => onRequestDocument(doc.title)} style={{
+              width: '100%', padding: '8px 0', background: '#eff6ff', border: '1px solid #bfdbfe',
+              borderRadius: '8px', fontSize: '11px', fontWeight: 700, color: '#1d4ed8', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+            }}>
+              <Send size={12} /> Request Document
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const s = STATUS_STYLE[doc.status] || STATUS_STYLE['Pending Review']
   const isVerified = doc.status === 'Verified'
   return (
@@ -582,11 +624,68 @@ export default function RecruiterDocumentsPage() {
     setRequestNote('')
   }
 
-  const verified = docs.filter((d) => d.status === 'Verified').length
-  const pending = docs.filter((d) => d.status === 'Pending Review').length
-  const actionReq = docs.filter((d) => d.status === 'Action Required' || d.status === 'Resubmission').length
-  const allVerified = verified === docs.length
-  const pct = Math.round((verified / docs.length) * 100)
+  const [requiredDocs, setRequiredDocs] = useState({});
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("requiredDocs");
+      if (saved) {
+        try {
+          setRequiredDocs(JSON.parse(saved));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+  }, []);
+
+  const DOC_DETAILS_MAP = {
+    gst: { title: "GST Registration Certificate", category: "Tax & Compliance" },
+    pan: { title: "Corporate PAN Card", category: "Tax & Compliance" },
+    brc: { title: "Business Registration Certificate", category: "Company Documents" },
+    moa: { title: "Memorandum & Articles of Association (MOA/AOA)", category: "Company Documents" },
+    poe: { title: "Proof of Establishment (POE)", category: "Office Verification" },
+    rpsl: { title: "RPSL Certification", category: "Recruitment License" },
+    poe_license: { title: "POE License Copy", category: "Recruitment License" },
+    cheque: { title: "Cancelled Cheque", category: "Bank Details" },
+    kyc: { title: "Director KYC", category: "Director Identity" },
+    trade: { title: "Trade License", category: "Local Licensing" },
+  };
+
+  const displayDocs = [...docs];
+  
+  Object.keys(requiredDocs).forEach((key) => {
+    if (requiredDocs[key]) {
+      const alreadyUploaded = docs.some((d) => d.id === key);
+      if (!alreadyUploaded) {
+        const details = DOC_DETAILS_MAP[key] || { 
+          title: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " "), 
+          category: "Required Document" 
+        };
+        displayDocs.push({
+          id: key,
+          title: details.title,
+          category: details.category,
+          isMissing: true,
+          status: "Not Uploaded",
+        });
+      }
+    }
+  });
+
+  const handleRequestMissingDoc = (docTitle) => {
+    setRequestedDocs((prev) => [{
+      id: Date.now(), docType: docTitle, note: "Mandatory company document missing. Please upload.",
+      sentAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    }, ...prev]);
+    showToast(`Request sent: ${docTitle}`, 'info');
+  };
+
+  const verified = displayDocs.filter((d) => d.status === 'Verified').length
+  const pending = displayDocs.filter((d) => d.status === 'Pending Review').length
+  const actionReq = displayDocs.filter((d) => d.status === 'Action Required' || d.status === 'Resubmission' || d.isMissing).length
+  const allVerified = verified === displayDocs.length
+  const pct = displayDocs.length > 0 ? Math.round((verified / displayDocs.length) * 100) : 0
 
   return (
     <>
@@ -663,7 +762,7 @@ export default function RecruiterDocumentsPage() {
                 { label: 'Verified', val: verified, bg: '#f0fdf4', border: '#bbf7d0', color: '#16a34a' },
                 { label: 'Pending', val: pending, bg: '#fffbeb', border: '#fde68a', color: '#b45309' },
                 { label: 'Action Req.', val: actionReq, bg: '#fff1f2', border: '#fecdd3', color: '#be123c' },
-                { label: 'Total', val: docs.length, bg: '#f0f4ff', border: '#c7d2fe', color: '#3730a3' },
+                { label: 'Total', val: displayDocs.length, bg: '#f0f4ff', border: '#c7d2fe', color: '#3730a3' },
               ].map(({ label, val, bg, border, color }) => (
                 <div key={label} style={{
                   padding: '8px 14px', borderRadius: '10px', background: bg,
@@ -695,7 +794,7 @@ export default function RecruiterDocumentsPage() {
                   <span style={{
                     fontSize: '11px', fontWeight: 700, padding: '2px 9px',
                     borderRadius: '20px', background: '#f1f5f9', color: '#475569',
-                  }}>{docs.length} files</span>
+                  }}>{displayDocs.length} files</span>
                 </div>
                 <p className="font-xs color-text-paragraph-2 mb-0">
                   Preview each document and take action — Verify ✓, Reject ✗, or Request Resubmission ↺
@@ -703,11 +802,12 @@ export default function RecruiterDocumentsPage() {
               </div>
               <div className="panel-body">
                 <div className="row">
-                  {docs.map((doc) => (
+                  {displayDocs.map((doc) => (
                     <div key={doc.id} className="col-xl-4 col-lg-4 col-md-6 col-sm-6 mb-20">
                       <DocCard
                         doc={doc} onPreview={setPreviewDoc}
                         onVerifyOpen={setVerifyTarget} onRejectOpen={setRejectTarget} onResubmitOpen={setResubmitTarget}
+                        onRequestDocument={handleRequestMissingDoc}
                       />
                     </div>
                   ))}
@@ -782,7 +882,7 @@ export default function RecruiterDocumentsPage() {
                   border: `1px solid ${allVerified ? '#bbf7d0' : '#e2e8f0'}`,
                 }}>
                   <p style={{ fontSize: '38px', fontWeight: 800, color: '#122359', margin: 0, lineHeight: 1 }}>
-                    {verified}<span style={{ fontSize: '20px', color: '#94a3b8' }}>/{docs.length}</span>
+                    {verified}<span style={{ fontSize: '20px', color: '#94a3b8' }}>/{displayDocs.length}</span>
                   </p>
                   <p style={{ fontSize: '12px', color: '#475569', margin: '4px 0 10px', fontWeight: 600 }}>
                     Documents Verified
