@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect, use } from "react"
 import Footer from "../../../../components/Footer"
 import Link from "next/link"
 import {
@@ -8,10 +8,24 @@ import {
   CheckCircle2, Calendar, Mail, Phone, FileText,
   ShieldAlert, UserPlus, ShieldCheck, Ban
 } from "lucide-react"
+import { candidateService } from "../../../../services/candidateService"
 
 /* ─── Document Preview Modal (theme-matched) ─── */
 function DocumentPreviewModal({ doc, onClose }) {
   if (!doc) return null
+
+  const getDocUrl = (url) => {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      return url;
+    }
+    const base = "https://jobportal.coinage.in";
+    return url.startsWith("/") ? `${base}${url}` : `${base}/${url}`;
+  };
+
+  const resolvedUrl = getDocUrl(doc.url);
+  const isPdf = doc.url && doc.url.toLowerCase().endsWith('.pdf');
+
   return (
     <div
       onClick={onClose}
@@ -49,44 +63,140 @@ function DocumentPreviewModal({ doc, onClose }) {
           </div>
         </div>
 
-        {/* Image */}
-        <div style={{ background: '#f8fafc', padding: '20px', maxHeight: '55vh', overflow: 'auto' }}>
-          <img
-            src={doc.url}
-            alt={doc.title}
-            style={{ width: '100%', borderRadius: '10px', border: '1px solid #e2e8f0' }}
-          />
+        {/* Content Preview */}
+        <div style={{ background: '#f8fafc', padding: '20px', maxHeight: '55vh', overflow: 'auto', display: 'flex', justifyContent: 'center' }}>
+          {isPdf ? (
+            <iframe
+              src={resolvedUrl}
+              style={{ width: '100%', height: '50vh', border: '1px solid #e2e8f0', borderRadius: '10px' }}
+            />
+          ) : (
+            <img
+              src={resolvedUrl}
+              alt={doc.title}
+              style={{ width: '100%', borderRadius: '10px', border: '1px solid #e2e8f0' }}
+            />
+          )}
         </div>
 
-        {/* Footer meta */}
+        {/* Footer meta & Actions */}
         <div style={{
           padding: '14px 20px', borderTop: '1px solid #e2e8f0',
-          display: 'flex', gap: '14px', flexWrap: 'wrap',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '14px', flexWrap: 'wrap',
         }}>
-          <span style={{ fontSize: '12px', color: '#64748b' }}>
-            <strong style={{ color: '#334155' }}>Uploaded:</strong> {doc.uploadedOn}
-          </span>
-          <span style={{ fontSize: '12px', color: '#64748b' }}>
-            <strong style={{ color: '#334155' }}>Doc ID:</strong> {doc.docId}
-          </span>
+          <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '12px', color: '#64748b' }}>
+              <strong style={{ color: '#334155' }}>Uploaded:</strong> {doc.uploadedOn}
+            </span>
+            <span style={{ fontSize: '12px', color: '#64748b' }}>
+              <strong style={{ color: '#334155' }}>Doc ID:</strong> {doc.docId}
+            </span>
+          </div>
+          <div>
+            <a
+              href={resolvedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 16px',
+                background: '#ffa300',
+                color: '#fff',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 700,
+                textDecoration: 'none',
+                boxShadow: '0 4px 10px rgba(255,163,0,0.2)'
+              }}
+            >
+              Open / Download
+            </a>
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-export default function CandidateDetailsPage() {
+export default function CandidateDetailsPage({ searchParams }) {
+  const resolvedSearchParams = use(searchParams)
+  const id = resolvedSearchParams?.id
+
+  const [candidateData, setCandidateData] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [preview, setPreview] = useState(null)
   const [accountStatus, setAccountStatus] = useState("Active")
 
-  const candidate = {
-    tradeCategory: "Electrician",
-    experience: "5 Years",
-    location: "Mumbai, Maharashtra",
-    availableForWork: true,
+  const fetchCandidateDetails = (candidateId) => {
+    setLoading(true)
+    candidateService.getCandidateById(candidateId)
+      .then((res) => {
+        setCandidateData(res)
+        setAccountStatus(res?.status || "Active")
+        setLoading(false)
+      })
+      .catch((err) => {
+        console.error("Failed to fetch candidate details:", err)
+        setLoading(false)
+      })
   }
 
-  const documents = [
+  useEffect(() => {
+    let targetId = id
+    if (!targetId && typeof window !== 'undefined') {
+      const searchStr = window.location.search
+      if (searchStr && searchStr.startsWith('?')) {
+        const parts = searchStr.substring(1).split('&')
+        if (parts[0] && !parts[0].includes('=')) {
+          targetId = parts[0]
+        } else {
+          const params = new URLSearchParams(searchStr)
+          targetId = params.get('id')
+        }
+      }
+    }
+
+    if (targetId) {
+      fetchCandidateDetails(targetId)
+    } else {
+      setLoading(false)
+    }
+  }, [id])
+
+  const handleToggleStatus = () => {
+    const newStatus = accountStatus === 'Suspended' ? 'Active' : 'Suspended'
+    const reason = newStatus === 'Active' ? 'Activated by admin' : 'Suspended by admin'
+    
+    let targetId = id
+    if (!targetId && candidateData) {
+      targetId = candidateData.id
+    }
+    
+    if (!targetId) return
+
+    candidateService.updateAccountStatus(targetId, newStatus, reason)
+      .then(() => {
+        setAccountStatus(newStatus)
+        fetchCandidateDetails(targetId)
+      })
+      .catch((err) => {
+        alert(err.message || `Failed to update account status to ${newStatus}`)
+      })
+  }
+
+  const getCandidateAvatar = (data) => {
+    if (data && data.img) {
+      if (data.img.startsWith("http://") || data.img.startsWith("https://")) {
+        return data.img;
+      }
+      return `/assets/imgs/page/candidates/${data.img}`;
+    }
+    return "/assets/imgs/page/candidates/candidate-profile.png";
+  };
+
+  const defaultDocuments = [
     {
       id: 1,
       title: 'Aadhaar Card',
@@ -121,6 +231,32 @@ export default function CandidateDetailsPage() {
     }
   ]
 
+  const documents = (candidateData?.documents && candidateData.documents.length > 0)
+    ? candidateData.documents
+    : defaultDocuments
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', flexDirection: 'column', gap: '15px' }}>
+        <div className="spinner-border text-warning" role="status" style={{ width: '3rem', height: '3rem' }}>
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <h5 style={{ color: '#122359', fontWeight: 600 }}>Loading Candidate Profile...</h5>
+      </div>
+    )
+  }
+
+  if (!candidateData) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', flexDirection: 'column', gap: '15px' }}>
+        <h4 style={{ color: '#122359', fontWeight: 600 }}>Candidate Profile Not Found</h4>
+        <Link href="/admin/candidates" className="btn hover-up" style={{ background: '#ffa300', color: '#fff', padding: '10px 20px', borderRadius: '8px', border: '1px solid #ffa300', fontWeight: 700 }}>
+          Back to Candidates
+        </Link>
+      </div>
+    )
+  }
+
   return (
     <>
       <div className="box-heading"> 
@@ -141,7 +277,7 @@ export default function CandidateDetailsPage() {
             <ul>
               <li><Link className="icon-home" href="/admin/dashboard">Admin</Link></li>
               <li><Link href="/admin/candidates">Candidates</Link></li>
-              <li><span>Alexander Wright</span></li>
+              <li><span>{candidateData.name || "Candidate"}</span></li>
             </ul>
           </div>
         </div>
@@ -156,7 +292,7 @@ export default function CandidateDetailsPage() {
               <div className="box-padding text-center">
 
                 <img
-                  src="/assets/imgs/page/candidates/user1.png"
+                  src={getCandidateAvatar(candidateData)}
                   alt="candidate"
                   style={{
                     width: "110px",
@@ -196,18 +332,18 @@ export default function CandidateDetailsPage() {
 
                 <p className="font-xs mt-5">85%</p>
 
-                <h4 className="mt-20 mb-10">Alexander Wright</h4>
+                <h4 className="mt-20 mb-10">{candidateData.name || "N/A"}</h4>
 
                 <p className="font-sm color-text-paragraph-2 mb-5 d-flex align-items-center justify-content-center gap-2">
-                  <Mail size={13} color="#66789C" /> a.wright@techflow.io
+                  <Mail size={13} color="#66789C" /> {candidateData.email || "No Email"}
                 </p>
 
                 <p className="font-sm color-text-paragraph-2 mb-5 d-flex align-items-center justify-content-center gap-2">
-                  <Phone size={13} color="#66789C" /> +91 98765 43210
+                  <Phone size={13} color="#66789C" /> {candidateData.phone || candidateData.mobile || "N/A"}
                 </p>
 
                 <p className="font-sm color-text-paragraph-2 d-flex align-items-center justify-content-center gap-2">
-                  <Calendar size={13} color="#66789C" /> Registered Oct 12, 2023
+                  <Calendar size={13} color="#66789C" /> Registered {candidateData.joined || "N/A"}
                 </p>
 
               </div>
@@ -221,7 +357,7 @@ export default function CandidateDetailsPage() {
                     <p className="font-xs color-text-paragraph-2 mb-5 d-flex align-items-center gap-1">
                       <HardHat size={12} color="#ffa300" /> TRADE CATEGORY
                     </p>
-                    <h6>{candidate.tradeCategory}</h6>
+                    <h6>{candidateData.trade || candidateData.tradeCategory || "N/A"}</h6>
                   </div>
                 </div>
               </div>
@@ -232,7 +368,7 @@ export default function CandidateDetailsPage() {
                     <p className="font-xs color-text-paragraph-2 mb-5 d-flex align-items-center gap-1">
                       <MapPin size={12} color="#ffa300" /> LOCATION
                     </p>
-                    <h6>{candidate.location}</h6>
+                    <h6>{candidateData.location || "N/A"}</h6>
                   </div>
                 </div>
               </div>
@@ -243,7 +379,7 @@ export default function CandidateDetailsPage() {
                     <p className="font-xs color-text-paragraph-2 mb-5 d-flex align-items-center gap-1">
                       <Briefcase size={12} color="#ffa300" /> EXPERIENCE
                     </p>
-                    <h6>{candidate.experience}</h6>
+                    <h6>{candidateData.experience || "N/A"}</h6>
                   </div>
                 </div>
               </div>
@@ -254,7 +390,7 @@ export default function CandidateDetailsPage() {
                     <p className="font-xs color-text-paragraph-2 mb-5 d-flex align-items-center gap-1">
                       <CreditCard size={12} color="#ffa300" /> PAYMENT STATUS
                     </p>
-                    <h6 className="color-success">Paid ₹100</h6>
+                    <h6 className="color-success">{candidateData.paymentStatus || "Paid"}</h6>
                   </div>
                 </div>
               </div>
@@ -265,8 +401,8 @@ export default function CandidateDetailsPage() {
                     <p className="font-xs color-text-paragraph-2 mb-5 d-flex align-items-center gap-1">
                       <CheckCircle2 size={12} color="#ffa300" /> AVAILABILITY
                     </p>
-                    <h6 style={{ color: candidate.availableForWork ? '#16a34a' : '#94a3b8' }}>
-                      {candidate.availableForWork ? 'Available for Work' : 'Not Available'}
+                    <h6 style={{ color: (candidateData.availableForWork ?? true) ? '#16a34a' : '#94a3b8' }}>
+                      {(candidateData.availableForWork ?? true) ? 'Available for Work' : 'Not Available'}
                     </h6>
                   </div>
                 </div>
@@ -298,26 +434,53 @@ export default function CandidateDetailsPage() {
                     </thead>
 
                     <tbody>
-                      <tr>
-                        <td>
-                          <span style={{ fontWeight: 600, color: '#122359' }}>#TXN-99210-AW</span>
-                        </td>
-                        <td>
-                          <span className="font-sm color-text-paragraph-2">Oct 12, 2023</span>
-                        </td>
-                        <td>
-                          <span style={{ fontWeight: 700, color: '#122359' }}>₹100.00</span>
-                        </td>
-                        <td>
-                          <span style={{
-                            fontSize: '11px', fontWeight: 700, padding: '4px 12px',
-                            borderRadius: '20px', background: '#e8f5e9', color: '#2e7d32',
-                            border: '1px solid #a5d6a7', whiteSpace: 'nowrap',
-                          }}>
-                            Success
-                          </span>
-                        </td>
-                      </tr>
+                      {candidateData.transactions && candidateData.transactions.length > 0 ? (
+                        candidateData.transactions.map((txn) => (
+                          <tr key={txn.id}>
+                            <td>
+                              <span style={{ fontWeight: 600, color: '#122359' }}>{txn.id}</span>
+                            </td>
+                            <td>
+                              <span className="font-sm color-text-paragraph-2">{txn.date}</span>
+                            </td>
+                            <td>
+                              <span style={{ fontWeight: 700, color: '#122359' }}>{txn.amount}</span>
+                            </td>
+                            <td>
+                              <span style={{
+                                fontSize: '11px', fontWeight: 700, padding: '4px 12px',
+                                borderRadius: '20px', background: txn.status === 'Success' ? '#e8f5e9' : '#fdecea',
+                                color: txn.status === 'Success' ? '#2e7d32' : '#c62828',
+                                border: txn.status === 'Success' ? '1px solid #a5d6a7' : '1px solid #ef9a9a',
+                                whiteSpace: 'nowrap',
+                              }}>
+                                {txn.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td>
+                            <span style={{ fontWeight: 600, color: '#122359' }}>#TXN-99210-AW</span>
+                          </td>
+                          <td>
+                            <span className="font-sm color-text-paragraph-2">{candidateData.joined || "Oct 12, 2023"}</span>
+                          </td>
+                          <td>
+                            <span style={{ fontWeight: 700, color: '#122359' }}>₹100.00</span>
+                          </td>
+                          <td>
+                            <span style={{
+                              fontSize: '11px', fontWeight: 700, padding: '4px 12px',
+                              borderRadius: '20px', background: '#e8f5e9', color: '#2e7d32',
+                              border: '1px solid #a5d6a7', whiteSpace: 'nowrap',
+                            }}>
+                              Success
+                            </span>
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -378,64 +541,6 @@ export default function CandidateDetailsPage() {
               </div>
             </div>
 
-            {/* Audit Log */}
-            {/* <div className="panel-white mb-20">
-              <div className="box-padding">
-                <h5 className="mb-20">Audit Log</h5>
-
-                <div style={{ position: 'relative' }}>
-                  {[
-                    {
-                      icon: ShieldCheck,
-                      iconColor: '#00695c',
-                      iconBg: '#e0f2f1',
-                      title: 'KYC Documents Uploaded',
-                      meta: 'Oct 24, 14:32 · by System',
-                    },
-                    {
-                      icon: ShieldAlert,
-                      iconColor: '#b36b00',
-                      iconBg: '#fff3e0',
-                      title: 'Profile Flagged for Priority Review',
-                      meta: 'Oct 23, 11:20 · by admin_sarah',
-                    },
-                    {
-                      icon: UserPlus,
-                      iconColor: '#122359',
-                      iconBg: '#e8eaf6',
-                      title: 'Account Registered',
-                      meta: 'Oct 12, 09:15 · by System',
-                    },
-                  ].map((item, idx, arr) => (
-                    <div key={item.title} className="d-flex" style={{ gap: '14px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        <div style={{
-                          width: '34px', height: '34px', borderRadius: '50%',
-                          background: item.iconBg, display: 'flex',
-                          alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                        }}>
-                          <item.icon size={16} color={item.iconColor} />
-                        </div>
-                        {idx !== arr.length - 1 && (
-                          <div style={{ width: '2px', flex: 1, background: '#e2e8f0', margin: '4px 0' }} />
-                        )}
-                      </div>
-                      <div style={{ paddingBottom: idx !== arr.length - 1 ? '20px' : 0 }}>
-                        <p className="font-sm mb-0" style={{ fontWeight: 700, color: '#122359' }}>
-                          {item.title}
-                        </p>
-                        <span className="font-xs color-text-paragraph-2">{item.meta}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <a href="#" className="font-sm mt-15 d-inline-block" style={{ color: '#ffa300', fontWeight: 600 }}>
-                  View Full History
-                </a>
-              </div>
-            </div> */}
-
             {/* Account Status Action */}
             <div className="panel-white">
               <div className="box-padding">
@@ -454,7 +559,7 @@ export default function CandidateDetailsPage() {
                   {accountStatus === 'Suspended' ? (
                     <button
                       className="btn hover-up"
-                      onClick={() => setAccountStatus('Active')}
+                      onClick={handleToggleStatus}
                       style={{
                         background: '#f0fdf4',
                         color: '#16a34a',
@@ -476,7 +581,7 @@ export default function CandidateDetailsPage() {
                   ) : (
                     <button
                       className="btn hover-up"
-                      onClick={() => setAccountStatus('Suspended')}
+                      onClick={handleToggleStatus}
                       style={{
                         background: '#ffa300',
                         color: '#fff',

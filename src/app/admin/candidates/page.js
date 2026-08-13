@@ -2,7 +2,7 @@
 
 import Footer from "../../../components/Footer";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   UserCheck,
   Ban,
@@ -11,93 +11,49 @@ import {
   HardHat,
   CalendarPlus,
 } from "lucide-react";
-
-const initialCandidates = [
-  {
-    id: 1,
-    img: "user1.png",
-    name: "Alexander Wright",
-    email: "a.wright@techflow.io",
-    nationalId: "9823-1120-X",
-    accountType: "Candidate",
-    trade: "Electrician",
-    status: "Active",
-    company: "TechFlow Solutions",
-    joined: "Oct 12, 2023",
-  },
-  {
-    id: 2,
-    img: "user2.png",
-    name: "Sarah Jenkins",
-    email: "sarah.j@gmail.com",
-    nationalId: "1244-9981-A",
-    accountType: "Candidate",
-    trade: "Plumber",
-    status: "Active",
-    company: "N/A",
-    joined: "Oct 15, 2023",
-  },
-  {
-    id: 3,
-    img: "user3.png",
-    name: "Marcus Thorne",
-    email: "m.thorne@buildit.com",
-    nationalId: "5562-0012-Q",
-    accountType: "Candidate",
-    trade: "Mason",
-    status: "Active",
-    company: "BuildIt Construction",
-    joined: "Sep 28, 2023",
-  },
-  {
-    id: 4,
-    img: "user4.png",
-    name: "Elena Rodriguez",
-    email: "elena.rod@outlook.com",
-    nationalId: "2231-5540-L",
-    accountType: "Candidate",
-    trade: "Welder",
-    status: "Suspended",
-    company: "N/A",
-    joined: "Nov 02, 2023",
-  },
-  {
-    id: 5,
-    img: "user5.png",
-    name: "Jameson Lee",
-    email: "j.lee@healthnexus.org",
-    nationalId: "7781-3321-K",
-    accountType: "Candidate",
-    trade: "Carpenter",
-    status: "Active",
-    company: "HealthNexus",
-    joined: "Oct 05, 2023",
-  },
-  {
-    id: 6,
-    img: "user6.png",
-    name: "Olivia Carter",
-    email: "olivia.carter@mail.com",
-    nationalId: "6634-9920-M",
-    accountType: "Candidate",
-    trade: "HVAC Technician",
-    status: "Active",
-    company: "FutureCore",
-    joined: "Nov 10, 2023",
-  },
-];
+import { candidateService } from "../../../services/candidateService";
 
 export default function CandidatesPage() {
-  const [candidatesList, setCandidatesList] = useState(initialCandidates);
+  const [candidatesList, setCandidatesList] = useState([]);
+  const [loadingList, setLoadingList] = useState(true);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
   const ITEMS_PER_PAGE = 5;
 
+  const fetchCandidates = () => {
+    setLoadingList(true);
+    candidateService
+      .getCandidates()
+      .then((res) => {
+        setLoadingList(false);
+        if (Array.isArray(res)) {
+          setCandidatesList(res);
+        } else if (res && Array.isArray(res.items)) {
+          setCandidatesList(res.items);
+        }
+      })
+      .catch((err) => {
+        setLoadingList(false);
+        console.error("Failed to fetch candidates:", err);
+      });
+  };
+
+  useEffect(() => {
+    fetchCandidates();
+  }, []);
+
   const handleSetStatus = (id, newStatus) => {
-    setCandidatesList((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, status: newStatus } : c)),
-    );
+    const reason =
+      newStatus === "Active" ? "Activated by admin" : "Suspended by admin";
+    candidateService
+      .updateAccountStatus(id, newStatus, reason)
+      .then(() => {
+        fetchCandidates();
+      })
+      .catch((err) => {
+        alert(err.message || `Failed to update status to ${newStatus}`);
+      });
   };
 
   const handleSearchChange = (value) => {
@@ -112,8 +68,8 @@ export default function CandidatesPage() {
 
   const filteredCandidates = candidatesList.filter((c) => {
     return (
-      (c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.email.toLowerCase().includes(search.toLowerCase())) &&
+      ((c.name || "").toLowerCase().includes(search.toLowerCase()) ||
+        (c.email || "").toLowerCase().includes(search.toLowerCase())) &&
       (status === "" || c.status === status)
     );
   });
@@ -128,19 +84,56 @@ export default function CandidatesPage() {
     currentPage * ITEMS_PER_PAGE,
   );
 
+  const getVisiblePageNumbers = () => {
+    const pages = [];
+    if (pageCount <= 7) {
+      for (let i = 1; i <= pageCount; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      const start = Math.max(2, page - 1);
+      const end = Math.min(pageCount - 1, page + 1);
+      if (start > 2) {
+        pages.push('ellipsis-start');
+      }
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      if (end < pageCount - 1) {
+        pages.push('ellipsis-end');
+      }
+      pages.push(pageCount);
+    }
+    return pages;
+  };
+
   const activeCount = candidatesList.filter(
     (c) => c.status === "Active",
   ).length;
+
   const currentMonth = new Date().toLocaleString("en-US", {
     month: "short",
   });
 
   const joinedThisMonth = candidatesList.filter((c) => {
-    return c.joined.startsWith(currentMonth);
+    return c.joined && c.joined.startsWith(currentMonth);
   }).length;
+
   const suspendedCount = candidatesList.filter(
     (c) => c.status === "Suspended",
   ).length;
+
+  const getCandidateAvatar = (c) => {
+    if (c && c.img) {
+      if (c.img.startsWith("http://") || c.img.startsWith("https://")) {
+        return c.img;
+      }
+      return `/assets/imgs/page/candidates/${c.img}`;
+    }
+    return "/assets/imgs/page/candidates/candidate-profile.png";
+  };
+
 
   return (
     <>
@@ -363,8 +356,17 @@ export default function CandidatesPage() {
                   </tr>
                 </thead>
 
-                <tbody>
-                  {filteredCandidates.length === 0 ? (
+                 <tbody>
+                  {loadingList ? (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="text-center py-4 color-text-paragraph-2"
+                      >
+                        Loading candidates...
+                      </td>
+                    </tr>
+                  ) : filteredCandidates.length === 0 ? (
                     <tr>
                       <td
                         colSpan={5}
@@ -382,7 +384,7 @@ export default function CandidatesPage() {
                             className="d-flex align-items-center text-decoration-none color-brand-1"
                           >
                             <img
-                              src={`/assets/imgs/page/candidates/${c.img}`}
+                              src={getCandidateAvatar(c)}
                               alt={c.name}
                               style={{
                                 width: "48px",
@@ -394,10 +396,10 @@ export default function CandidatesPage() {
 
                             <div className="ms-3">
                               <h6 className="mb-0 text-dark hover-primary">
-                                {c.name}
+                                {c.name || "N/A"}
                               </h6>
                               <span className="font-sm color-text-paragraph-2">
-                                {c.email}
+                                {c.email || "No Email"}
                               </span>
                             </div>
                           </Link>
@@ -405,11 +407,6 @@ export default function CandidatesPage() {
 
                         <td className="align-middle">
                           <div className="d-flex align-items-center">
-                            {/* <HardHat
-                              size={16}
-                              color="#f59e0b"
-                              style={{ marginRight: 8, flexShrink: 0 }}
-                            /> */}
                             <span
                               style={{
                                 color: "#122359",
@@ -417,7 +414,7 @@ export default function CandidatesPage() {
                                 fontSize: "14px",
                               }}
                             >
-                              {c.trade || "Electrician"}
+                              {c.trade || "N/A"}
                             </span>
                           </div>
                         </td>
@@ -445,7 +442,7 @@ export default function CandidatesPage() {
                           </span>
                         </td>
 
-                        <td className="align-middle">{c.joined}</td>
+                        <td className="align-middle">{c.joined || "N/A"}</td>
 
                         <td className="align-middle">
                           <div className="d-flex align-items-center gap-2">
@@ -487,69 +484,78 @@ export default function CandidatesPage() {
 
             {/* Mobile / Tablet Cards */}
             <div className="d-block d-lg-none">
-              <div className="row">
-                {visibleCandidates.map((c) => (
-                  <div className="col-md-6 mb-15" key={c.id}>
-                    <div className="panel-white h-100">
-                      <div className="box-padding">
-                        <div className="d-flex align-items-center mb-15">
-                          <Link
-                            href={`/admin/candidates/candidateDetails?id=${c.id}`}
-                            className="d-flex align-items-center text-decoration-none color-brand-1"
-                          >
-                            <img
-                              src={`/assets/imgs/page/candidates/${c.img}`}
-                              alt={c.name}
-                              style={{
-                                width: "52px",
-                                height: "52px",
-                                borderRadius: "50%",
-                                objectFit: "cover",
-                              }}
-                            />
-
-                            <div className="ms-3">
-                              <h6 className="mb-0 text-dark">{c.name}</h6>
-                              <span className="font-sm color-text-paragraph-2">
-                                {c.email}
-                              </span>
-                            </div>
-                          </Link>
-                        </div>
-
-                        <div className="mb-10">
-                          <p className="font-sm mb-5 d-flex align-items-center gap-2">
-                            <HardHat size={14} color="#ffa300" />
-                            <strong>Trade:</strong> {c.trade}
-                          </p>
-
-                          <p className="font-sm mb-5">
-                            <strong>Joined:</strong> {c.joined}
-                          </p>
-
-                          <p className="font-sm mb-0">
-                            <strong>Status:</strong>{" "}
-                            <span
-                              style={{
-                                fontSize: "11px",
-                                fontWeight: 700,
-                                padding: "2px 10px",
-                                borderRadius: "20px",
-                                display: "inline-block",
-                                background:
-                                  c.status === "Active" ? "#e8f5e9" : "#fdecea",
-                                color:
-                                  c.status === "Active" ? "#2e7d32" : "#c62828",
-                                border:
-                                  c.status === "Active"
-                                    ? "1px solid #a5d6a7"
-                                    : "1px solid #ef9a9a",
-                              }}
+              {loadingList ? (
+                <div className="text-center py-4 color-text-paragraph-2">
+                  Loading candidates...
+                </div>
+              ) : filteredCandidates.length === 0 ? (
+                <div className="text-center py-4 color-text-paragraph-2">
+                  No candidates found.
+                </div>
+              ) : (
+                <div className="row">
+                  {visibleCandidates.map((c) => (
+                    <div className="col-md-6 mb-15" key={c.id}>
+                      <div className="panel-white h-100">
+                        <div className="box-padding">
+                          <div className="d-flex align-items-center mb-15">
+                            <Link
+                              href={`/admin/candidates/candidateDetails?id=${c.id}`}
+                              className="d-flex align-items-center text-decoration-none color-brand-1"
                             >
-                              {c.status}
-                            </span>
-                          </p>
-                        </div>
+                              <img
+                                src={getCandidateAvatar(c)}
+                                alt={c.name}
+                                style={{
+                                  width: "52px",
+                                  height: "52px",
+                                  borderRadius: "50%",
+                                  objectFit: "cover",
+                                }}
+                              />
+
+                              <div className="ms-3">
+                                <h6 className="mb-0 text-dark">{c.name || "N/A"}</h6>
+                                <span className="font-sm color-text-paragraph-2">
+                                  {c.email || "No Email"}
+                                </span>
+                              </div>
+                            </Link>
+                          </div>
+
+                          <div className="mb-10">
+                            <p className="font-sm mb-5 d-flex align-items-center gap-2">
+                              <HardHat size={14} color="#ffa300" />
+                              <strong>Trade:</strong> {c.trade || "N/A"}
+                            </p>
+
+                            <p className="font-sm mb-5">
+                              <strong>Joined:</strong> {c.joined || "N/A"}
+                            </p>
+
+                            <p className="font-sm mb-0">
+                              <strong>Status:</strong>{" "}
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  padding: "2px 10px",
+                                  borderRadius: "20px",
+                                  display: "inline-block",
+                                  background:
+                                    c.status === "Active" ? "#e8f5e9" : "#fdecea",
+                                  color:
+                                    c.status === "Active" ? "#2e7d32" : "#c62828",
+                                  border:
+                                    c.status === "Active"
+                                      ? "1px solid #a5d6a7"
+                                      : "1px solid #ef9a9a",
+                                }}
+                              >
+                                {c.status}
+                              </span>
+                            </p>
+                          </div>
 
                         <div className="d-flex gap-2 mt-15">
                           <Link
@@ -583,7 +589,8 @@ export default function CandidatesPage() {
                   </div>
                 ))}
               </div>
-            </div>
+            )}
+          </div>
 
             {/* Pagination */}
             {/* Pagination */}
@@ -606,15 +613,33 @@ export default function CandidatesPage() {
                     Previous
                   </button>
 
-                  {Array.from({ length: pageCount }, (_, index) => (
-                    <button
-                      key={index}
-                      className={currentPage === index + 1 ? "active" : ""}
-                      onClick={() => setPage(index + 1)}
-                    >
-                      {index + 1}
-                    </button>
-                  ))}
+                  {getVisiblePageNumbers().map((item, index) => {
+                    if (item === 'ellipsis-start' || item === 'ellipsis-end') {
+                      return (
+                        <span
+                          key={`ellipsis-${index}`}
+                          style={{
+                            padding: '0 8px',
+                            alignSelf: 'center',
+                            color: '#7b8aa5',
+                            fontWeight: 'bold',
+                            userSelect: 'none'
+                          }}
+                        >
+                          ...
+                        </span>
+                      );
+                    }
+                    return (
+                      <button
+                        key={item}
+                        className={currentPage === item ? "active" : ""}
+                        onClick={() => setPage(item)}
+                      >
+                        {item}
+                      </button>
+                    );
+                  })}
 
                   <button
                     disabled={currentPage === pageCount}

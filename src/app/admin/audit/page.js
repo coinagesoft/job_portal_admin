@@ -1,5 +1,5 @@
 'use client'
-import { useMemo, useState, Fragment } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import Footer from '../../../components/Footer'
 import {
   Monitor,
@@ -13,18 +13,9 @@ import {
   X,
   Calendar,
 } from "lucide-react"
+import { auditLogService } from '../../../services/auditLogService'
 
-// SNAKE_CASE action code → readable label, e.g. USER_SUSPENDED → "User Suspended"
-function formatAction(action) {
-  return action
-    .toLowerCase()
-    .split('_')
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ')
-}
-
-// ── Actor type → color + label mapping ──
-// Maps 1:1 to a backend `actor_type` enum: admin | sub_admin | recruiter | candidate | system
+// Actor type → color + label mapping
 const ACTOR_TYPE_STYLES = {
   admin: { color: '#122359', bg: '#e8eaf6', label: 'Admin' },
   sub_admin: { color: '#5e35b1', bg: '#ede7f6', label: 'Sub-Admin' },
@@ -33,7 +24,7 @@ const ACTOR_TYPE_STYLES = {
   system: { color: '#555', bg: '#f5f5f5', label: 'System' },
 }
 
-// ── Severity → color mapping (single source of truth, used everywhere) ──
+// Severity → color mapping
 const SEVERITY_STYLES = {
   critical: { color: '#c62828', bg: '#fdecea', label: 'Critical' },
   warning: { color: '#e65100', bg: '#fff3e0', label: 'Warning' },
@@ -51,139 +42,6 @@ const ACTION_STYLES = {
   CONSENT_REVOKED: { color: '#ad1457', bg: '#fce4ec' },
   APPLICANT_STATUS_CHANGED: { color: '#5e35b1', bg: '#ede7f6' },
 }
-
-// ── Mock data — every row now carries the full field set so the detail
-//    drawer is consistent regardless of which row is expanded ──
-const logsData = [
-  {
-    ts: '2023-11-24\n14:22:01',
-    actor: 'sarah.admin@skillbridge.io',
-    actor_id: 'ADM-001',
-    actor_type: 'admin',
-    action: 'USER_SUSPENDED',
-    severity: 'critical',
-    session_id: 'SES-77821',
-    entity: 'John Doe',
-    target_id: 'USR-1293',
-    ip: '192.168.1.45',
-    change_reason: 'Repeated violations',
-    old_value: 'Active',
-    new_value: 'Suspended',
-    hash: 'a8f5f167f44f4964e6c998dee827110c',
-  },
-  {
-    ts: '2023-11-24\n11:45:55',
-    actor: 'mike.finance@skillbridge.io',
-    actor_id: 'SUB-014',
-    actor_type: 'sub_admin',
-    action: 'DATA_EXPORT_DPDP',
-    severity: 'warning',
-    session_id: 'SES-77821',
-    entity: 'Q3 Revenue Report',
-    target_id: 'RPT-Q3-2023',
-    ip: '172.16.254.1',
-    change_reason: 'Quarterly compliance export',
-    old_value: 'Not Exported',
-    new_value: 'Exported',
-    hash: '9f86d081884c7d659a2feaa0c55ad015',
-  },
-  {
-    ts: '2023-11-24\n10:30:02',
-    actor: 'priya.subadmin@skillbridge.io',
-    actor_id: 'SUB-004',
-    actor_type: 'sub_admin',
-    action: 'JOB_APPROVED',
-    severity: 'info',
-    session_id: 'SES-77828',
-    entity: 'Senior Software Engineer',
-    target_id: 'JOB-5521',
-    ip: '192.168.5.140',
-    change_reason: 'Job reviewed and approved',
-    old_value: 'Pending Approval',
-    new_value: 'Approved',
-    hash: 'c3d4e5f6a7b8091a2b3c4d5e6f708192',
-  },
-  {
-    ts: '2023-11-24\n09:12:30',
-    actor: 'admin.super@skillbridge.io',
-    actor_id: 'ADM-000',
-    actor_type: 'admin',
-    action: 'CONFIG_CHANGE',
-    severity: 'warning',
-    session_id: 'SES-77821',
-    entity: 'Global Registration Fee',
-    target_id: 'CFG-REG-FEE',
-    ip: '192.168.5.112',
-    change_reason: 'Pricing update approved',
-    old_value: '₹499',
-    new_value: '₹599',
-    hash: '2c624232cdd221771294dfbb310aca00',
-  },
-  {
-    ts: '2023-11-24\n08:30:00',
-    actor: 'sarah.admin@skillbridge.io',
-    actor_id: 'ADM-001',
-    actor_type: 'admin',
-    action: 'LOGIN_SUCCESS',
-    severity: 'info',
-    session_id: 'SES-77821',
-    entity: 'Admin Dashboard',
-    target_id: 'SES-77821',
-    ip: '192.168.1.45',
-    change_reason: 'Successful login',
-    old_value: '—',
-    new_value: '—',
-    hash: 'd4735e3a265e16eee03f59718b9b5d03',
-  },
-  {
-    ts: '2023-11-23\n18:10:15',
-    actor: 'sarah.admin@skillbridge.io',
-    actor_id: 'ADM-001',
-    actor_type: 'admin',
-    action: 'RECRUITER_VERIFIED',
-    severity: 'info',
-    session_id: 'SES-77792',
-    entity: 'ABC Technologies Pvt Ltd',
-    target_id: 'EMP-1045',
-    ip: '192.168.1.45',
-    change_reason: 'Company documents verified',
-    old_value: 'Pending',
-    new_value: 'Verified',
-    hash: '6b51d431df5d7f141cbececcf79edf3a',
-  },
-  {
-    ts: '2023-11-23\n16:42:09',
-    actor: 'priya.subadmin@skillbridge.io',
-    actor_id: 'SUB-004',
-    actor_type: 'sub_admin',
-    action: 'CANDIDATE_ACCOUNT_RESTORED',
-    severity: 'info',
-    session_id: 'SES-77788',
-    entity: 'Amit Sharma',
-    target_id: 'USR-4512',
-    ip: '192.168.5.140',
-    change_reason: 'Appeal approved',
-    old_value: 'Suspended',
-    new_value: 'Active',
-    hash: '3fdba35f04dc8c462986c992bcf87554',
-  },
-  {
-    ts: '2023-11-23\n15:20:44',
-    actor: 'admin.super@skillbridge.io',
-    actor_id: 'ADM-000',
-    actor_type: 'admin',
-    action: 'SUB_ADMIN_CREATED',
-    severity: 'info',
-    session_id: 'SES-77780',
-    entity: 'Finance Manager',
-    target_id: 'SUB-015',
-    ip: '192.168.5.112',
-    change_reason: 'New finance sub-admin added',
-    old_value: '—',
-    new_value: 'Active',
-    hash: '4e07408562bedb8b60ce05c1decfe3ad',
-  },
-];
 
 const dpdpRules = [
   { rule: 'Notice of Purpose', status: 'Compliant', statusColor: '#2e7d32', statusBg: '#e8f5e9', desc: 'Admin must state why data is accessed.' },
@@ -218,6 +76,154 @@ function formatDisplayDate(iso) {
   const month = d.toLocaleString('en-US', { month: 'short' })
   return `${day} ${month} ${d.getFullYear()}`
 }
+
+// Normalizer for actor type style lookup
+const getActorTypeStyle = (type) => {
+  if (!type) return ACTOR_TYPE_STYLES.system;
+  const cleanType = type.toLowerCase().replace('-', '_');
+  return ACTOR_TYPE_STYLES[cleanType] || { color: '#5e35b1', bg: '#ede7f6', label: type };
+};
+
+// Normalizer for severity style lookup
+const getSeverityStyle = (severity) => {
+  if (!severity) return SEVERITY_STYLES.info;
+  const cleanSeverity = severity.toLowerCase();
+  return SEVERITY_STYLES[cleanSeverity] || SEVERITY_STYLES.info;
+};
+
+// Format timestamp
+const formatTimestamp = (ts) => {
+  if (!ts) return '';
+  try {
+    const d = new Date(ts);
+    const date = d.toISOString().split('T')[0];
+    const time = d.toTimeString().split(' ')[0];
+    return `${date}\n${time}`;
+  } catch (e) {
+    return ts;
+  }
+};
+
+// Render Changes dynamically in a key-by-key comparison view
+const renderChanges = (oldVal, newVal) => {
+  let oldObj = {};
+  let newObj = {};
+
+  const parseVal = (v) => {
+    if (!v) return {};
+    if (typeof v === 'object') return v;
+    try {
+      return JSON.parse(v);
+    } catch (e) {
+      return {};
+    }
+  };
+
+  const formatStringVal = (str) => {
+    if (!str) return '—';
+    // If it contains commas without spaces, insert spaces so it wraps nicely
+    if (str.includes(',') && !str.includes(', ')) {
+      return str.split(',').join(', ');
+    }
+    return str;
+  };
+
+  oldObj = parseVal(oldVal);
+  newObj = parseVal(newVal);
+
+  const allKeys = Array.from(new Set([...Object.keys(oldObj), ...Object.keys(newObj)]));
+
+  if (allKeys.length === 0) {
+    return <span style={{ color: '#64748b', fontStyle: 'italic', fontSize: '12px' }}>No parameters changed</span>;
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px', minWidth: 0, width: '100%' }}>
+      {allKeys.map((key) => {
+        const oValRaw = oldObj[key] !== undefined && oldObj[key] !== null ? String(oldObj[key]) : '—';
+        const nValRaw = newObj[key] !== undefined && newObj[key] !== null ? String(newObj[key]) : '—';
+        
+        const oVal = formatStringVal(oValRaw);
+        const nVal = formatStringVal(nValRaw);
+        const isChanged = oValRaw !== nValRaw;
+
+        // If the values are long (e.g. lists of permissions), we stack them vertically for a cleaner, non-overflowing look
+        const isLongVal = oVal.length > 40 || nVal.length > 40;
+
+        return (
+          <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '12px', minWidth: 0 }}>
+            <span style={{ fontWeight: 600, color: '#475569' }}>{key}:</span>
+            <div style={{ paddingLeft: '8px', minWidth: 0 }}>
+              {isLongVal ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: 0 }}>
+                  <div style={{
+                    color: isChanged ? '#dc2626' : '#64748b',
+                    textDecoration: isChanged && oVal !== '—' ? 'line-through' : 'none',
+                    background: isChanged ? '#fef2f2' : 'transparent',
+                    padding: isChanged ? '4px 8px' : '0',
+                    borderRadius: '4px',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'break-word',
+                    whiteSpace: 'pre-wrap',
+                    fontSize: '11px',
+                    border: isChanged ? '1px solid #fee2e2' : 'none'
+                  }}>{oVal}</div>
+                  
+                  {isChanged && (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'center', color: '#cbd5e1', fontSize: '14px', lineHeight: 1 }}>↓</div>
+                      <div style={{
+                        color: '#059669',
+                        fontWeight: 600,
+                        background: '#ecfdf5',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word',
+                        whiteSpace: 'pre-wrap',
+                        fontSize: '11px',
+                        border: '1px solid #d1fae5'
+                      }}>{nVal}</div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', minWidth: 0 }}>
+                  <span style={{
+                    color: isChanged ? '#dc2626' : '#64748b',
+                    textDecoration: isChanged && oVal !== '—' ? 'line-through' : 'none',
+                    background: isChanged ? '#fef2f2' : 'transparent',
+                    padding: isChanged ? '1px 6px' : '0',
+                    borderRadius: '4px',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'break-word',
+                    whiteSpace: 'pre-wrap'
+                  }}>{oVal}</span>
+                  {isChanged && (
+                    <>
+                      <span style={{ color: '#cbd5e1' }}>→</span>
+                      <span style={{
+                        color: '#059669',
+                        fontWeight: 600,
+                        background: '#ecfdf5',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word',
+                        whiteSpace: 'pre-wrap'
+                      }}>{nVal}</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 const TODAY_ISO = new Date().toISOString().slice(0, 10)
 
 function CopyHash({ hash }) {
@@ -255,26 +261,74 @@ export default function AuditLogsPage() {
   const [exportMsg, setExportMsg] = useState('')
   const [page, setPage] = useState(1)
 
-  const filtered = useMemo(() => logsData.filter(l => {
-    const matchesActor = l.actor.toLowerCase().includes(actorFilter.toLowerCase())
-    const matchesAction = l.action.toLowerCase().includes(actionFilter.toLowerCase())
-    const matchesSeverity = severityFilter === '' || l.severity === severityFilter
-    const matchesDate = dateFilter === '' || l.ts.startsWith(dateFilter)
-    const matchesActorType = actorTypeFilter === '' || l.actor_type === actorTypeFilter
-    return matchesActor && matchesAction && matchesSeverity && matchesDate && matchesActorType
-  }), [actorFilter, actionFilter, severityFilter, dateFilter, actorTypeFilter])
-
+  const [logs, setLogs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [totalCount, setTotalCount] = useState(0)
   const pageSize = 8
-  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize))
-  const visibleLogs = filtered.slice((page - 1) * pageSize, page * pageSize)
 
-  const criticalCount = logsData.filter(l => l.severity === 'critical').length
-  const hasActiveFilters = actorFilter || actionFilter || dateFilter || severityFilter || actorTypeFilter
+  const fetchAuditLogs = () => {
+    setLoading(true);
+    auditLogService.getAuditLogs({
+      search: actionFilter,
+      actorType: actorTypeFilter,
+      severity: severityFilter,
+      date: dateFilter,
+      page: page,
+      pageSize: pageSize
+    })
+    .then((res) => {
+      setLoading(false);
+      if (res && res.items) {
+        setLogs(res.items);
+        setTotalCount(res.totalCount || 0);
+      } else if (Array.isArray(res)) {
+        setLogs(res);
+        setTotalCount(res.length);
+      }
+    })
+    .catch((err) => {
+      setLoading(false);
+      console.error("Failed to fetch audit logs:", err);
+    });
+  };
+
+  useEffect(() => {
+    fetchAuditLogs();
+  }, [actionFilter, actorTypeFilter, severityFilter, dateFilter, page]);
+
+  const pageCount = Math.max(1, Math.ceil(totalCount / pageSize))
+  const visibleLogs = logs
+  const hasActiveFilters = !!(actionFilter || dateFilter || severityFilter || actorTypeFilter)
 
   function handleExport(kind) {
     setExportMsg(kind === 'csv' ? 'CSV export started…' : 'Preparing DPDP-compliant export…')
     setTimeout(() => setExportMsg(''), 2500)
   }
+
+  const getVisiblePageNumbers = () => {
+    const pages = [];
+    if (pageCount <= 7) {
+      for (let i = 1; i <= pageCount; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      const start = Math.max(2, page - 1);
+      const end = Math.min(pageCount - 1, page + 1);
+      if (start > 2) {
+        pages.push('ellipsis-start');
+      }
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      if (end < pageCount - 1) {
+        pages.push('ellipsis-end');
+      }
+      pages.push(pageCount);
+    }
+    return pages;
+  };
+
 
   return (
     <>
@@ -327,7 +381,7 @@ export default function AuditLogsPage() {
             <div className="card-style-1 hover-up">
               <div className="card-image"><Monitor size={28} strokeWidth={2.2} /></div>
               <div className="card-info">
-                <h3>14,202</h3>
+                <h3>{loading ? '...' : totalCount}</h3>
                 <p>Total Logs (24h)</p>
               </div>
             </div>
@@ -754,103 +808,138 @@ export default function AuditLogsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {visibleLogs.map((row) => {
-                      const sev = SEVERITY_STYLES[row.severity] || SEVERITY_STYLES.info
-                      const act = ACTION_STYLES[row.action] || { color: '#122359', bg: '#f0f0f0' }
-                      const isOpen = openRow === row.hash
-                      return (
-                        <Fragment key={row.hash}>
-                          <tr
-                            key={row.hash}
-                            className="hover-up"
-                            onClick={() => setOpenRow(isOpen ? null : row.hash)}
-                            style={{ borderBottom: isOpen ? 'none' : '1px solid #f5f5f5', cursor: 'pointer' }}
-                          >
-                            <td style={{ padding: '12px 8px', verticalAlign: 'top', whiteSpace: 'pre', lineHeight: 1.6 }}>
-                              <span className="font-xs" style={{ color: '#122359', fontWeight: 500 }}>{row.ts}</span>
-                            </td>
-                            <td style={{ padding: '12px 8px', verticalAlign: 'top' }}>
-                              <span className="font-xs" style={{ fontWeight: 600, color: '#122359', wordBreak: 'break-all' }}>{row.actor}</span>
-                            </td>
-                            <td style={{ padding: '12px 8px' }}>
-                              <Badge color={(ACTOR_TYPE_STYLES[row.actor_type] || ACTOR_TYPE_STYLES.system).color} bg={(ACTOR_TYPE_STYLES[row.actor_type] || ACTOR_TYPE_STYLES.system).bg}>
-                                {(ACTOR_TYPE_STYLES[row.actor_type] || ACTOR_TYPE_STYLES.system).label}
-                              </Badge>
-                            </td>
-                            <td style={{ padding: '12px 8px' }}>
-                              <Badge color={act.color} bg={act.bg} pill={false}>{formatAction(row.action)}</Badge>
-                            </td>
-                            <td style={{ padding: '12px 8px' }}>{row.entity}</td>
-                            <td style={{ padding: '12px 8px' }}>{row.ip}</td>
-                            <td style={{ padding: '12px 8px' }}>
-                              <Badge color={sev.color} bg={sev.bg}>{sev.label}</Badge>
-                            </td>
-                            <td style={{ padding: '12px 8px', textAlign: 'right' }}>
-                              <ChevronDown
-                                size={16}
-                                color="#888"
-                                style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}
-                              />
-                            </td>
-                          </tr>
-
-                          {isOpen && (
-                            <tr key={`${row.hash}-detail`} style={{ borderBottom: '1px solid #f5f5f5' }}>
-                              <td colSpan={9} style={{ padding: '0' }}>
-                                <div style={{
-                                  background: '#F8FAFF',
-                                  borderLeft: `3px solid ${sev.color}`,
-                                  padding: '16px 24px',
-                                  display: 'grid',
-                                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                                  gap: '14px',
-                                }}>
-                                  <div>
-                                    <p className="font-xs color-text-paragraph-2 mb-5">Actor ID</p>
-                                    <span className="font-sm" style={{ fontWeight: 600 }}>{row.actor_id}</span>
-                                  </div>
-                                  <div>
-                                    <p className="font-xs color-text-paragraph-2 mb-5">Target ID</p>
-                                    <span className="font-sm" style={{ fontWeight: 600 }}>{row.target_id}</span>
-                                  </div>
-                                  <div>
-                                    <p className="font-xs color-text-paragraph-2 mb-5">Reason</p>
-                                    <span className="font-sm">{row.change_reason}</span>
-                                  </div>
-                                  <div>
-                                    <p className="font-xs color-text-paragraph-2 mb-5">Change</p>
-                                    <span className="font-sm">{row.old_value} <span style={{ color: '#aaa' }}>→</span> {row.new_value}</span>
-                                  </div>
-
-                                  <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </Fragment>
-                      )
-                    })}
-
-                    {filtered.length === 0 && (
+                    {loading ? (
+                      <tr>
+                        <td colSpan={9} style={{ padding: '30px', textAlign: 'center' }}>
+                          <span className="font-sm color-text-paragraph-2">Loading audit logs...</span>
+                        </td>
+                      </tr>
+                    ) : visibleLogs.length === 0 ? (
                       <tr>
                         <td colSpan={9} style={{ padding: '30px', textAlign: 'center' }}>
                           <span className="font-sm color-text-paragraph-2">No logs match your filters.</span>
                         </td>
                       </tr>
+                    ) : (
+                      visibleLogs.map((row) => {
+                        const sev = getSeverityStyle(row.severity)
+                        const act = ACTION_STYLES[row.action] || { color: '#122359', bg: '#f0f0f0' }
+                        const isOpen = openRow === row.logId
+                        const actorTypeStyle = getActorTypeStyle(row.actorType)
+                        return (
+                          <Fragment key={row.logId}>
+                            <tr
+                              key={row.logId}
+                              className="hover-up"
+                              onClick={() => setOpenRow(isOpen ? null : row.logId)}
+                              style={{ borderBottom: isOpen ? 'none' : '1px solid #f5f5f5', cursor: 'pointer' }}
+                            >
+                              <td style={{ padding: '12px 8px', verticalAlign: 'top', whiteSpace: 'pre', lineHeight: 1.6 }}>
+                                <span className="font-xs" style={{ color: '#122359', fontWeight: 500 }}>{formatTimestamp(row.timestamp)}</span>
+                              </td>
+                              <td style={{ padding: '12px 8px', verticalAlign: 'top' }}>
+                                <span className="font-xs" style={{ fontWeight: 600, color: '#122359', wordBreak: 'break-all' }}>{row.admin}</span>
+                              </td>
+                              <td style={{ padding: '12px 8px' }}>
+                                <Badge color={actorTypeStyle.color} bg={actorTypeStyle.bg}>
+                                  {actorTypeStyle.label}
+                                </Badge>
+                              </td>
+                              <td style={{ padding: '12px 8px' }}>
+                                <Badge color={act.color} bg={act.bg} pill={false}>{row.action}</Badge>
+                              </td>
+                              <td style={{ padding: '12px 8px' }}>{row.targetEntity || '—'}</td>
+                              <td style={{ padding: '12px 8px' }}>{row.ipAddress || '—'}</td>
+                              <td style={{ padding: '12px 8px' }}>
+                                <Badge color={sev.color} bg={sev.bg}>{sev.label}</Badge>
+                              </td>
+                              <td style={{ padding: '12px 8px' }}>{row.sessionId || '—'}</td>
+                              <td style={{ padding: '12px 8px', textAlign: 'right' }}>
+                                <ChevronDown
+                                  size={16}
+                                  color="#888"
+                                  style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}
+                                />
+                              </td>
+                            </tr>
+
+                            {isOpen && (
+                              <tr key={`${row.logId}-detail`} style={{ borderBottom: '1px solid #f5f5f5' }}>
+                                <td colSpan={9} style={{ padding: '0' }}>
+                                  <div style={{
+                                    background: '#F8FAFF',
+                                    borderLeft: `3px solid ${sev.color}`,
+                                    padding: '16px 24px',
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                                    gap: '14px',
+                                  }}>
+                                    <div>
+                                      <p className="font-xs color-text-paragraph-2 mb-5">Log ID</p>
+                                      <span className="font-sm" style={{ fontWeight: 600 }}><CopyHash hash={row.logId} /></span>
+                                    </div>
+                                    <div>
+                                      <p className="font-xs color-text-paragraph-2 mb-5">Module</p>
+                                      <span className="font-sm" style={{ fontWeight: 600 }}>{row.module || '—'}</span>
+                                    </div>
+                                    <div>
+                                      <p className="font-xs color-text-paragraph-2 mb-5">Description / Reason</p>
+                                      <span className="font-sm">{row.description || '—'}</span>
+                                    </div>
+                                    <div style={{ gridColumn: 'span 2' }}>
+                                      <p className="font-xs color-text-paragraph-2 mb-5">Change Parameters</p>
+                                      {renderChanges(row.oldValues, row.newValues)}
+                                    </div>
+                                    {row.userAgent && (
+                                      <div style={{ gridColumn: 'span 2' }}>
+                                        <p className="font-xs color-text-paragraph-2 mb-5">User Agent</p>
+                                        <span className="font-sm" style={{ fontSize: '11px', color: '#555' }}>{row.userAgent}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        )
+                      })
                     )}
                   </tbody>
                 </table>
               </div>
 
-              {filtered.length > 0 && (
+              {totalCount > 0 && (
                 <div className="audit-table-pagination">
-                  <span>Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)} of {filtered.length} logs</span>
+                  <span>Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalCount)} of {totalCount} logs</span>
                   <div>
                     <button disabled={page === 1} onClick={() => setPage((current) => current - 1)}>Previous</button>
-                    {Array.from({ length: pageCount }, (_, index) => (
-                      <button key={index} className={page === index + 1 ? 'active' : ''} onClick={() => setPage(index + 1)}>{index + 1}</button>
-                    ))}
+                    {getVisiblePageNumbers().map((item, index) => {
+                      if (item === 'ellipsis-start' || item === 'ellipsis-end') {
+                        return (
+                          <span
+                            key={`ellipsis-${index}`}
+                            style={{
+                              padding: '0 8px',
+                              alignSelf: 'center',
+                              color: '#7b8aa5',
+                              fontWeight: 'bold',
+                              userSelect: 'none'
+                            }}
+                          >
+                            ...
+                          </span>
+                        );
+                      }
+                      return (
+                        <button
+                          key={item}
+                          className={page === item ? 'active' : ''}
+                          onClick={() => setPage(item)}
+                        >
+                          {item}
+                        </button>
+                      );
+                    })}
                     <button disabled={page === pageCount} onClick={() => setPage((current) => current + 1)}>Next</button>
                   </div>
                 </div>
