@@ -590,6 +590,7 @@ export default function RecruiterDocumentsPage() {
   const [resubmitTarget, setResubmitTarget] = useState(null)
   const [requestedDocs, setRequestedDocs] = useState([])
   const [selectedDocType, setSelectedDocType] = useState('')
+  const [customDocName, setCustomDocName] = useState('')
   const [requestNote, setRequestNote] = useState('')
   const [toast, setToast] = useState(null)
 
@@ -615,12 +616,18 @@ export default function RecruiterDocumentsPage() {
 
   const handleSendRequest = () => {
     if (!selectedDocType) return
+    let docTypeToSend = selectedDocType
+    if (selectedDocType === 'Custom / Other Document') {
+      if (!customDocName.trim()) return
+      docTypeToSend = customDocName.trim()
+    }
     setRequestedDocs((prev) => [{
-      id: Date.now(), docType: selectedDocType, note: requestNote,
+      id: Date.now(), docType: docTypeToSend, note: requestNote,
       sentAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     }, ...prev])
-    showToast(`Request sent: ${selectedDocType}`, 'info')
+    showToast(`Request sent: ${docTypeToSend}`, 'info')
     setSelectedDocType('')
+    setCustomDocName('')
     setRequestNote('')
   }
 
@@ -930,7 +937,10 @@ export default function RecruiterDocumentsPage() {
                   <div style={{ position: 'relative', width: '100%' }}>
                     <select
                       value={selectedDocType}
-                      onChange={(e) => setSelectedDocType(e.target.value)}
+                      onChange={(e) => {
+                        setSelectedDocType(e.target.value)
+                        setCustomDocName('')
+                      }}
                       style={{
                         width: '100%',
                         height: '44px',
@@ -990,6 +1000,44 @@ export default function RecruiterDocumentsPage() {
                     />
                   </div>
                 </div>
+                {selectedDocType === 'Custom / Other Document' && (
+                  <div className="form-group mb-15">
+                    <label style={{
+                      fontSize: '9px', fontWeight: 700, color: '#475569',
+                      textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px'
+                    }}>
+                      Document Name <span style={{ color: '#be123c' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control font-sm"
+                      placeholder="Enter custom document name..."
+                      value={customDocName}
+                      onChange={(e) => setCustomDocName(e.target.value)}
+                      style={{
+                        width: '100%',
+                        height: '44px',
+                        padding: '0 14px',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        color: '#334155',
+                        background: '#fff',
+                        border: '1.5px solid #e2e8f0',
+                        borderRadius: '10px',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#ffa300';
+                        e.target.style.boxShadow = '0 0 0 3px rgba(255,163,0,.12)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = '#e2e8f0';
+                        e.target.style.boxShadow = 'none';
+                      }}
+                    />
+                  </div>
+                )}
                 <div className="form-group mb-15">
                   <label style={{
                     fontSize: '9px', fontWeight: 700, color: '#475569',
@@ -1002,14 +1050,25 @@ export default function RecruiterDocumentsPage() {
                     value={requestNote} onChange={(e) => setRequestNote(e.target.value)}
                     style={{ minHeight: '80px', resize: 'vertical', borderRadius: '10px', border: '1.5px solid #e2e8f0' }} />
                 </div>
-                <button onClick={handleSendRequest} disabled={!selectedDocType} style={{
-                  width: '100%', padding: '11px 0',
-                  background: selectedDocType ? '#122359' : '#e2e8f0',
-                  color: selectedDocType ? '#fff' : '#94a3b8',
-                  border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 700,
-                  cursor: selectedDocType ? 'pointer' : 'not-allowed',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
-                }}>
+                <button
+                  onClick={handleSendRequest}
+                  disabled={!selectedDocType || (selectedDocType === 'Custom / Other Document' && !customDocName.trim())}
+                  style={{
+                    width: '100%',
+                    padding: '11px 0',
+                    background: (selectedDocType && (selectedDocType !== 'Custom / Other Document' || customDocName.trim())) ? '#122359' : '#e2e8f0',
+                    color: (selectedDocType && (selectedDocType !== 'Custom / Other Document' || customDocName.trim())) ? '#fff' : '#94a3b8',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    cursor: (selectedDocType && (selectedDocType !== 'Custom / Other Document' || customDocName.trim())) ? 'pointer' : 'not-allowed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '7px',
+                  }}
+                >
                   <Send size={14} /> Send Document Request
                 </button>
                 {requestedDocs.length > 0 && (
