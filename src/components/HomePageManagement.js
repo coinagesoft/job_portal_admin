@@ -2,10 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react'
 import {
-  BarChart3, Briefcase, BriefcaseBusiness, Building2, Check, ChevronDown, ChevronUp,
-  GraduationCap, ImageOff, ImagePlus, Lightbulb, MapPin, MonitorCog, Plus, Save,
+  AlertTriangle, BarChart3, Briefcase, BriefcaseBusiness, Building2, Check, ChevronDown, ChevronUp,
+  GraduationCap, ImageOff, ImagePlus, Lightbulb, Loader2, MapPin, MonitorCog, Plus, Save,
   Search, Trash2, Upload, UserCog, Users, X
 } from 'lucide-react'
+import { homepageService } from '../services/homepageService'
 
 /* ---------------------------------- data ---------------------------------- */
 
@@ -83,13 +84,16 @@ function Toggle({ enabled, onChange }) {
 }
 
 /** Image field with URL input + real file upload preview + broken-image fallback. Reused for hero background, locations, and roles. */
-function ImageField({ value, onChange, label = 'Image URL', height = 200, showPreview = true }) {
+function ImageField({ value, onChange, onFileChange, label = 'Image URL', height = 200, showPreview = true }) {
   const fileRef = useRef(null)
   const [broken, setBroken] = useState(false)
 
   const onUpload = (event) => {
     const file = event.target.files?.[0]
     if (!file) return
+    if (onFileChange) {
+      onFileChange(file)
+    }
     const reader = new FileReader()
     reader.onload = () => { onChange(reader.result); setBroken(false) }
     reader.readAsDataURL(file)
@@ -109,7 +113,7 @@ function ImageField({ value, onChange, label = 'Image URL', height = 200, showPr
       </label>
       <div className="image-field-actions">
         <button type="button" className="upload-btn" onClick={() => fileRef.current?.click()}><Upload size={13} />Upload image</button>
-        {value && <button type="button" className="remove-btn" onClick={() => { onChange(''); setBroken(false) }}><Trash2 size={13} />Remove</button>}
+        {value && <button type="button" className="remove-btn" onClick={() => { onChange(''); if (onFileChange) onFileChange(null); setBroken(false) }}><Trash2 size={13} />Remove</button>}
       </div>
       <input ref={fileRef} type="file" accept="image/*" hidden onChange={onUpload} />
       <style jsx>{`
@@ -211,23 +215,69 @@ function DropdownItemsEditor({ label, items, onAdd, onRemove }) {
 }
 
 /** Reordered, capped-list editor for a registration-time dropdown (e.g. Industry Type, Business Category). Reused across the recruiter tab. */
-function RegistrationDropdownSection({ title, description, icon, items, setItems, markChanged, idPrefix, addLabel, itemLabel, sectionRef }) {
+function RegistrationDropdownSection({
+  title, description, icon, items, setItems, markChanged, idPrefix, addLabel, itemLabel, sectionRef,
+  onAdd, onDelete, onUpdate, onMove
+}) {
   const enabledCount = items.filter((item) => item.enabled).length
   const maxItems = 10 // Default to 10 items
 
-  const move = (index, dir) => setItems((current) => {
-    const next = [...current]
-    const swapWith = index + dir
-    ;[next[index], next[swapWith]] = [next[swapWith], next[index]]
-    return next
-  })
+  const handleAdd = () => {
+    if (onAdd) {
+      onAdd()
+    } else {
+      setItems((current) => [...current, { id: `${idPrefix}-${Date.now()}`, name: `New ${itemLabel.toLowerCase()}`, enabled: true }])
+      markChanged()
+    }
+  }
+
+  const handleMove = (index, dir) => {
+    if (onMove) {
+      onMove(index, dir)
+    } else {
+      setItems((current) => {
+        const next = [...current]
+        const swapWith = index + dir
+        ;[next[index], next[swapWith]] = [next[swapWith], next[index]]
+        return next
+      })
+      markChanged()
+    }
+  }
+
+  const handleUpdateName = (id, newName) => {
+    if (onUpdate) {
+      onUpdate(id, { name: newName })
+    } else {
+      setItems((current) => current.map((row) => row.id === id ? { ...row, name: newName } : row))
+      markChanged()
+    }
+  }
+
+  const handleToggle = (id, enabled) => {
+    if (onUpdate) {
+      onUpdate(id, { enabled })
+    } else {
+      setItems((current) => current.map((row) => row.id === id ? { ...row, enabled } : row))
+      markChanged()
+    }
+  }
+
+  const handleDelete = (id) => {
+    if (onDelete) {
+      onDelete(id)
+    } else {
+      setItems((current) => current.filter((row) => row.id !== id))
+      markChanged()
+    }
+  }
 
   return (
     <section ref={sectionRef} className="home-section registration-dropdown-section">
       <div className="section-heading">
         <span className="section-icon">{icon}</span>
         <div><h5>{title}</h5><p>{description}</p></div>
-        <button type="button" className="add-item" onClick={() => { setItems((current) => [...current, { id: `${idPrefix}-${Date.now()}`, name: `New ${itemLabel.toLowerCase()}`, enabled: true }]); markChanged() }}><Plus size={15} />{addLabel}</button>
+        <button type="button" className="add-item" onClick={handleAdd}><Plus size={15} />{addLabel}</button>
       </div>
 
       <div className="registration-settings">
@@ -240,14 +290,14 @@ function RegistrationDropdownSection({ title, description, icon, items, setItems
         {items.map((item, index) => (
           <div className="registration-row" key={item.id}>
             <div className="reorder-controls">
-              <button type="button" disabled={index === 0} onClick={() => { move(index, -1); markChanged() }} aria-label="Move up"><ChevronUp size={13} /></button>
-              <button type="button" disabled={index === items.length - 1} onClick={() => { move(index, 1); markChanged() }} aria-label="Move down"><ChevronDown size={13} /></button>
+              <button type="button" disabled={index === 0} onClick={() => handleMove(index, -1)} aria-label="Move up"><ChevronUp size={13} /></button>
+              <button type="button" disabled={index === items.length - 1} onClick={() => handleMove(index, 1)} aria-label="Move down"><ChevronDown size={13} /></button>
             </div>
             <span className="reg-index">{index + 1}</span>
-            <input className="reg-name-input" aria-label={`${itemLabel} name`} value={item.name} onChange={(event) => { setItems((current) => current.map((row) => row.id === item.id ? { ...row, name: event.target.value } : row)); markChanged() }} />
+            <input className="reg-name-input" aria-label={`${itemLabel} name`} value={item.name} onChange={(event) => handleUpdateName(item.id, event.target.value)} />
             <div className="row-actions">
-              <span>{item.enabled ? 'Shown' : 'Hidden'}</span><Toggle enabled={item.enabled} onChange={(enabled) => { setItems((current) => current.map((row) => row.id === item.id ? { ...row, enabled } : row)); markChanged() }} />
-              <button type="button" className="delete-item" onClick={() => { setItems((current) => current.filter((row) => row.id !== item.id)); markChanged() }} aria-label={`Remove ${item.name}`}><Trash2 size={14} /></button>
+              <span>{item.enabled ? 'Shown' : 'Hidden'}</span><Toggle enabled={item.enabled} onChange={(enabled) => handleToggle(item.id, enabled)} />
+              <button type="button" className="delete-item" onClick={() => handleDelete(item.id)} aria-label={`Remove ${item.name}`}><Trash2 size={14} /></button>
             </div>
           </div>
         ))}
@@ -291,36 +341,627 @@ function RegistrationDropdownSection({ title, description, icon, items, setItems
 export default function HomePageManagement() {
   const [activeTab, setActiveTab] = useState('candidate') // 'candidate' | 'recruiter'
 
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+  const [successMessage, setSuccessMessage] = useState('')
+  const [bannerFile, setBannerFile] = useState(null)
+
   const [hero, setHero] = useState({
+    heroId: '',
     title: 'India\'s #1 Global Job Portal for Skilled Workers',
     subtitle: 'Find verified opportunities across India, UAE, Saudi Arabia, Qatar, and Singapore for technicians, engineers, drivers, construction professionals, marine staff, and skilled workers.',
     background: '/assets/imgs/page/homepage1/banner1.png',
     industryPlaceholder: 'Trade Category',
     locationPlaceholder: 'Location',
+    searchPlaceholder: 'Search by job title, skill or company',
+    ctaText: '',
+    ctaLink: '',
   })
-  const [industries, setIndustries] = useState(initialIndustries)
-  const [stats, setStats] = useState(initialStats)
-  const [locations, setLocations] = useState(initialLocations)
-  const [roles, setRoles] = useState(initialRoles)
+  const [industries, setIndustries] = useState([])
+  const [deletedIndustryIds, setDeletedIndustryIds] = useState([])
+  const [stats, setStats] = useState([])
+  const [locations, setLocations] = useState([])
+  const [originalLocations, setOriginalLocations] = useState([])
+  const [deletedLocationIds, setDeletedLocationIds] = useState([])
+  const [locationFiles, setLocationFiles] = useState({})
+  const [roles, setRoles] = useState([])
+  const [originalRoles, setOriginalRoles] = useState([])
+  const [deletedRoleIds, setDeletedRoleIds] = useState([])
+  const [roleFiles, setRoleFiles] = useState({})
 
-  const [registrationIndustries, setRegistrationIndustries] = useState(initialRegistrationIndustries)
-  const [departments, setDepartments] = useState(initialRegistrationBusinessCategories)
-  const [tradeCategories, setTradeCategories] = useState(initialRegistrationBusinessCategories)
-  const [suggestions, setSuggestions] = useState(initialSuggestions)
+  const [registrationIndustries, setRegistrationIndustries] = useState([])
+  const [originalRegistrationIndustries, setOriginalRegistrationIndustries] = useState([])
+  const [deletedRegIndustryIds, setDeletedRegIndustryIds] = useState([])
+  const [departments, setDepartments] = useState([])
+  const [originalDepartments, setOriginalDepartments] = useState([])
+  const [deletedDepartmentIds, setDeletedDepartmentIds] = useState([])
+  const [tradeCategories, setTradeCategories] = useState([])
+  const [originalTradeCategories, setOriginalTradeCategories] = useState([])
+  const [deletedTradeCategoryIds, setDeletedTradeCategoryIds] = useState([])
+  const [suggestions, setSuggestions] = useState([])
 
   const leftSectionRef = useRef(null)
   const suggestionsPanelRef = useRef(null)
 
   const [saved, setSaved] = useState(false)
 
+  const fetchPageData = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const [heroData, industriesData, statsData, locationsData, rolesData, regIndustriesData, departmentsData, tradeCategoriesData, suggestionsData] = await Promise.all([
+        homepageService.getHero(),
+        homepageService.getIndustries(),
+        homepageService.getStats(),
+        homepageService.getLocations(),
+        homepageService.getRoles(),
+        homepageService.getRegistrationIndustries(),
+        homepageService.getDepartments(),
+        homepageService.getTradeCategories(),
+        homepageService.getSuggestions()
+      ])
+
+      if (heroData) {
+        setHero(prev => ({
+          ...prev,
+          heroId: heroData.heroId || '',
+          title: heroData.headline || '',
+          subtitle: heroData.subheadline || '',
+          background: heroData.bannerImageUrl || '/assets/imgs/page/homepage1/banner1.png',
+          searchPlaceholder: heroData.searchPlaceholder || '',
+          ctaText: heroData.ctaText || '',
+          ctaLink: heroData.ctaLink || '',
+        }))
+      }
+
+      if (industriesData && Array.isArray(industriesData)) {
+        setIndustries(industriesData.map(item => ({
+          id: item.industryId,
+          name: item.name || '',
+          jobs: item.jobCountOverride || 0,
+          icon: item.iconUrl || '',
+          enabled: item.isActive !== false,
+          showInDropdown: item.showInDropdown !== false
+        })))
+      }
+
+      if (statsData && statsData.items && Array.isArray(statsData.items)) {
+        setStats(statsData.items.map((item, idx) => ({
+          id: item.id || `stat-${idx}-${Date.now()}`,
+          value: item.value || '',
+          suffix: item.suffix || '',
+          label: item.label || '',
+          iconSlug: item.iconSlug || '',
+          displayOrder: item.displayOrder || 0
+        })))
+      }
+
+      if (locationsData && Array.isArray(locationsData)) {
+        const mapped = locationsData.map(item => ({
+          id: item.locationId,
+          name: item.name || '',
+          image: item.imageUrl || '',
+          enabled: item.isActive !== false,
+          showInDropdown: item.showInDropdown !== false
+        }))
+        setLocations(mapped)
+        setOriginalLocations(JSON.parse(JSON.stringify(mapped)))
+      }
+
+      if (rolesData && Array.isArray(rolesData)) {
+        const mapped = rolesData.map(item => ({
+          id: item.roleId,
+          name: item.name || '',
+          image: item.iconUrl || '',
+          enabled: item.isActive !== false
+        }))
+        setRoles(mapped)
+        setOriginalRoles(JSON.parse(JSON.stringify(mapped)))
+      }
+
+      if (regIndustriesData && Array.isArray(regIndustriesData)) {
+        const mapped = regIndustriesData.map(item => ({
+          id: item.id,
+          name: item.name || '',
+          enabled: item.isActive !== false
+        }))
+        setRegistrationIndustries(mapped)
+        setOriginalRegistrationIndustries(JSON.parse(JSON.stringify(mapped)))
+      }
+
+      if (departmentsData && Array.isArray(departmentsData)) {
+        const mapped = departmentsData.map(item => ({
+          id: item.id,
+          name: item.name || '',
+          enabled: item.isActive !== false
+        }))
+        setDepartments(mapped)
+        setOriginalDepartments(JSON.parse(JSON.stringify(mapped)))
+      }
+
+      if (tradeCategoriesData && Array.isArray(tradeCategoriesData)) {
+        const mapped = tradeCategoriesData.map(item => ({
+          id: item.id,
+          name: item.name || '',
+          enabled: item.isActive !== false
+        }))
+        setTradeCategories(mapped)
+        setOriginalTradeCategories(JSON.parse(JSON.stringify(mapped)))
+      }
+
+      if (suggestionsData && Array.isArray(suggestionsData)) {
+        setSuggestions(suggestionsData.map(item => ({
+          id: item.id,
+          name: item.name || '',
+          type: item.type || '',
+          submittedBy: item.submittedBy || item.submittedByCompany || item.userName || 'Recruiter',
+          date: item.date || (item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Recent')
+        })))
+      }
+    } catch (err) {
+      console.error('Failed to fetch homepage details:', err)
+      setError('Failed to load page configurations from the server.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchPageData()
+  }, [])
+
   const updateCollection = (setter, id, changes) => setter((items) => items.map((item) => item.id === id ? { ...item, ...changes } : item))
   const removeItem = (setter, id) => setter((items) => items.filter((item) => item.id !== id))
+  
+  const removeIndustry = (id) => {
+    if (id && !id.startsWith('industry-')) {
+      setDeletedIndustryIds(prev => [...prev, id])
+    }
+    setIndustries((items) => items.filter((item) => item.id !== id))
+    markChanged()
+  }
+
+  const updateIndustry = (id, changes) => {
+    setIndustries((current) => current.map((item) => {
+      if (item.id === id) {
+        if (id && !id.startsWith('industry-')) {
+          setDeletedIndustryIds(prev => [...prev, id])
+          return { ...item, ...changes, id: newId('industry') }
+        }
+        return { ...item, ...changes }
+      }
+      return item
+    }))
+    markChanged()
+  }
+
+  const removeLocation = (id) => {
+    if (originalLocations.some(o => o.id === id)) {
+      setDeletedLocationIds(prev => [...prev, id])
+    }
+    setLocationFiles(prev => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
+    setLocations((items) => items.filter((item) => item.id !== id))
+    markChanged()
+  }
+
+  const updateLocation = (id, changes) => {
+    setLocations((current) => current.map((item) => item.id === id ? { ...item, ...changes } : item))
+    markChanged()
+  }
+
+  const removeRole = (id) => {
+    if (originalRoles.some(o => o.id === id)) {
+      setDeletedRoleIds(prev => [...prev, id])
+    }
+    setRoleFiles(prev => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
+    setRoles((items) => items.filter((item) => item.id !== id))
+    markChanged()
+  }
+
+  const updateRole = (id, changes) => {
+    setRoles((current) => current.map((item) => item.id === id ? { ...item, ...changes } : item))
+    markChanged()
+  }
+
+  const removeRegIndustry = (id) => {
+    if (originalRegistrationIndustries.some(o => o.id === id)) {
+      setDeletedRegIndustryIds(prev => [...prev, id])
+    }
+    setRegistrationIndustries((items) => items.filter((item) => item.id !== id))
+    markChanged()
+  }
+
+  const updateRegIndustry = (id, changes) => {
+    setRegistrationIndustries((current) => current.map((item) => item.id === id ? { ...item, ...changes } : item))
+    markChanged()
+  }
+
+  const moveRegIndustry = (index, dir) => {
+    setRegistrationIndustries((current) => {
+      const next = [...current]
+      const swapWith = index + dir
+      ;[next[index], next[swapWith]] = [next[swapWith], next[index]]
+      return next
+    })
+    markChanged()
+  }
+
+  const removeDepartment = (id) => {
+    if (originalDepartments.some(o => o.id === id)) {
+      setDeletedDepartmentIds(prev => [...prev, id])
+    }
+    setDepartments((items) => items.filter((item) => item.id !== id))
+    markChanged()
+  }
+
+  const updateDepartment = (id, changes) => {
+    setDepartments((current) => current.map((item) => item.id === id ? { ...item, ...changes } : item))
+    markChanged()
+  }
+
+  const moveDepartment = (index, dir) => {
+    setDepartments((current) => {
+      const next = [...current]
+      const swapWith = index + dir
+      ;[next[index], next[swapWith]] = [next[swapWith], next[index]]
+      return next
+    })
+    markChanged()
+  }
+
+  const removeTradeCategory = (id) => {
+    if (originalTradeCategories.some(o => o.id === id)) {
+      setDeletedTradeCategoryIds(prev => [...prev, id])
+    }
+    setTradeCategories((items) => items.filter((item) => item.id !== id))
+    markChanged()
+  }
+
+  const updateTradeCategory = (id, changes) => {
+    setTradeCategories((current) => current.map((item) => item.id === id ? { ...item, ...changes } : item))
+    markChanged()
+  }
+
+  const moveTradeCategory = (index, dir) => {
+    setTradeCategories((current) => {
+      const next = [...current]
+      const swapWith = index + dir
+      ;[next[index], next[swapWith]] = [next[swapWith], next[index]]
+      return next
+    })
+    markChanged()
+  }
+
   const newId = (prefix) => `${prefix}-${Date.now()}`
   const markChanged = () => setSaved(false)
-  const save = () => setSaved(true)
+  
+  const save = async () => {
+    setSaving(true)
+    setError(null)
+    setSuccessMessage('')
+    try {
+      // 1. Update Hero
+      await homepageService.updateHero({
+        headline: hero.title,
+        subheadline: hero.subtitle,
+        searchPlaceholder: hero.searchPlaceholder,
+        ctaText: hero.ctaText || null,
+        ctaLink: hero.ctaLink || null
+      })
+
+      // 2. Delete removed items
+      const deletePromises = deletedIndustryIds.map(id => homepageService.deleteIndustry(id))
+      const deleteLocPromises = deletedLocationIds.map(id => homepageService.deleteLocation(id))
+      const deleteRolePromises = deletedRoleIds.map(id => homepageService.deleteRole(id))
+      const deleteRegIndustryPromises = deletedRegIndustryIds.map(id => homepageService.deleteRegistrationIndustry(id))
+      const deleteDepartmentPromises = deletedDepartmentIds.map(id => homepageService.deleteDepartment(id))
+      const deleteTradeCategoryPromises = deletedTradeCategoryIds.map(id => homepageService.deleteTradeCategory(id))
+
+      // 3. Save industries (only new/modified ones)
+      const savePromises = industries
+        .filter(ind => ind.id && ind.id.startsWith('industry-'))
+        .map(ind => {
+          const payload = {
+            name: ind.name,
+            iconUrl: ind.icon || '',
+            jobCountOverride: parseInt(ind.jobs, 10) || 0,
+            showInDropdown: ind.showInDropdown !== false
+          }
+          return homepageService.saveIndustry(payload)
+        })
+
+      // 4. Save existing locations (PUT updates)
+      const saveLocPromises = locations
+        .filter(loc => loc.id && !loc.id.startsWith('location-'))
+        .map((loc, index) => {
+          const payload = {
+            name: loc.name,
+            country: loc.name,
+            jobCountOverride: 0,
+            displayOrder: index
+          }
+          return homepageService.updateLocation(loc.id, payload)
+        })
+
+      // 5. Save existing roles (PUT updates)
+      const updateRolePromises = roles
+        .filter(r => r.id && !r.id.startsWith('role-'))
+        .map((r, index) => {
+          const payload = {
+            name: r.name,
+            iconUrl: r.image || '',
+            jobCountOverride: 0,
+            displayOrder: index
+          }
+          return homepageService.updateRole(r.id, payload)
+        })
+
+      // 6. Save existing registration industries (PUT updates)
+      const updateRegIndustryPromises = registrationIndustries
+        .filter(item => item.id && !item.id.startsWith('reg-'))
+        .map((item, index) => {
+          const payload = {
+            name: item.name,
+            displayOrder: index
+          }
+          return homepageService.updateRegistrationIndustry(item.id, payload)
+        })
+
+      // 7. Save existing departments (PUT updates)
+      const updateDepartmentPromises = departments
+        .filter(item => item.id && !item.id.startsWith('dep-'))
+        .map((item, index) => {
+          const payload = {
+            name: item.name,
+            displayOrder: index
+          }
+          return homepageService.updateDepartment(item.id, payload)
+        })
+
+      // 8. Save existing trade categories (PUT updates)
+      const updateTradeCategoryPromises = tradeCategories
+        .filter(item => item.id && !item.id.startsWith('trade-'))
+        .map((item, index) => {
+          const payload = {
+            name: item.name,
+            displayOrder: index
+          }
+          return homepageService.updateTradeCategory(item.id, payload)
+        })
+
+      // 9. Save stats
+      const statsPayload = {
+        items: stats.map((stat, index) => ({
+          label: stat.label || '',
+          value: stat.value || '',
+          suffix: stat.suffix || '',
+          iconSlug: stat.iconSlug || '',
+          displayOrder: index
+        }))
+      }
+
+      // Execute primary updates and deletes in parallel
+      await Promise.all([
+        ...deletePromises,
+        ...deleteLocPromises,
+        ...deleteRolePromises,
+        ...deleteRegIndustryPromises,
+        ...deleteDepartmentPromises,
+        ...deleteTradeCategoryPromises,
+        ...savePromises,
+        ...saveLocPromises,
+        ...updateRolePromises,
+        ...updateRegIndustryPromises,
+        ...updateDepartmentPromises,
+        ...updateTradeCategoryPromises,
+        homepageService.updateStats(statsPayload)
+      ])
+
+      // 9. Save new locations (POST create sequentially or in parallel, uploading image files once UUIDs are returned)
+      const newLocs = locations.filter(loc => loc.id && loc.id.startsWith('location-'))
+      const createNewLocsPromises = newLocs.map(async (loc) => {
+        const payload = {
+          name: loc.name,
+          country: loc.name,
+          jobCountOverride: 0
+        }
+        const response = await homepageService.createLocation(payload)
+        const realId = response.locationId
+        if (locationFiles[loc.id]) {
+          await homepageService.uploadLocationImage(realId, locationFiles[loc.id])
+        }
+        if (!loc.enabled) {
+          await homepageService.toggleLocation(realId)
+        }
+      })
+
+      // 10. Save new roles (POST create sequentially or in parallel, uploading image files once UUIDs are returned)
+      const newRoles = roles.filter(r => r.id && r.id.startsWith('role-'))
+      const createNewRolesPromises = newRoles.map(async (r) => {
+        const payload = {
+          name: r.name,
+          iconUrl: '',
+          jobCountOverride: 0
+        }
+        const response = await homepageService.createRole(payload)
+        const realId = response.roleId
+        if (roleFiles[r.id]) {
+          await homepageService.uploadRoleImage(realId, roleFiles[r.id])
+        }
+        if (!r.enabled) {
+          await homepageService.toggleRole(realId)
+        }
+      })
+
+      // 11. Save new registration industries (POST create)
+      const newRegIndustries = registrationIndustries.filter(item => item.id && item.id.startsWith('reg-'))
+      const createNewRegIndustryPromises = newRegIndustries.map(async (item) => {
+        const payload = {
+          name: item.name
+        }
+        const response = await homepageService.createRegistrationIndustry(payload)
+        const realId = response.id
+        if (!item.enabled) {
+          await homepageService.toggleRegistrationIndustry(realId)
+        }
+      })
+
+      // 12. Save new departments (POST create)
+      const newDepartments = departments.filter(item => item.id && item.id.startsWith('dep-'))
+      const createNewDepartmentPromises = newDepartments.map(async (item) => {
+        const payload = {
+          name: item.name
+        }
+        const response = await homepageService.createDepartment(payload)
+        const realId = response.id
+        if (!item.enabled) {
+          await homepageService.toggleDepartment(realId)
+        }
+      })
+
+      // 13. Save new trade categories (POST create)
+      const newTradeCategories = tradeCategories.filter(item => item.id && item.id.startsWith('trade-'))
+      const createNewTradeCategoryPromises = newTradeCategories.map(async (item) => {
+        const payload = {
+          name: item.name
+        }
+        const response = await homepageService.createTradeCategory(payload)
+        const realId = response.id
+        if (!item.enabled) {
+          await homepageService.toggleTradeCategory(realId)
+        }
+      })
+
+      await Promise.all([
+        ...createNewLocsPromises,
+        ...createNewRolesPromises,
+        ...createNewRegIndustryPromises,
+        ...createNewDepartmentPromises,
+        ...createNewTradeCategoryPromises
+      ])
+
+      // 14. Secondary operations (banner upload, location image uploads, existing role uploads/toggles)
+      const uploadBannerPromise = bannerFile ? homepageService.uploadHeroBanner(bannerFile) : Promise.resolve()
+      
+      const uploadExistingLocImagePromises = Object.entries(locationFiles)
+        .filter(([id]) => !id.startsWith('location-'))
+        .map(([id, file]) => {
+          if (file) {
+            return homepageService.uploadLocationImage(id, file)
+          }
+          return Promise.resolve()
+        })
+
+      const uploadExistingRoleImagePromises = Object.entries(roleFiles)
+        .filter(([id]) => !id.startsWith('role-'))
+        .map(([id, file]) => {
+          if (file) {
+            return homepageService.uploadRoleImage(id, file)
+          }
+          return Promise.resolve()
+        })
+
+      const toggleLocPromises = locations
+        .filter(loc => {
+          if (loc.id.startsWith('location-')) return false
+          const original = originalLocations.find(o => o.id === loc.id)
+          if (original) {
+            return loc.enabled !== original.enabled
+          }
+          return !loc.enabled
+        })
+        .map(loc => homepageService.toggleLocation(loc.id))
+
+      const toggleRolePromises = roles
+        .filter(r => {
+          if (r.id.startsWith('role-')) return false
+          const original = originalRoles.find(o => o.id === r.id)
+          if (original) {
+            return r.enabled !== original.enabled
+          }
+          return !r.enabled
+        })
+        .map(r => homepageService.toggleRole(r.id))
+
+      const toggleRegIndustryPromises = registrationIndustries
+        .filter(item => {
+          if (item.id.startsWith('reg-')) return false
+          const original = originalRegistrationIndustries.find(o => o.id === item.id)
+          if (original) {
+            return item.enabled !== original.enabled
+          }
+          return !item.enabled
+        })
+        .map(item => homepageService.toggleRegistrationIndustry(item.id))
+
+      const toggleDepartmentPromises = departments
+        .filter(item => {
+          if (item.id.startsWith('dep-')) return false
+          const original = originalDepartments.find(o => o.id === item.id)
+          if (original) {
+            return item.enabled !== original.enabled
+          }
+          return !item.enabled
+        })
+        .map(item => homepageService.toggleDepartment(item.id))
+
+      const toggleTradeCategoryPromises = tradeCategories
+        .filter(item => {
+          if (item.id.startsWith('trade-')) return false
+          const original = originalTradeCategories.find(o => o.id === item.id)
+          if (original) {
+            return item.enabled !== original.enabled
+          }
+          return !item.enabled
+        })
+        .map(item => homepageService.toggleTradeCategory(item.id))
+
+      await Promise.all([
+        uploadBannerPromise,
+        ...uploadExistingLocImagePromises,
+        ...uploadExistingRoleImagePromises,
+        ...toggleLocPromises,
+        ...toggleRolePromises,
+        ...toggleRegIndustryPromises,
+        ...toggleDepartmentPromises,
+        ...toggleTradeCategoryPromises
+      ])
+
+      setBannerFile(null)
+      setLocationFiles({})
+      setRoleFiles({})
+      setDeletedIndustryIds([])
+      setDeletedLocationIds([])
+      setDeletedRoleIds([])
+      setDeletedRegIndustryIds([])
+      setDeletedDepartmentIds([])
+      setDeletedTradeCategoryIds([])
+      setSaved(true)
+      setSuccessMessage('Homepage settings saved successfully.')
+      setTimeout(() => setSuccessMessage(''), 5000)
+      
+      // Reload to get any updated image URLs/timestamps
+      await fetchPageData()
+    } catch (err) {
+      console.error('Failed to save homepage settings:', err)
+      setError(err.message || 'Failed to save changes. Please try again.')
+      setTimeout(() => setError(null), 5000)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const addIndustryToDropdown = (name) => {
-    setIndustries((items) => [...items, { id: newId('industry'), name, jobs: '0 Jobs Available', icon: '', enabled: true, showInDropdown: true }])
+    setIndustries((items) => [...items, { id: newId('industry'), name, jobs: 0, icon: '', enabled: true, showInDropdown: true }])
     markChanged()
   }
   const addLocationToDropdown = (name) => {
@@ -328,19 +969,38 @@ export default function HomePageManagement() {
     markChanged()
   }
 
-  const approveSuggestion = (suggestion) => {
-    // map suggestion types to the correct recruiter dropdown (Department / Industry / Role)
-    if (suggestion.type === 'Department') {
-      setDepartments((items) => [...items, { id: newId('reg'), name: suggestion.name, enabled: true }])
-    } else if (suggestion.type === 'Role' || suggestion.type === 'Trade' || suggestion.type === 'Trade category' || suggestion.type === 'Role category') {
-      setTradeCategories((items) => [...items, { id: newId('reg'), name: suggestion.name, enabled: true }])
-    } else if (suggestion.type === 'Industry') {
-      setRegistrationIndustries((items) => [...items, { id: newId('reg'), name: suggestion.name, enabled: true }])
+  const approveSuggestion = async (suggestion) => {
+    try {
+      await homepageService.approveSuggestion(suggestion.id, {
+        adminNote: 'Approved via Admin Panel',
+        addToList: true
+      })
+      // map suggestion types to the correct recruiter dropdown (Department / Industry / Role)
+      if (suggestion.type === 'Department') {
+        setDepartments((items) => [...items, { id: newId('dep'), name: suggestion.name, enabled: true }])
+      } else if (suggestion.type === 'Role' || suggestion.type === 'Trade' || suggestion.type === 'Trade category' || suggestion.type === 'Role category') {
+        setTradeCategories((items) => [...items, { id: newId('trade'), name: suggestion.name, enabled: true }])
+      } else if (suggestion.type === 'Industry') {
+        setRegistrationIndustries((items) => [...items, { id: newId('reg'), name: suggestion.name, enabled: true }])
+      }
+      setSuggestions((items) => items.filter((item) => item.id !== suggestion.id))
+    } catch (err) {
+      console.error('Failed to approve suggestion:', err)
+      setError('Failed to approve suggestion on the server.')
     }
-    setSuggestions((items) => items.filter((item) => item.id !== suggestion.id))
-    markChanged()
   }
-  const rejectSuggestion = (id) => setSuggestions((items) => items.filter((item) => item.id !== id))
+  const rejectSuggestion = async (id) => {
+    try {
+      await homepageService.rejectSuggestion(id, {
+        adminNote: 'Rejected via Admin Panel',
+        addToList: false
+      })
+      setSuggestions((items) => items.filter((item) => item.id !== id))
+    } catch (err) {
+      console.error('Failed to reject suggestion:', err)
+      setError('Failed to reject suggestion on the server.')
+    }
+  }
 
   // Sync heights between dropdown and suggestions
   useEffect(() => {
@@ -368,8 +1028,52 @@ export default function HomePageManagement() {
     }
   }, [registrationIndustries, suggestions]) // Re-run when items change
 
+  if (loading) {
+    return (
+      <div className="homepage-loading-container">
+        <Loader2 size={40} className="animate-spin" />
+        <p>Loading homepage configuration...</p>
+        <style jsx>{`
+          .homepage-loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            gap: 16px;
+            color: #5a6c8f;
+            font-size: 14px;
+            font-weight: 600;
+          }
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          .animate-spin {
+            animation: spin 1s linear infinite;
+            color: #ffa300;
+          }
+        `}</style>
+      </div>
+    )
+  }
+
   return (
     <section className="homepage-manager">
+      {successMessage && (
+        <div className="homepage-toast success-toast">
+          <Check size={18} />
+          {successMessage}
+        </div>
+      )}
+
+      {error && (
+        <div className="homepage-toast error-toast">
+          <AlertTriangle size={18} />
+          {error}
+        </div>
+      )}
+
       <div className="homepage-manager-bar">
         <div>
           <span>{activeTab === 'candidate' ? 'Candidate website' : 'Recruiter / Employer'}</span>
@@ -378,7 +1082,19 @@ export default function HomePageManagement() {
             ? 'Control the content and cards shown to candidates on the public home page.'
             : 'Control the dropdown options shown to recruiters during employer registration.'}</p>
         </div>
-        <button type="button" className="homepage-save" onClick={save}><Save size={16} />{saved ? 'Changes saved' : 'Save changes'}</button>
+        <button type="button" className="homepage-save" onClick={save} disabled={saving}>
+          {saving ? (
+            <>
+              <Loader2 size={16} className="animate-spin-icon" style={{ marginRight: 6 }} />
+              Saving changes...
+            </>
+          ) : (
+            <>
+              <Save size={16} />
+              {saved ? 'Changes saved' : 'Save changes'}
+            </>
+          )}
+        </button>
       </div>
 
       <div className="tab-switch" role="tablist">
@@ -396,21 +1112,47 @@ export default function HomePageManagement() {
             <div className="section-heading"><span className="section-icon"><MonitorCog size={19} /></span><div><h5>Hero section</h5><p>Set the first message, background image, and search controls.</p></div></div>
             <div className="hero-editor-grid">
               <div className="hero-fields">
-                <label>Hero title<textarea value={hero.title} rows={3} onChange={(event) => { setHero({ ...hero, title: event.target.value }); markChanged() }} /></label>
-                <label>Supporting text<textarea value={hero.subtitle} rows={3} onChange={(event) => { setHero({ ...hero, subtitle: event.target.value }); markChanged() }} /></label>
-                <ImageField label="Hero background image" value={hero.background} onChange={(value) => { setHero({ ...hero, background: value }); markChanged() }} showPreview={false} />
+                <label>Hero title<textarea value={hero.title} rows={3} disabled={saving} onChange={(event) => { setHero({ ...hero, title: event.target.value }); markChanged() }} /></label>
+                <label>Supporting text<textarea value={hero.subtitle} rows={3} disabled={saving} onChange={(event) => { setHero({ ...hero, subtitle: event.target.value }); markChanged() }} /></label>
+                <ImageField
+                  label="Hero background image"
+                  value={hero.background}
+                  onChange={(value) => { setHero({ ...hero, background: value }); markChanged() }}
+                  onFileChange={(file) => { setBannerFile(file); markChanged() }}
+                  showPreview={false}
+                />
+                <label>Search box placeholder<input value={hero.searchPlaceholder} disabled={saving} onChange={(event) => { setHero({ ...hero, searchPlaceholder: event.target.value }); markChanged() }} /></label>
                 <div className="search-field-grid">
-                  <label>Industry dropdown label<input value={hero.industryPlaceholder} onChange={(event) => { setHero({ ...hero, industryPlaceholder: event.target.value }); markChanged() }} /></label>
-                  <label>Location dropdown label<input value={hero.locationPlaceholder} onChange={(event) => { setHero({ ...hero, locationPlaceholder: event.target.value }); markChanged() }} /></label>
+                  <label>CTA Button Text (Optional)<input value={hero.ctaText} disabled={saving} placeholder="e.g. Learn More" onChange={(event) => { setHero({ ...hero, ctaText: event.target.value }); markChanged() }} /></label>
+                  <label>CTA Button Link (Optional)<input value={hero.ctaLink} disabled={saving} placeholder="e.g. /about" onChange={(event) => { setHero({ ...hero, ctaLink: event.target.value }); markChanged() }} /></label>
                 </div>
                 <div className="search-field-grid">
-                  <DropdownItemsEditor label="Industry dropdown items" items={industries} onAdd={addIndustryToDropdown} onRemove={(id) => { updateCollection(setIndustries, id, { showInDropdown: false }); markChanged() }} />
-                  <DropdownItemsEditor label="Location dropdown items" items={locations} onAdd={addLocationToDropdown} onRemove={(id) => { updateCollection(setLocations, id, { showInDropdown: false }); markChanged() }} />
+                  <label>Industry dropdown label<input value={hero.industryPlaceholder} disabled={saving} onChange={(event) => { setHero({ ...hero, industryPlaceholder: event.target.value }); markChanged() }} /></label>
+                  <label>Location dropdown label<input value={hero.locationPlaceholder} disabled={saving} onChange={(event) => { setHero({ ...hero, locationPlaceholder: event.target.value }); markChanged() }} /></label>
+                </div>
+                <div className="search-field-grid">
+                  <DropdownItemsEditor label="Industry dropdown items" items={industries} onAdd={addIndustryToDropdown} onRemove={(id) => updateIndustry(id, { showInDropdown: false })} />
+                  <DropdownItemsEditor label="Location dropdown items" items={locations} onAdd={addLocationToDropdown} onRemove={(id) => updateLocation(id, { showInDropdown: false })} />
                 </div>
               </div>
               <div className="hero-preview" style={{ backgroundImage: `linear-gradient(90deg, rgba(18,35,89,.82), rgba(18,35,89,.52)), url(${hero.background})` }}>
-                <span>Live preview</span><h3>{hero.title}</h3><p>{hero.subtitle}</p>
-                <div><button>{hero.industryPlaceholder}</button><button>{hero.locationPlaceholder}</button><button className="preview-search"><Search size={14} />Search</button></div>
+                <span>Live preview</span>
+                <h3>{hero.title}</h3>
+                <p>{hero.subtitle}</p>
+                <div className="preview-search-container">
+                  <div className="preview-search-input">
+                    <Search size={14} className="preview-search-icon" style={{ marginRight: 6 }} />
+                    <span>{hero.searchPlaceholder || 'Search by job title, skill or company'}</span>
+                  </div>
+                  <button type="button" className="preview-dropdown-btn">{hero.industryPlaceholder}</button>
+                  <button type="button" className="preview-dropdown-btn">{hero.locationPlaceholder}</button>
+                  <button type="button" className="preview-search">Search</button>
+                </div>
+                {hero.ctaText && (
+                  <div className="preview-cta-wrapper">
+                    <a href={hero.ctaLink || "#"} className="preview-cta" onClick={(e) => e.preventDefault()}>{hero.ctaText}</a>
+                  </div>
+                )}
               </div>
             </div>
           </section>
@@ -419,17 +1161,18 @@ export default function HomePageManagement() {
             <div className="section-heading">
               <span className="section-icon"><BriefcaseBusiness size={19} /></span>
               <div><h5>Browse by industry</h5><p>Choose the industries displayed on the home screen and upload an icon for each.</p></div>
-              <button type="button" className="add-item" onClick={() => { setIndustries((items) => [...items, { id: newId('industry'), name: 'New industry', jobs: '0 Jobs Available', icon: '', enabled: true, showInDropdown: false }]); markChanged() }}><Plus size={15} />Add industry</button>
+              <button type="button" className="add-item" onClick={() => { setIndustries((items) => [...items, { id: newId('industry'), name: 'New industry', jobs: 0, icon: '', enabled: true, showInDropdown: false }]); markChanged() }}><Plus size={15} />Add industry</button>
             </div>
             <div className="compact-list">
               {industries.map((industry) => (
                 <div className="compact-row industry-row" key={industry.id}>
-                  <IconUploadField value={industry.icon} onChange={(value) => { updateCollection(setIndustries, industry.id, { icon: value }); markChanged() }} />
+                  <IconUploadField value={industry.icon} onChange={(value) => updateIndustry(industry.id, { icon: value })} />
                   <div className="industry-card-content">
-                    <label>Industry name<input value={industry.name} onChange={(event) => { updateCollection(setIndustries, industry.id, { name: event.target.value }); markChanged() }} /></label>
+                    <label>Industry name<input value={industry.name} disabled={saving} onChange={(event) => updateIndustry(industry.id, { name: event.target.value })} /></label>
+                    <label>Job count override<input type="number" value={industry.jobs} disabled={saving} onChange={(event) => updateIndustry(industry.id, { jobs: parseInt(event.target.value, 10) || 0 })} /></label>
                     <div className="row-actions">
-                      <span>{industry.enabled ? 'Visible' : 'Hidden'}</span><Toggle enabled={industry.enabled} onChange={(enabled) => { updateCollection(setIndustries, industry.id, { enabled }); markChanged() }} />
-                      <button type="button" className="delete-item" onClick={() => { removeItem(setIndustries, industry.id); markChanged() }} aria-label={`Remove ${industry.name}`}><Trash2 size={15} /></button>
+                      <span>{industry.enabled ? 'Visible' : 'Hidden'}</span><Toggle enabled={industry.enabled} onChange={(enabled) => updateIndustry(industry.id, { enabled })} />
+                      <button type="button" className="delete-item" onClick={() => removeIndustry(industry.id)} aria-label={`Remove ${industry.name}`}><Trash2 size={15} /></button>
                     </div>
                   </div>
                 </div>
@@ -438,19 +1181,41 @@ export default function HomePageManagement() {
           </section>
 
           <section className="home-section">
-            <div className="section-heading"><span className="section-icon"><BarChart3 size={19} /></span><div><h5>Hiring statistics</h5><p>Edit the proof points shown below the industry cards.</p></div><button type="button" className="add-item" onClick={() => { setStats((items) => [...items, { id: newId('stat'), value: '0+', label: 'New statistic', description: 'Add a short description' }]); markChanged() }}><Plus size={15} />Add statistic</button></div>
-            <div className="stats-editor">{stats.map((stat) => <article className="stat-edit-card" key={stat.id}><label>Value<input value={stat.value} onChange={(event) => { updateCollection(setStats, stat.id, { value: event.target.value }); markChanged() }} /></label><label>Label<input value={stat.label} onChange={(event) => { updateCollection(setStats, stat.id, { label: event.target.value }); markChanged() }} /></label><label>Description<textarea rows={3} value={stat.description} onChange={(event) => { updateCollection(setStats, stat.id, { description: event.target.value }); markChanged() }} /></label><button type="button" className="delete-text" onClick={() => { removeItem(setStats, stat.id); markChanged() }}><Trash2 size={13} />Remove</button></article>)}</div>
+            <div className="section-heading"><span className="section-icon"><BarChart3 size={19} /></span><div><h5>Hiring statistics</h5><p>Edit the proof points shown below the industry cards.</p></div><button type="button" className="add-item" onClick={() => { setStats((items) => [...items, { id: newId('stat'), value: '0', suffix: '', label: 'New statistic', iconSlug: '' }]); markChanged() }}><Plus size={15} />Add statistic</button></div>
+            <div className="stats-editor">
+              {stats.map((stat) => (
+                <article className="stat-edit-card" key={stat.id}>
+                  <label>Value<input value={stat.value} disabled={saving} onChange={(event) => { updateCollection(setStats, stat.id, { value: event.target.value }); markChanged() }} /></label>
+                  <label>Suffix<input value={stat.suffix} placeholder="e.g. K+" disabled={saving} onChange={(event) => { updateCollection(setStats, stat.id, { suffix: event.target.value }); markChanged() }} /></label>
+                  <label>Label<input value={stat.label} disabled={saving} onChange={(event) => { updateCollection(setStats, stat.id, { label: event.target.value }); markChanged() }} /></label>
+                  <label>Icon Slug<input value={stat.iconSlug} placeholder="e.g. users" disabled={saving} onChange={(event) => { updateCollection(setStats, stat.id, { iconSlug: event.target.value }); markChanged() }} /></label>
+                  <button type="button" className="delete-text" onClick={() => { removeItem(setStats, stat.id); markChanged() }}><Trash2 size={13} />Remove</button>
+                </article>
+              ))}
+            </div>
           </section>
 
           <ContentImageSection
             title="Jobs by location" description="Manage country cards and their featured images shown on the home page."
             icon={<MapPin size={19} />} items={locations} setItems={setLocations} type="location" markChanged={markChanged}
             newItem={() => ({ id: newId('location'), name: 'New location', image: '', enabled: true, showInDropdown: false })}
+            onFileChange={(id, file) => {
+              setLocationFiles(prev => ({ ...prev, [id]: file }))
+              markChanged()
+            }}
+            onDelete={removeLocation}
+            onUpdate={updateLocation}
           />
           <ContentImageSection
             title="Jobs by role" description="Manage the role cards and images shown lower on the home page."
             icon={<ImagePlus size={19} />} items={roles} setItems={setRoles} type="role" markChanged={markChanged}
-            newItem={() => ({ id: newId('role'), name: 'New role', image: '', enabled: true })}
+            newItem={() => ({ id: `role-${Date.now()}`, name: 'New role', image: '', enabled: true })}
+            onFileChange={(id, file) => {
+              setRoleFiles(prev => ({ ...prev, [id]: file }))
+              markChanged()
+            }}
+            onDelete={removeRole}
+            onUpdate={updateRole}
           />
         </>
       )}
@@ -465,6 +1230,13 @@ export default function HomePageManagement() {
             items={registrationIndustries} setItems={setRegistrationIndustries}
             markChanged={markChanged} idPrefix="reg" addLabel="Add industry type" itemLabel="industry type"
             sectionRef={leftSectionRef}
+            onAdd={() => {
+              setRegistrationIndustries((current) => [...current, { id: `reg-${Date.now()}`, name: 'New industry type', enabled: true }])
+              markChanged()
+            }}
+            onDelete={removeRegIndustry}
+            onUpdate={updateRegIndustry}
+            onMove={moveRegIndustry}
           />
 
           {/* Right column - Suggestions inbox with scroll */}
@@ -499,7 +1271,14 @@ export default function HomePageManagement() {
             description={'Control which options appear in the "Department" field of employer registration, their order, and how many show at once.'}
             icon={<Building2 size={19} />}
             items={departments} setItems={setDepartments}
-            markChanged={markChanged} idPrefix="dept" addLabel="Add department" itemLabel="department"
+            markChanged={markChanged} idPrefix="dep" addLabel="Add department" itemLabel="department"
+            onAdd={() => {
+              setDepartments((current) => [...current, { id: `dep-${Date.now()}`, name: 'New department', enabled: true }])
+              markChanged()
+            }}
+            onDelete={removeDepartment}
+            onUpdate={updateDepartment}
+            onMove={moveDepartment}
           />
 
           {/* Bottom right - Trade / Role Category dropdown */}
@@ -509,6 +1288,13 @@ export default function HomePageManagement() {
             icon={<Briefcase size={19} />}
             items={tradeCategories} setItems={setTradeCategories}
             markChanged={markChanged} idPrefix="trade" addLabel="Add trade/role" itemLabel="trade or role category"
+            onAdd={() => {
+              setTradeCategories((current) => [...current, { id: `trade-${Date.now()}`, name: 'New trade or role category', enabled: true }])
+              markChanged()
+            }}
+            onDelete={removeTradeCategory}
+            onUpdate={updateTradeCategory}
+            onMove={moveTradeCategory}
           />
         </div>
       )}
@@ -545,9 +1331,54 @@ export default function HomePageManagement() {
         .hero-preview > span { margin-bottom: 13px; color: #ffe1aa; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
         .hero-preview h3 { max-width: 400px; margin: 0 0 9px; color: #fff; font-size: 24px; line-height: 1.2; }
         .hero-preview p { margin: 0 0 19px; color: #f1f5ff; font-size: 12px; line-height: 1.5; }
-        .hero-preview div { display: grid; grid-template-columns: 1fr 1fr auto; overflow: hidden; border-radius: 6px; background: #fff; }
-        .hero-preview button { min-height: 37px; border: 0; border-right: 1px solid #edf0f5; background: #fff; color: #76849e; padding: 0 9px; text-align: left; font-size: 10px; }
-        .hero-preview .preview-search { border: 0; background: #ffa300; color: #fff; display: inline-flex; align-items: center; gap: 5px; font-weight: 800; }
+        
+        .preview-search-container { display: grid; grid-template-columns: 2fr 1fr 1fr auto; align-items: center; height: 38px; border-radius: 6px; background: #fff; overflow: hidden; }
+        .preview-search-input { display: flex; align-items: center; padding: 0 12px; color: #76849e; font-size: 11px; border-right: 1px solid #edf0f5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 100%; }
+        .preview-search-icon { color: #9aa9c4; flex-shrink: 0; }
+        .preview-dropdown-btn { height: 100%; border: 0; border-right: 1px solid #edf0f5; background: #fff; color: #76849e; padding: 0 12px; text-align: left; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; outline: none; display: flex; align-items: center; }
+        .hero-preview .preview-search { border: 0; height: 100%; background: #ffa300; color: #fff; display: inline-flex; align-items: center; justify-content: center; padding: 0 16px; font-size: 11px; font-weight: 800; }
+        
+        .preview-cta-wrapper { display: flex; margin-top: 10px; }
+        .preview-cta { display: inline-block; background: #ffa300; color: #fff; padding: 6px 14px; border-radius: 6px; font-size: 11px; font-weight: 800; text-decoration: none; border: 0; cursor: pointer; }
+        .preview-cta:hover { background: #e08f00; }
+
+        /* Toast Notifications */
+        .homepage-toast {
+          position: fixed;
+          top: 24px;
+          right: 24px;
+          z-index: 9999;
+          padding: 12px 24px;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 600;
+          font-size: 13px;
+          animation: fadeIn 0.3s ease-out;
+        }
+        .success-toast {
+          background: #E9F7EF;
+          color: #2e7d32;
+          border: 1px solid #c3e6cb;
+        }
+        .error-toast {
+          background: #FDF2F2;
+          color: #de4343;
+          border: 1px solid #f5c2c2;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin-icon {
+          animation: spin 1s linear infinite;
+        }
         /* Four consistent industry cards per desktop row, with controls beneath the field. */
         .home-section .compact-list { padding: 5px 21px 18px; display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 18px; }
         .home-section .compact-list > .compact-row { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 10px 12px; align-items: start; padding: 14px; border: 1px solid #edf1f6; border-radius: 10px; background: #fff; width: auto; box-sizing: border-box; }
@@ -649,27 +1480,48 @@ export default function HomePageManagement() {
 
 /* ---------------------- location / role cards (image based) ---------------------- */
 
-function ContentImageSection({ title, description, icon, items, setItems, type, markChanged, newItem }) {
-  const update = (id, changes) => setItems((current) => current.map((item) => item.id === id ? { ...item, ...changes } : item))
-  const remove = (id) => setItems((current) => current.filter((item) => item.id !== id))
-  const add = () => setItems((current) => [...current, newItem()])
+function ContentImageSection({ title, description, icon, items, setItems, type, markChanged, newItem, onFileChange, onDelete, onUpdate }) {
+  const update = (id, changes) => {
+    if (onUpdate) {
+      onUpdate(id, changes)
+    } else {
+      setItems((current) => current.map((item) => item.id === id ? { ...item, ...changes } : item))
+      markChanged()
+    }
+  }
+  const remove = (id) => {
+    if (onDelete) {
+      onDelete(id)
+    } else {
+      setItems((current) => current.filter((item) => item.id !== id))
+      markChanged()
+    }
+  }
+  const add = () => {
+    setItems((current) => [...current, newItem()])
+    markChanged()
+  }
 
   return (
     <section className="home-section">
       <div className="section-heading">
         <span className="section-icon">{icon}</span>
         <div><h5>{title}</h5><p>{description}</p></div>
-        <button type="button" className="add-item" onClick={() => { add(); markChanged() }}><Plus size={15} />Add {type}</button>
+        <button type="button" className="add-item" onClick={add}><Plus size={15} />Add {type}</button>
       </div>
       <div className="image-card-grid">
         {items.map((item) => (
           <article className="image-edit-card" key={item.id}>
-            <ImageField value={item.image} onChange={(value) => { update(item.id, { image: value }); markChanged() }} />
+            <ImageField 
+              value={item.image} 
+              onChange={(value) => update(item.id, { image: value })} 
+              onFileChange={onFileChange ? (file) => onFileChange(item.id, file) : undefined}
+            />
             <div className="image-card-body">
-              <label>{type === 'location' ? 'Location name' : 'Role name'}<input value={item.name} onChange={(event) => { update(item.id, { name: event.target.value }); markChanged() }} /></label>
+              <label>{type === 'location' ? 'Location name' : 'Role name'}<input value={item.name} onChange={(event) => update(item.id, { name: event.target.value })} /></label>
               <div className="row-actions">
-                <span>{item.enabled ? 'Visible' : 'Hidden'}</span><Toggle enabled={item.enabled} onChange={(enabled) => { update(item.id, { enabled }); markChanged() }} />
-                <button type="button" className="delete-item" onClick={() => { remove(item.id); markChanged() }} aria-label={`Remove ${item.name}`}><Trash2 size={15} /></button>
+                <span>{item.enabled ? 'Visible' : 'Hidden'}</span><Toggle enabled={item.enabled} onChange={(enabled) => update(item.id, { enabled })} />
+                <button type="button" className="delete-item" onClick={() => remove(item.id)} aria-label={`Remove ${item.name}`}><Trash2 size={15} /></button>
               </div>
             </div>
           </article>
