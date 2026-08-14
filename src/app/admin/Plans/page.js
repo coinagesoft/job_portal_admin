@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   BadgeCheck,
   Check,
@@ -11,7 +11,10 @@ import {
   Save,
   Trash2,
   Users,
+  Loader2,
+  AlertTriangle,
 } from 'lucide-react';
+import { planService } from '../../../services/planService';
 
 const regions = [
   { id: 'us', name: 'United States', flag: '🇺🇸', currency: 'USD', symbol: '$', group: 'Global' },
@@ -30,45 +33,199 @@ const regions = [
   { id: 'tr', name: 'Turkey', flag: '🇹🇷', currency: 'TRY', symbol: '₺', group: 'Middle East' },
 ];
 
-const basePlans = {
-  recruiter: [
-    { id: 'rec-lifetime', name: 'Recruiter Lifetime', description: 'One payment for full, permanent recruiter access', price: 499, period: 'one-time', badge: 'Full lifetime access', active: true, features: ['Unlimited job posts', 'Unlimited candidate profile views', 'Unlimited recruiter seats', 'Priority support and account manager'] },
-  ],
-  candidate: [
-    { id: 'can-lifetime', name: 'Candidate Lifetime', description: 'One payment for full, permanent candidate access', price: 99, period: 'one-time', badge: 'Full lifetime access', active: true, features: ['Professional candidate profile', 'Unlimited job applications', 'Priority applications', 'Featured profile placement'] },
-  ],
-  credits: [
-    { id: 'credit-100', name: 'Starter credits', credits: 100, price: 25, bonus: '', active: true },
-    { id: 'credit-500', name: 'Growth credits', credits: 500, price: 99, bonus: '50 bonus credits', active: true },
-    { id: 'credit-1000', name: 'Scale credits', credits: 1000, price: 179, bonus: '150 bonus credits', active: true },
-  ],
-};
-
-const priceMultiplier = { us: 1, in: 0.42, gb: 0.82, au: 1.36, ae: 3.67, sa: 3.75, qa: 3.64, kw: 0.31, bh: 0.38, om: 0.38, eg: 48.5, jo: 0.71, lb: 89500, tr: 40.6 };
-
-function makeRegionalPlans(regionId) {
-  const multiplier = priceMultiplier[regionId];
-  return Object.fromEntries(
-    Object.entries(basePlans).map(([key, plans]) => [
-      key,
-      plans.map((plan) => ({ ...plan, price: Math.round(plan.price * multiplier * 100) / 100 })),
-    ]),
-  );
-}
-
 export default function PlansPage() {
   const [activeTab, setActiveTab] = useState('recruiter');
   const [regionId, setRegionId] = useState('us');
-  const [plansByRegion, setPlansByRegion] = useState(() =>
-    Object.fromEntries(regions.map((region) => [region.id, makeRegionalPlans(region.id)])),
-  );
+  
+  // Database membership plans state
+  const [dbPlans, setDbPlans] = useState([]);
+  const [originalDbPlans, setOriginalDbPlans] = useState([]);
+  const [deletedPlanIds, setDeletedPlanIds] = useState([]);
+  
+  // Database credit plans state
+  const [dbCreditPlans, setDbCreditPlans] = useState([]);
+  const [originalDbCreditPlans, setOriginalDbCreditPlans] = useState([]);
+  const [deletedCreditPlanIds, setDeletedCreditPlanIds] = useState([]);
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
   const [editingId, setEditingId] = useState(null);
   const [featureDraft, setFeatureDraft] = useState('');
   const [saved, setSaved] = useState(false);
   const [regionPickerOpen, setRegionPickerOpen] = useState(false);
 
   const region = useMemo(() => regions.find((item) => item.id === regionId), [regionId]);
-  const plans = plansByRegion[regionId][activeTab];
+
+  // Helper to resolve any region code/name to a lowercase country name (e.g. "in" -> "india")
+  const getRegionName = (regStr) => {
+    if (!regStr) return region.name.toLowerCase();
+    const cleanStr = regStr.trim().toLowerCase();
+    const found = regions.find(r => r.id === cleanStr || r.name.toLowerCase() === cleanStr);
+    return found ? found.name.toLowerCase() : cleanStr;
+  };
+
+  // Load membership plans from API
+  const fetchMembershipPlans = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [recruiterData, candidateData] = await Promise.all([
+        planService.getMembershipPlans('Recruiter').catch(() => []),
+        planService.getMembershipPlans('Candidate').catch(() => [])
+      ]);
+      
+      const loaded = [];
+      const mapPlan = (plan) => ({
+        id: plan.planId,
+        name: plan.planName || '',
+        description: plan.description || '',
+        price: plan.price || 0,
+        period: plan.period || 'one-time',
+        badge: plan.badge || '',
+        features: plan.features || [],
+        active: plan.isActive !== false,
+        planType: plan.planType,
+        region: getRegionName(plan.region)
+      });
+
+      if (Array.isArray(recruiterData)) {
+        loaded.push(...recruiterData.map(mapPlan));
+      }
+      if (Array.isArray(candidateData)) {
+        loaded.push(...candidateData.map(mapPlan));
+      }
+      
+      setDbPlans(loaded);
+      setOriginalDbPlans(JSON.parse(JSON.stringify(loaded)));
+      setDeletedPlanIds([]);
+    } catch (err) {
+      console.error('Failed to fetch membership plans:', err);
+      setError('Failed to load membership plans from server.');
+      setTimeout(() => setError(null), 5000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch credit plans for the currently active region
+  const fetchCreditPlans = async (rId) => {
+    const curRegion = regions.find(item => item.id === rId);
+    if (!curRegion) return;
+    
+    setLoading(true);
+    setError(null);
+    try {
+      // Query the API using both region ID (e.g. "in") and region Name (e.g. "india") to be safe
+      const [creditsById, creditsByName] = await Promise.all([
+        planService.getCreditPlans(rId).catch(() => []),
+        planService.getCreditPlans(curRegion.name.toLowerCase()).catch(() => [])
+      ]);
+      
+      const loadedCredits = [];
+      const mapCreditPlan = (plan) => ({
+        id: plan.planId,
+        name: plan.planName || '',
+        credits: plan.credits || 0,
+        price: plan.price || 0,
+        validityMonths: plan.validityMonths || 0,
+        bonus: plan.bonus || '',
+        active: plan.isActive !== false,
+        region: getRegionName(plan.region)
+      });
+      
+      const seenIds = new Set();
+      const addUniquePlans = (list) => {
+        if (Array.isArray(list)) {
+          list.forEach(plan => {
+            if (plan.planId && !seenIds.has(plan.planId)) {
+              seenIds.add(plan.planId);
+              loadedCredits.push(mapCreditPlan(plan));
+            }
+          });
+        }
+      };
+      
+      addUniquePlans(creditsById);
+      addUniquePlans(creditsByName);
+      
+      setDbCreditPlans(loadedCredits);
+      setOriginalDbCreditPlans(JSON.parse(JSON.stringify(loadedCredits)));
+      setDeletedCreditPlanIds([]);
+    } catch (err) {
+      console.error('Failed to fetch credit plans:', err);
+      setError('Failed to load credit plans from server.');
+      setTimeout(() => setError(null), 5000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMembershipPlans();
+  }, []);
+
+  // Fetch credit plans whenever the active region changes
+  useEffect(() => {
+    fetchCreditPlans(regionId);
+  }, [regionId]);
+
+  // Filter plans based on region and activeTab
+  const plans = useMemo(() => {
+    if (activeTab === 'credits') {
+      return dbCreditPlans.filter(plan => {
+        const planRegion = (plan.region || '').toLowerCase();
+        const currentRegion = regions.find(r => r.id === regionId);
+        return planRegion === regionId.toLowerCase() || 
+               (currentRegion && planRegion === currentRegion.name.toLowerCase());
+      });
+    }
+    
+    const filtered = dbPlans.filter(plan => {
+      const matchesType = plan.planType?.toLowerCase() === activeTab;
+      if (!matchesType) return false;
+      
+      const planRegion = (plan.region || '').toLowerCase();
+      const currentRegion = regions.find(r => r.id === regionId);
+      return planRegion === regionId.toLowerCase() || 
+             (currentRegion && planRegion === currentRegion.name.toLowerCase());
+    });
+
+    // Enforce single plan requirement for Recruiter and Candidate membership
+    if (filtered.length === 0) {
+      const defaultId = `${activeTab}-default-${regionId}`;
+      const defaultPlan = activeTab === 'recruiter' 
+        ? {
+            id: defaultId,
+            name: 'New Recruiter Plan',
+            description: 'One payment for full, permanent recruiter access',
+            price: 0,
+            period: 'one-time',
+            badge: 'Full lifetime access',
+            features: ['Unlimited job posts', 'Unlimited candidate profile views', 'Unlimited recruiter seats', 'Priority support and account manager'],
+            active: true,
+            planType: 'Recruiter',
+            region: region.name.toLowerCase()
+          }
+        : {
+            id: defaultId,
+            name: 'New Candidate Plan',
+            description: 'One payment for full, permanent candidate access',
+            price: 0,
+            period: 'one-time',
+            badge: 'Full lifetime access',
+            features: ['Professional candidate profile', 'Unlimited job applications', 'Priority applications', 'Featured profile placement'],
+            active: true,
+            planType: 'Candidate',
+            region: region.name.toLowerCase()
+          };
+      return [defaultPlan];
+    }
+    
+    // Return only the first plan
+    return [filtered[0]];
+  }, [dbPlans, dbCreditPlans, activeTab, regionId]);
+
   const tabs = [
     { id: 'recruiter', label: 'Recruiter membership', icon: Users },
     { id: 'candidate', label: 'Candidate membership', icon: BadgeCheck },
@@ -84,61 +241,190 @@ export default function PlansPage() {
   };
 
   const updatePlan = (id, changes) => {
-    setPlansByRegion((current) => ({
-      ...current,
-      [regionId]: {
-        ...current[regionId],
-        [activeTab]: current[regionId][activeTab].map((plan) => plan.id === id ? { ...plan, ...changes } : plan),
-      },
-    }));
+    if (activeTab === 'credits') {
+      setDbCreditPlans((current) =>
+        current.map((plan) => (plan.id === id ? { ...plan, ...changes } : plan))
+      );
+    } else {
+      setDbPlans((current) => {
+        const exists = current.some(p => p.id === id);
+        if (!exists) {
+          const defaultId = `${activeTab}-default-${regionId}`;
+          const defaultPlan = activeTab === 'recruiter' 
+            ? {
+                id: defaultId,
+                name: 'New Recruiter Plan',
+                description: 'One payment for full, permanent recruiter access',
+                price: 0,
+                period: 'one-time',
+                badge: 'Full lifetime access',
+                features: ['Unlimited job posts', 'Unlimited candidate profile views', 'Unlimited recruiter seats', 'Priority support and account manager'],
+                active: true,
+                planType: 'Recruiter',
+                region: region.name.toLowerCase()
+              }
+            : {
+                id: defaultId,
+                name: 'New Candidate Plan',
+                description: 'One payment for full, permanent candidate access',
+                price: 0,
+                period: 'one-time',
+                badge: 'Full lifetime access',
+                features: ['Professional candidate profile', 'Unlimited job applications', 'Priority applications', 'Featured profile placement'],
+                active: true,
+                planType: 'Candidate',
+                region: region.name.toLowerCase()
+              };
+          return [...current, { ...defaultPlan, ...changes }];
+        }
+        return current.map((plan) => (plan.id === id ? { ...plan, ...changes } : plan));
+      });
+    }
     setSaved(false);
   };
 
   const addPlan = (type = activeTab) => {
-    const id = `${type}-${Date.now()}`;
-    const membershipDefaults = type === 'recruiter'
-      ? {
-        name: 'New recruiter plan',
-        description: 'Describe the recruiter membership access',
-        price: 0,
-        period: 'one-time',
-        badge: '',
-        active: true,
-        features: ['Add a recruiter plan feature'],
-      }
-      : {
-        name: 'New candidate plan',
-        description: 'Describe the candidate membership access',
-        price: 0,
-        period: 'one-time',
-        badge: '',
-        active: true,
-        features: ['Add a candidate plan feature'],
-      };
-    const newPlan = type === 'credits'
-      ? { id, name: 'New credit pack', credits: 100, price: 0, bonus: '', active: true }
-      : { id, ...membershipDefaults };
-    setPlansByRegion((current) => ({
-      ...current,
-      [regionId]: { ...current[regionId], [type]: [...current[regionId][type], newPlan] },
-    }));
-    setFeatureDraft(newPlan.features?.join('\n') ?? '');
+    if (type !== 'credits') return;
+
+    const id = `credits-${Date.now()}`;
+    const newPlan = { 
+      id, 
+      name: 'New credit pack', 
+      credits: 100, 
+      price: 0, 
+      validityMonths: 12, 
+      bonus: '', 
+      active: true,
+      region: region.name.toLowerCase()
+    };
+    
+    setDbCreditPlans((current) => [...current, newPlan]);
     setEditingId(id);
     setSaved(false);
   };
 
   const deletePlan = (id, type = activeTab) => {
-    setPlansByRegion((current) => ({
-      ...current,
-      [regionId]: { ...current[regionId], [type]: current[regionId][type].filter((plan) => plan.id !== id) },
-    }));
+    if (type === 'credits') {
+      if (!id.startsWith('credits-')) {
+        setDeletedCreditPlanIds((prev) => [...prev, id]);
+      }
+      setDbCreditPlans((current) => current.filter((plan) => plan.id !== id));
+    }
     setEditingId(null);
     setSaved(false);
   };
 
-  const saveChanges = () => {
-    setSaved(true);
-    setEditingId(null);
+  const saveChanges = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      if (activeTab === 'credits') {
+        // 1. Delete removed credit plans
+        await Promise.all(
+          deletedCreditPlanIds.map((planId) => planService.deleteCreditPlan(planId).catch(err => {
+            console.warn(`Failed to delete credit plan ${planId}:`, err);
+          }))
+        );
+        
+        // 2. Save new and modified credit plans
+        await Promise.all(
+          dbCreditPlans.map(async (plan) => {
+            const payload = {
+              planName: plan.name,
+              credits: Number(plan.credits) || 0,
+              price: Number(plan.price) || 0,
+              validityMonths: Number(plan.validityMonths) || 0,
+              region: getRegionName(plan.region),
+              bonus: plan.bonus,
+              isActive: plan.active
+            };
+            
+            const isNew = plan.id.startsWith('credits-');
+            if (isNew) {
+              await planService.createCreditPlan(payload);
+            } else {
+              // Check if modified
+              const original = originalDbCreditPlans.find(o => o.id === plan.id);
+              const isModified = !original || 
+                original.name !== plan.name ||
+                Number(original.credits) !== Number(plan.credits) ||
+                Number(original.price) !== Number(plan.price) ||
+                Number(original.validityMonths) !== Number(plan.validityMonths) ||
+                original.bonus !== plan.bonus ||
+                original.active !== plan.active;
+                
+              if (isModified) {
+                await planService.updateCreditPlan({
+                  planId: plan.id,
+                  ...payload
+                });
+              }
+            }
+          })
+        );
+        
+        setSaved(true);
+        setEditingId(null);
+        await fetchCreditPlans(regionId);
+      } else {
+        // 1. Delete removed membership plans
+        await Promise.all(
+          deletedPlanIds.map((planId) => planService.deleteMembershipPlan(planId).catch(err => {
+            console.warn(`Failed to delete membership plan ${planId}:`, err);
+          }))
+        );
+        
+        // 2. Save new and modified membership plans
+        await Promise.all(
+          dbPlans.map(async (plan) => {
+            const payload = {
+              planType: plan.planType,
+              region: getRegionName(plan.region),
+              planName: plan.name,
+              description: plan.description,
+              price: Number(plan.price) || 0,
+              period: plan.period,
+              badge: plan.badge,
+              features: plan.features,
+              isActive: plan.active
+            };
+            
+            const isNew = plan.id.startsWith('recruiter-') || plan.id.startsWith('candidate-');
+            if (isNew) {
+              await planService.createMembershipPlan(payload);
+            } else {
+              // Check if modified
+              const original = originalDbPlans.find(o => o.id === plan.id);
+              const isModified = !original || 
+                original.name !== plan.name ||
+                original.description !== plan.description ||
+                Number(original.price) !== Number(plan.price) ||
+                original.period !== plan.period ||
+                original.badge !== plan.badge ||
+                original.active !== plan.active ||
+                JSON.stringify(original.features) !== JSON.stringify(plan.features);
+                
+              if (isModified) {
+                await planService.updateMembershipPlan({
+                  planId: plan.id,
+                  ...payload
+                });
+              }
+            }
+          })
+        );
+        
+        setSaved(true);
+        setEditingId(null);
+        await fetchMembershipPlans();
+      }
+    } catch (err) {
+      console.error('Failed to save plans:', err);
+      setError('Failed to save changes. Please try again.');
+      setTimeout(() => setError(null), 5000);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const togglePlanEditor = (plan) => {
@@ -146,12 +432,28 @@ export default function PlansPage() {
       setEditingId(null);
       return;
     }
-    setFeatureDraft(plan.features?.join('\n') ?? '');
+    if (activeTab !== 'credits') {
+      setFeatureDraft(plan.features?.join('\n') ?? '');
+    }
     setEditingId(plan.id);
   };
 
   return (
     <div className="plans-page">
+      {loading && (
+        <div className="plans-toast loading-toast">
+          <Loader2 size={18} className="animate-spin-icon" style={{ marginRight: 6 }} />
+          Saving changes...
+        </div>
+      )}
+
+      {error && (
+        <div className="plans-toast error-toast">
+          <AlertTriangle size={18} />
+          {error}
+        </div>
+      )}
+
       <div className="box-heading plans-heading">
         <div className="box-title">
           <h3 className="mb-5">Plans &amp; Pricing</h3>
@@ -184,8 +486,13 @@ export default function PlansPage() {
           </div>
           <p className="plans-helper">Prices shown in {region.currency}. Changes only apply to {region.name}.</p>
         </div>
-        <button className="plans-save" onClick={saveChanges}>
-          <Save size={17} /> {saved ? 'Changes saved' : 'Save changes'}
+        <button className="plans-save" onClick={saveChanges} disabled={loading}>
+          {loading ? (
+            <Loader2 size={17} className="animate-spin-icon" />
+          ) : (
+            <Save size={17} />
+          )}
+          &nbsp; {saved ? 'Changes saved' : 'Save changes'}
         </button>
       </section>
 
@@ -201,7 +508,7 @@ export default function PlansPage() {
           const isEditing = editingId === plan.id;
           return (
             <article className={`plan-card ${plan.badge ? 'featured' : ''}`} key={plan.id}>
-              {/* {plan.badge && <span className="plan-badge">{plan.badge}</span>} */}
+              {plan.badge && <span className="plan-badge">{plan.badge}</span>}
               <div className="plan-card-top">
                 <div>
                   {isEditing ? <input className="edit-name" autoFocus value={plan.name} onChange={(event) => updatePlan(plan.id, { name: event.target.value })} aria-label="Plan name" /> : <h4>{plan.name}</h4>}
@@ -217,27 +524,41 @@ export default function PlansPage() {
               {activeTab === 'credits' ? (isEditing ? (
                 <div className="edit-fields">
                   <label>Credit quantity<input type="number" min="1" value={plan.credits} onChange={(event) => updatePlan(plan.id, { credits: Math.max(1, Number(event.target.value)) })} /></label>
+                  <label>Validity (in months)<input type="number" min="0" value={plan.validityMonths || ''} onChange={(event) => updatePlan(plan.id, { validityMonths: Math.max(0, Number(event.target.value)) })} /></label>
                   <label>Bonus credits<input value={plan.bonus} placeholder="e.g. 50 bonus credits" onChange={(event) => updatePlan(plan.id, { bonus: event.target.value })} /></label>
                 </div>
               ) : <div className="credit-details">
-                <div><span>Cost per credit</span><b>{region.symbol}{(Number(plan.price) / plan.credits).toFixed(2)}</b></div>
+                <div><span>Cost per credit</span><b>{region.symbol}{(Number(plan.price) / (plan.credits || 1)).toFixed(2)}</b></div>
+                {plan.validityMonths ? <div><span>Validity</span><b>{plan.validityMonths} months</b></div> : null}
                 {plan.bonus ? <span className="credit-bonus">+ {plan.bonus}</span> : <span className="credit-bonus muted">No bonus credits</span>}
               </div>) : (isEditing ? (
-                <label className="feature-editor">Full-access features<textarea value={featureDraft} onChange={(event) => { setFeatureDraft(event.target.value); updatePlan(plan.id, { features: event.target.value.split('\n').map((feature) => feature.trim()).filter(Boolean) }); }} /></label>
+                <div className="edit-fields">
+                  <label>Billing Period<input value={plan.period} placeholder="e.g. one-time, 3 months" onChange={(event) => updatePlan(plan.id, { period: event.target.value })} /></label>
+                  <label>Badge / Ribbon text<input value={plan.badge} placeholder="e.g. Popular, Best value" onChange={(event) => updatePlan(plan.id, { badge: event.target.value })} /></label>
+                  <label className="feature-editor">Full-access features<textarea value={featureDraft} onChange={(event) => { setFeatureDraft(event.target.value); updatePlan(plan.id, { features: event.target.value.split('\n').map((feature) => feature.trim()).filter(Boolean) }); }} /></label>
+                </div>
               ) : <ul className="plan-features">{plan.features.map((feature) => <li key={feature}><Check size={16} />{feature}</li>)}</ul>)}
               <div className="plan-footer">
                 <button className={`plan-status ${plan.active ? 'is-active' : 'is-inactive'}`} onClick={() => updatePlan(plan.id, { active: !plan.active })} aria-label={`Set ${plan.name} ${plan.active ? 'inactive' : 'active'}`}>
                   <i /> {plan.active ? 'Active' : 'Inactive'}
                 </button>
-                {isEditing ? <button className="card-save" onClick={() => setEditingId(null)}><Save size={14} />Done</button> : <button className="remove-plan" onClick={() => deletePlan(plan.id)} aria-label={`Remove ${plan.name}`}><Trash2 size={15} /></button>}
+                {isEditing ? (
+                  <button className="card-save" onClick={() => setEditingId(null)}><Save size={14} />Done</button>
+                ) : (
+                  activeTab === 'credits' && (
+                    <button className="remove-plan" onClick={() => deletePlan(plan.id)} aria-label={`Remove ${plan.name}`}><Trash2 size={15} /></button>
+                  )
+                )}
               </div>
             </article>
           );
         })}
-        <button className="add-plan" onClick={() => addPlan()}>
-          <Plus size={22} />
-          <span>{activeTab === 'credits' ? 'Add credit pack' : `Create ${activeTab} plan`}</span>
-        </button>
+        {activeTab === 'credits' && (
+          <button className="add-plan" onClick={() => addPlan()}>
+            <Plus size={22} />
+            <span>Add credit pack</span>
+          </button>
+        )}
       </div>
 
       <style jsx>{`
@@ -272,6 +593,44 @@ export default function PlansPage() {
         .add-plan { min-height: 250px; border: 2px dashed #cdd7e8; border-radius: 12px; color: #6c7d9d; background: rgba(255,255,255,.52); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-size: 13px; font-weight: 700; } .add-plan:hover { color: #ff9e00; border-color: #ffb53d; background: #fff; }
         @media (max-width: 991px) { .membership-grid, .credit-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
         @media (max-width: 600px) { .plans-toolbar { align-items: flex-start; flex-direction: column; padding: 17px; } .country-select { min-width: min(340px, calc(100vw - 72px)); } .region-menu { width: min(330px, calc(100vw - 72px)); } .plans-save { width: 100%; justify-content: center; } .membership-grid, .credit-grid { grid-template-columns: 1fr; } .plans-tabs { gap: 18px; } }
+
+        /* Toast Notifications */
+        .plans-toast {
+          position: fixed;
+          top: 24px;
+          right: 24px;
+          z-index: 9999;
+          padding: 12px 24px;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 600;
+          font-size: 13px;
+          animation: fadeIn 0.3s ease-out;
+        }
+        .loading-toast {
+          background: #EBF5FB;
+          color: #2980b9;
+          border: 1px solid #a9cce3;
+        }
+        .error-toast {
+          background: #FDF2F2;
+          color: #de4343;
+          border: 1px solid #f5c2c2;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin-icon {
+          animation: spin 1s linear infinite;
+        }
       `}</style>
     </div>
   );

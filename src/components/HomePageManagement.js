@@ -499,8 +499,8 @@ export default function HomePageManagement() {
         setHero(prev => ({
           ...prev,
           heroId: heroData.heroId || '',
-          title: heroData.headline || '',
-          subtitle: heroData.subheadline || '',
+          title: (heroData.headline || '').slice(0, 100),
+          subtitle: (heroData.subheadline || '').slice(0, 250),
           background: getImageUrl(heroData.bannerImageUrl) || '/assets/imgs/page/homepage1/banner1.png',
           searchPlaceholder: heroData.searchPlaceholder || '',
           ctaText: heroData.ctaText || '',
@@ -737,6 +737,16 @@ export default function HomePageManagement() {
   const markChanged = () => setSaved(false)
   
   const save = async () => {
+    if ((hero.title || '').length > 100) {
+      setError('Hero title cannot exceed 100 characters.')
+      setTimeout(() => setError(null), 5000)
+      return
+    }
+    if ((hero.subtitle || '').length > 250) {
+      setError('Supporting text cannot exceed 250 characters.')
+      setTimeout(() => setError(null), 5000)
+      return
+    }
     setSaving(true)
     setError(null)
     setSuccessMessage('')
@@ -1232,8 +1242,36 @@ export default function HomePageManagement() {
             <div className="section-heading"><span className="section-icon"><MonitorCog size={19} /></span><div><h5>Hero section</h5><p>Set the first message, background image, and search controls.</p></div></div>
             <div className="hero-editor-grid">
               <div className="hero-fields">
-                <label>Hero title<textarea value={hero.title} rows={3} disabled={saving} onChange={(event) => { setHero({ ...hero, title: event.target.value }); markChanged() }} /></label>
-                <label>Supporting text<textarea value={hero.subtitle} rows={3} disabled={saving} onChange={(event) => { setHero({ ...hero, subtitle: event.target.value }); markChanged() }} /></label>
+                <label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Hero title</span>
+                    <span style={{ fontSize: '10px', color: (hero.title || '').length >= 100 ? '#de4343' : '#64748b', textTransform: 'none', fontWeight: '600' }}>
+                      {(hero.title || '').length} / 100 characters
+                    </span>
+                  </div>
+                  <textarea 
+                    value={hero.title} 
+                    rows={3} 
+                    maxLength={100} 
+                    disabled={saving} 
+                    onChange={(event) => { setHero({ ...hero, title: event.target.value.slice(0, 100) }); markChanged() }} 
+                  />
+                </label>
+                <label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Supporting text</span>
+                    <span style={{ fontSize: '10px', color: (hero.subtitle || '').length >= 250 ? '#de4343' : '#64748b', textTransform: 'none', fontWeight: '600' }}>
+                      {(hero.subtitle || '').length} / 250 characters
+                    </span>
+                  </div>
+                  <textarea 
+                    value={hero.subtitle} 
+                    rows={3} 
+                    maxLength={250} 
+                    disabled={saving} 
+                    onChange={(event) => { setHero({ ...hero, subtitle: event.target.value.slice(0, 250) }); markChanged() }} 
+                  />
+                </label>
                 <ImageField
                   label="Hero background image"
                   value={hero.background}
@@ -1284,7 +1322,7 @@ export default function HomePageManagement() {
               <button type="button" className="add-item" onClick={() => { setIndustries((items) => [...items, { id: newId('industry'), name: '', jobs: 0, icon: '', enabled: true, showInDropdown: false }]); markChanged() }}><Plus size={15} />Add industry</button>
             </div>
             <div className="compact-list">
-              {industries.map((industry) => (
+              {industries.filter(item => !item.showInDropdown).map((industry) => (
                 <div className="compact-row industry-row" key={industry.id}>
                   <IconUploadField value={industry.icon} onChange={(value) => updateIndustry(industry.id, { icon: value })} />
                   <div className="industry-card-content">
@@ -1333,7 +1371,7 @@ export default function HomePageManagement() {
 
           <ContentImageSection
             title="Jobs by location" description="Manage country cards and their featured images shown on the home page."
-            icon={<MapPin size={19} />} items={locations} setItems={setLocations} type="location" markChanged={markChanged}
+            icon={<MapPin size={19} />} items={locations.filter(item => !item.showInDropdown)} setItems={setLocations} type="location" markChanged={markChanged}
             newItem={() => ({ id: newId('location'), name: 'New location', image: '', enabled: true, showInDropdown: false })}
             onFileChange={(id, file) => {
               setLocationFiles(prev => ({ ...prev, [id]: file }))
