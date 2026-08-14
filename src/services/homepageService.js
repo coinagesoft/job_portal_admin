@@ -133,11 +133,11 @@ export const homepageService = {
     });
   },
 
-  // POST /api/admin/homepage/roles/{roleId}/image
+  // POST /api/admin/homepage/roles/{roleId}/icon
   uploadRoleImage: async (roleId, file) => {
     const formData = new FormData();
     formData.append('file', file);
-    return await apiRequest(`/api/admin/homepage/roles/${roleId}/image`, {
+    return await apiRequest(`/api/admin/homepage/roles/${roleId}/icon`, {
       method: 'POST',
       body: formData,
     }).catch(err => {

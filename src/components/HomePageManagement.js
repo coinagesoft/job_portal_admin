@@ -83,6 +83,98 @@ function Toggle({ enabled, onChange }) {
   )
 }
 
+/** Helper utility to compress and resize an existing Base64 data URL string. */
+const compressAndResizeDataUrl = (dataUrl, maxWidth, maxHeight, callback) => {
+  if (typeof window === 'undefined' || !dataUrl || !dataUrl.startsWith('data:image/')) {
+    callback(dataUrl)
+    return
+  }
+  if (dataUrl.length < 20000) {
+    callback(dataUrl)
+    return
+  }
+  const img = new Image()
+  img.onload = () => {
+    let width = img.width
+    let height = img.height
+
+    if (width > maxWidth || height > maxHeight) {
+      if (width > height) {
+        height = Math.round((height * maxWidth) / width)
+        width = maxWidth
+      } else {
+        width = Math.round((width * maxHeight) / height)
+        height = maxHeight
+      }
+    }
+
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(img, 0, 0, width, height)
+
+    const isPNG = dataUrl.includes('image/png') || dataUrl.includes('image/gif')
+    const outputType = isPNG ? 'image/png' : 'image/jpeg'
+    const quality = isPNG ? undefined : 0.75
+
+    const compressed = canvas.toDataURL(outputType, quality)
+    callback(compressed)
+  }
+  img.onerror = () => {
+    callback(dataUrl)
+  }
+  img.src = dataUrl
+}
+
+/** Helper utility to compress and resize image files before converting them to Base64 strings. */
+const compressAndResizeImage = (file, maxWidth, maxHeight, callback) => {
+  if (typeof window === 'undefined') return
+  const reader = new FileReader()
+  reader.onload = (event) => {
+    const img = new Image()
+    img.onload = () => {
+      let width = img.width
+      let height = img.height
+
+      if (width > maxWidth || height > maxHeight) {
+        if (width > height) {
+          height = Math.round((height * maxWidth) / width)
+          width = maxWidth
+        } else {
+          width = Math.round((width * maxHeight) / height)
+          height = maxHeight
+        }
+      }
+
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, width, height)
+
+      const isPNGOrGIF = file.type === 'image/png' || file.type === 'image/gif'
+      const outputType = isPNGOrGIF ? 'image/png' : 'image/jpeg'
+      const quality = isPNGOrGIF ? undefined : 0.75
+
+      const dataUrl = canvas.toDataURL(outputType, quality)
+      callback(dataUrl)
+    }
+    img.src = event.target.result
+  }
+  reader.readAsDataURL(file)
+}
+
+/** Prepend base API domain for relative image URLs like "/uploads/..." */
+const getImageUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('data:image/') || url.startsWith('http://') || url.startsWith('https://')) {
+    return url
+  }
+  const cleanPath = url.startsWith('/') ? url : `/${url}`
+  return `https://jobportal.coinage.in${cleanPath}`
+}
+
 /** Image field with URL input + real file upload preview + broken-image fallback. Reused for hero background, locations, and roles. */
 function ImageField({ value, onChange, onFileChange, label = 'Image URL', height = 200, showPreview = true }) {
   const fileRef = useRef(null)
@@ -94,9 +186,10 @@ function ImageField({ value, onChange, onFileChange, label = 'Image URL', height
     if (onFileChange) {
       onFileChange(file)
     }
-    const reader = new FileReader()
-    reader.onload = () => { onChange(reader.result); setBroken(false) }
-    reader.readAsDataURL(file)
+    compressAndResizeImage(file, 1200, 1200, (compressedDataUrl) => {
+      onChange(compressedDataUrl)
+      setBroken(false)
+    })
   }
 
   return (
@@ -141,9 +234,9 @@ function IconUploadField({ value, onChange }) {
   const onUpload = (event) => {
     const file = event.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => onChange(reader.result)
-    reader.readAsDataURL(file)
+    compressAndResizeImage(file, 128, 128, (compressedDataUrl) => {
+      onChange(compressedDataUrl)
+    })
   }
 
   return (
@@ -408,7 +501,7 @@ export default function HomePageManagement() {
           heroId: heroData.heroId || '',
           title: heroData.headline || '',
           subtitle: heroData.subheadline || '',
-          background: heroData.bannerImageUrl || '/assets/imgs/page/homepage1/banner1.png',
+          background: getImageUrl(heroData.bannerImageUrl) || '/assets/imgs/page/homepage1/banner1.png',
           searchPlaceholder: heroData.searchPlaceholder || '',
           ctaText: heroData.ctaText || '',
           ctaLink: heroData.ctaLink || '',
@@ -420,7 +513,7 @@ export default function HomePageManagement() {
           id: item.industryId,
           name: item.name || '',
           jobs: item.jobCountOverride || 0,
-          icon: item.iconUrl || '',
+          icon: getImageUrl(item.iconUrl),
           enabled: item.isActive !== false,
           showInDropdown: item.showInDropdown !== false
         })))
@@ -441,7 +534,7 @@ export default function HomePageManagement() {
         const mapped = locationsData.map(item => ({
           id: item.locationId,
           name: item.name || '',
-          image: item.imageUrl || '',
+          image: getImageUrl(item.imageUrl),
           enabled: item.isActive !== false,
           showInDropdown: item.showInDropdown !== false
         }))
@@ -453,7 +546,7 @@ export default function HomePageManagement() {
         const mapped = rolesData.map(item => ({
           id: item.roleId,
           name: item.name || '',
-          image: item.iconUrl || '',
+          image: getImageUrl(item.iconUrl),
           enabled: item.isActive !== false
         }))
         setRoles(mapped)
@@ -526,8 +619,7 @@ export default function HomePageManagement() {
     setIndustries((current) => current.map((item) => {
       if (item.id === id) {
         if (id && !id.startsWith('industry-')) {
-          setDeletedIndustryIds(prev => [...prev, id])
-          return { ...item, ...changes, id: newId('industry') }
+          return { ...item, ...changes, isModified: true }
         }
         return { ...item, ...changes }
       }
@@ -649,6 +741,28 @@ export default function HomePageManagement() {
     setError(null)
     setSuccessMessage('')
     try {
+      // Automatically check for any industry with a bloated icon (>20KB base64) and compress it, marking it as modified
+      const processedIndustries = await Promise.all(industries.map(async (ind) => {
+        if (ind.icon && ind.icon.startsWith('data:image/') && ind.icon.length > 20000) {
+          const compressedIcon = await new Promise((resolve) => {
+            compressAndResizeDataUrl(ind.icon, 128, 128, resolve)
+          })
+          return { ...ind, icon: compressedIcon, isModified: true }
+        }
+        return ind
+      }))
+
+      // Automatically check for any role with a bloated icon (>20KB base64) and compress it, marking it as modified
+      const processedRoles = await Promise.all(roles.map(async (r) => {
+        if (r.image && r.image.startsWith('data:image/') && r.image.length > 20000) {
+          const compressedImage = await new Promise((resolve) => {
+            compressAndResizeDataUrl(r.image, 128, 128, resolve)
+          })
+          return { ...r, image: compressedImage, isModified: true }
+        }
+        return r
+      }))
+
       // 1. Update Hero
       await homepageService.updateHero({
         headline: hero.title,
@@ -658,17 +772,23 @@ export default function HomePageManagement() {
         ctaLink: hero.ctaLink || null
       })
 
-      // 2. Delete removed items
-      const deletePromises = deletedIndustryIds.map(id => homepageService.deleteIndustry(id))
-      const deleteLocPromises = deletedLocationIds.map(id => homepageService.deleteLocation(id))
-      const deleteRolePromises = deletedRoleIds.map(id => homepageService.deleteRole(id))
-      const deleteRegIndustryPromises = deletedRegIndustryIds.map(id => homepageService.deleteRegistrationIndustry(id))
-      const deleteDepartmentPromises = deletedDepartmentIds.map(id => homepageService.deleteDepartment(id))
-      const deleteTradeCategoryPromises = deletedTradeCategoryIds.map(id => homepageService.deleteTradeCategory(id))
+      // 2. Delete removed items (including modified old industries that will be recreated, ignoring errors like 404 or constraint issues)
+      const modifiedIndustryIds = processedIndustries.filter(ind => !ind.id.startsWith('industry-') && ind.isModified).map(ind => ind.id)
+      const allDeletedIndustryIds = [...deletedIndustryIds, ...modifiedIndustryIds]
+      const deletePromises = allDeletedIndustryIds.map(id => homepageService.deleteIndustry(id).catch(err => {
+        console.warn(`Failed to delete industry ${id}:`, err)
+        return Promise.resolve()
+      }))
+      
+      const deleteLocPromises = deletedLocationIds.map(id => homepageService.deleteLocation(id).catch(() => Promise.resolve()))
+      const deleteRolePromises = deletedRoleIds.map(id => homepageService.deleteRole(id).catch(() => Promise.resolve()))
+      const deleteRegIndustryPromises = deletedRegIndustryIds.map(id => homepageService.deleteRegistrationIndustry(id).catch(() => Promise.resolve()))
+      const deleteDepartmentPromises = deletedDepartmentIds.map(id => homepageService.deleteDepartment(id).catch(() => Promise.resolve()))
+      const deleteTradeCategoryPromises = deletedTradeCategoryIds.map(id => homepageService.deleteTradeCategory(id).catch(() => Promise.resolve()))
 
       // 3. Save industries (only new/modified ones)
-      const savePromises = industries
-        .filter(ind => ind.id && ind.id.startsWith('industry-'))
+      const savePromises = processedIndustries
+        .filter(ind => (ind.id && ind.id.startsWith('industry-')) || ind.isModified)
         .map(ind => {
           const payload = {
             name: ind.name,
@@ -693,7 +813,7 @@ export default function HomePageManagement() {
         })
 
       // 5. Save existing roles (PUT updates)
-      const updateRolePromises = roles
+      const updateRolePromises = processedRoles
         .filter(r => r.id && !r.id.startsWith('role-'))
         .map((r, index) => {
           const payload = {
@@ -785,7 +905,7 @@ export default function HomePageManagement() {
       })
 
       // 10. Save new roles (POST create sequentially or in parallel, uploading image files once UUIDs are returned)
-      const newRoles = roles.filter(r => r.id && r.id.startsWith('role-'))
+      const newRoles = processedRoles.filter(r => r.id && r.id.startsWith('role-'))
       const createNewRolesPromises = newRoles.map(async (r) => {
         const payload = {
           name: r.name,
@@ -1161,14 +1281,30 @@ export default function HomePageManagement() {
             <div className="section-heading">
               <span className="section-icon"><BriefcaseBusiness size={19} /></span>
               <div><h5>Browse by industry</h5><p>Choose the industries displayed on the home screen and upload an icon for each.</p></div>
-              <button type="button" className="add-item" onClick={() => { setIndustries((items) => [...items, { id: newId('industry'), name: 'New industry', jobs: 0, icon: '', enabled: true, showInDropdown: false }]); markChanged() }}><Plus size={15} />Add industry</button>
+              <button type="button" className="add-item" onClick={() => { setIndustries((items) => [...items, { id: newId('industry'), name: '', jobs: 0, icon: '', enabled: true, showInDropdown: false }]); markChanged() }}><Plus size={15} />Add industry</button>
             </div>
             <div className="compact-list">
               {industries.map((industry) => (
                 <div className="compact-row industry-row" key={industry.id}>
                   <IconUploadField value={industry.icon} onChange={(value) => updateIndustry(industry.id, { icon: value })} />
                   <div className="industry-card-content">
-                    <label>Industry name<input value={industry.name} disabled={saving} onChange={(event) => updateIndustry(industry.id, { name: event.target.value })} /></label>
+                    <label>Industry name
+                      <select
+                        value={industry.name}
+                        disabled={saving}
+                        onChange={(event) => updateIndustry(industry.id, { name: event.target.value })}
+                      >
+                        <option value="">Select an industry...</option>
+                        {registrationIndustries.map(regInd => (
+                          <option key={regInd.id} value={regInd.name}>
+                            {regInd.name}
+                          </option>
+                        ))}
+                        {industry.name && !registrationIndustries.some(r => r.name === industry.name) && (
+                          <option value={industry.name}>{industry.name}</option>
+                        )}
+                      </select>
+                    </label>
                     <label>Job count override<input type="number" value={industry.jobs} disabled={saving} onChange={(event) => updateIndustry(industry.id, { jobs: parseInt(event.target.value, 10) || 0 })} /></label>
                     <div className="row-actions">
                       <span>{industry.enabled ? 'Visible' : 'Hidden'}</span><Toggle enabled={industry.enabled} onChange={(enabled) => updateIndustry(industry.id, { enabled })} />
@@ -1209,7 +1345,8 @@ export default function HomePageManagement() {
           <ContentImageSection
             title="Jobs by role" description="Manage the role cards and images shown lower on the home page."
             icon={<ImagePlus size={19} />} items={roles} setItems={setRoles} type="role" markChanged={markChanged}
-            newItem={() => ({ id: `role-${Date.now()}`, name: 'New role', image: '', enabled: true })}
+            newItem={() => ({ id: `role-${Date.now()}`, name: '', image: '', enabled: true })}
+            dropdownOptions={tradeCategories}
             onFileChange={(id, file) => {
               setRoleFiles(prev => ({ ...prev, [id]: file }))
               markChanged()
@@ -1306,22 +1443,54 @@ export default function HomePageManagement() {
         .homepage-manager-bar span { color: #f39b00; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
         .homepage-manager-bar h4 { margin: 4px 0; font-size: 20px; font-weight: 800; }
         .homepage-manager-bar p, .section-heading p { margin: 0; color: #71809f; font-size: 12px; }
-        .homepage-save { border: 0; border-radius: 7px; padding: 11px 15px; background: #ffa300; color: #fff; display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 800; white-space: nowrap; }
+        .homepage-save { border: 0; border-radius: 8px; padding: 11px 18px; background: #ffa300; color: #fff; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800; white-space: nowrap; cursor: pointer; transition: background 0.15s ease, transform 0.1s ease; }
+        .homepage-save:hover { background: #e08f00; }
+        .homepage-save:active { transform: scale(0.97); }
         .tab-switch { display: inline-flex; gap: 6px; padding: 5px; border: 1px solid #e1e8f3; border-radius: 11px; background: #f5f7fb; width: max-content; }
-        .tab-switch button { border: 0; border-radius: 8px; padding: 9px 16px; background: transparent; color: #5a6c8f; display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 800; }
+        .tab-switch button { border: 0; border-radius: 8px; padding: 9px 16px; background: transparent; color: #5a6c8f; display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 800; cursor: pointer; transition: all 0.15s ease; }
+        .tab-switch button:hover { color: #172b60; }
         .tab-switch button.is-active { background: #fff; color: #172b60; box-shadow: 0 3px 10px rgba(27, 52, 102, .08); }
         .home-section { overflow: hidden; }
         .section-heading { min-height: 60px; padding: 17px 21px; display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; border-bottom: 1px solid #edf1f6; }
         .section-heading > div { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
         .section-heading h5 { margin: 0; font-size: 15px; font-weight: 800; }
         .section-icon { width: 37px; height: 37px; display: grid; place-items: center; border-radius: 9px; background: #fff2dc; color: #f29a00; flex: 0 0 auto; }
-        .add-item { margin-left: auto; padding: 8px 10px; border: 1px solid #ffd28a; border-radius: 6px; background: #fff8ea; color: #ac6d00; display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+        .add-item { margin-left: auto; padding: 8px 10px; border: 1px solid #ffd28a; border-radius: 6px; background: #fff8ea; color: #ac6d00; display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 800; white-space: nowrap; cursor: pointer; transition: background 0.15s ease; }
+        .add-item:hover { background: #fff3db; }
         /* 50/50 columns for editor and preview to keep a stable rectangular preview */
         .hero-editor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 21px; padding: 21px; align-items: start; }
         .hero-fields { display: grid; gap: 13px; }
-        label { display: grid; gap: 5px; color: #667a9f; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
-        input, textarea, select { width: 100%; box-sizing: border-box; border: 1px solid #d6e0ee; border-radius: 6px; padding: 9px 10px; outline: none; color: #263c70; font: 12px/1.4 inherit; text-transform: none; letter-spacing: 0; background: #fff; }
-        input { height: 36px; } textarea { resize: vertical; min-height: 64px; } select { height: 36px; }
+        label { display: grid; gap: 6px; color: #64748b; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+        input, textarea, select {
+          width: 100%;
+          box-sizing: border-box;
+          border: 1px solid #d6e0ee;
+          border-radius: 8px;
+          padding: 8px 12px;
+          outline: none;
+          color: #1e293b;
+          font-size: 13px;
+          font-family: inherit;
+          font-weight: 500;
+          line-height: 1.4;
+          text-transform: none;
+          letter-spacing: 0;
+          background: #fff;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        input { height: 38px; }
+        select {
+          height: 38px;
+          appearance: none;
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+          background-position: right 10px center;
+          background-repeat: no-repeat;
+          background-size: 18px 18px;
+          padding-right: 32px !important;
+        }
+        textarea { resize: vertical; min-height: 70px; }
         input:focus, textarea:focus, select:focus { border-color: #ffa300; box-shadow: 0 0 0 3px rgba(255, 163, 0, .09); }
         .search-field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
         .dropdown-hint { margin: 0; font-size: 11px; font-weight: 700; color: #4b7a4f; background: #eef8ef; border: 1px solid #d7ecd9; border-radius: 6px; padding: 8px 10px; }
@@ -1387,7 +1556,9 @@ export default function HomePageManagement() {
         .industry-card-content .row-actions { justify-self: start; }
         .compact-row:last-child { border-bottom: 0; } .row-marker { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 7px; background: #f2f6fc; color: #5270aa; margin-bottom: 0; }
         .row-actions { min-height: 36px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .row-actions > span { color: #6e809e; font-size: 10px; font-weight: 700; }
-        .delete-item, .delete-text { border: 0; color: #c84b4b; background: #fff1f1; border-radius: 6px; padding: 7px; display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; } .delete-text { margin-top: 5px; width: max-content; }
+        .delete-item, .delete-text { border: 0; color: #ef4444; background: #fef2f2; border-radius: 8px; padding: 8px; display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
+        .delete-item:hover, .delete-text:hover { background: #fee2e2; color: #dc2626; }
+        .delete-text { margin-top: 5px; width: max-content; }
         /* Ensure stats editor uses 3 columns on desktop */
         .home-section .stats-editor { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 13px; padding: 20px 21px; }
         .home-section .stats-editor > .stat-edit-card { display: grid; align-content: start; gap: 10px; padding: 14px; border: 1px solid #e3eaf4; border-radius: 9px; width: auto; box-sizing: border-box; }
@@ -1449,9 +1620,12 @@ export default function HomePageManagement() {
         .suggestion-info h6 { margin: 6px 0 2px; font-size: 13px; font-weight: 800; color: #172b60; }
         .suggestion-info p { margin: 0; color: #71809f; font-size: 11px; }
         .suggestion-actions { display: flex; gap: 8px; }
-        .approve-btn, .reject-btn { flex: 1; border: 0; border-radius: 6px; padding: 8px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 11px; font-weight: 800; }
-        .approve-btn { background: #eaf7ec; color: #2f8132; } .approve-btn:hover { background: #dcf1df; }
-        .reject-btn { background: #fff1f1; color: #c84b4b; } .reject-btn:hover { background: #ffe6e6; }
+        .approve-btn, .reject-btn { flex: 1; border: 0; border-radius: 8px; padding: 9px 12px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; font-weight: 800; cursor: pointer; transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease; }
+        .approve-btn:active, .reject-btn:active { transform: scale(0.97); }
+        .approve-btn { background: #f0fdf4; color: #16a34a; }
+        .approve-btn:hover { background: #dcfce7; color: #15803d; }
+        .reject-btn { background: #fef2f2; color: #ef4444; }
+        .reject-btn:hover { background: #fee2e2; color: #dc2626; }
         
         @media (max-width: 1150px) { 
           .stats-editor { grid-template-columns: repeat(2, minmax(0, 1fr)); } 
@@ -1480,7 +1654,7 @@ export default function HomePageManagement() {
 
 /* ---------------------- location / role cards (image based) ---------------------- */
 
-function ContentImageSection({ title, description, icon, items, setItems, type, markChanged, newItem, onFileChange, onDelete, onUpdate }) {
+function ContentImageSection({ title, description, icon, items, setItems, type, markChanged, newItem, onFileChange, onDelete, onUpdate, dropdownOptions }) {
   const update = (id, changes) => {
     if (onUpdate) {
       onUpdate(id, changes)
@@ -1518,7 +1692,24 @@ function ContentImageSection({ title, description, icon, items, setItems, type, 
               onFileChange={onFileChange ? (file) => onFileChange(item.id, file) : undefined}
             />
             <div className="image-card-body">
-              <label>{type === 'location' ? 'Location name' : 'Role name'}<input value={item.name} onChange={(event) => update(item.id, { name: event.target.value })} /></label>
+              <label>
+                {type === 'location' ? 'Location name' : 'Role name'}
+                {type === 'role' && dropdownOptions ? (
+                  <select value={item.name} onChange={(event) => update(item.id, { name: event.target.value })}>
+                    <option value="">Select a role...</option>
+                    {dropdownOptions.map(opt => (
+                      <option key={opt.id} value={opt.name}>
+                        {opt.name}
+                      </option>
+                    ))}
+                    {item.name && !dropdownOptions.some(o => o.name === item.name) && (
+                      <option value={item.name}>{item.name}</option>
+                    )}
+                  </select>
+                ) : (
+                  <input value={item.name} onChange={(event) => update(item.id, { name: event.target.value })} />
+                )}
+              </label>
               <div className="row-actions">
                 <span>{item.enabled ? 'Visible' : 'Hidden'}</span><Toggle enabled={item.enabled} onChange={(enabled) => update(item.id, { enabled })} />
                 <button type="button" className="delete-item" onClick={() => remove(item.id)} aria-label={`Remove ${item.name}`}><Trash2 size={15} /></button>
@@ -1533,15 +1724,60 @@ function ContentImageSection({ title, description, icon, items, setItems, type, 
         .section-heading > div { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
         .section-heading h5 { margin: 0; color: #172b60; font-size: 15px; font-weight: 800; } .section-heading p { margin: 0; color: #71809f; font-size: 12px; }
         .section-icon { width: 37px; height: 37px; display: grid; place-items: center; border-radius: 9px; background: #fff2dc; color: #f29a00; flex: 0 0 auto; }
-        .add-item { margin-left: auto; padding: 8px 10px; border: 1px solid #ffd28a; border-radius: 6px; background: #fff8ea; color: #ac6d00; display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+        .add-item { margin-left: auto; padding: 8px 10px; border: 1px solid #ffd28a; border-radius: 6px; background: #fff8ea; color: #ac6d00; display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 800; white-space: nowrap; cursor: pointer; transition: background 0.15s ease; }
+        .add-item:hover { background: #fff3db; }
         .image-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; padding: 20px 21px; }
         .image-edit-card { padding: 14px; border: 1px solid #e3eaf4; border-radius: 10px; background: #fff; display: grid; gap: 12px; }
-        .image-card-body { display: grid; gap: 10px; }
-        .image-card-body label { display: grid; gap: 5px; color: #667a9f; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
-        .image-card-body input { width: 100%; height: 33px; box-sizing: border-box; border: 1px solid #d6e0ee; border-radius: 6px; padding: 7px; color: #263c70; font: 11px inherit; text-transform: none; letter-spacing: 0; outline: none; }
-        .image-card-body input:focus { border-color: #ffa300; }
+        .image-card-body { display: grid; gap: 14px; }
+        .image-card-body label { display: grid; gap: 6px; color: #64748b; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+        .image-card-body input, .image-card-body select {
+          width: 100%;
+          height: 38px;
+          box-sizing: border-box;
+          border: 1px solid #d6e0ee;
+          border-radius: 8px;
+          padding: 8px 12px;
+          color: #1e293b;
+          font-size: 13px;
+          font-family: inherit;
+          font-weight: 500;
+          text-transform: none;
+          letter-spacing: 0;
+          outline: none;
+          background: #fff;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .image-card-body select {
+          appearance: none;
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+          background-position: right 10px center;
+          background-repeat: no-repeat;
+          background-size: 18px 18px;
+          padding-right: 32px !important;
+        }
+        .image-card-body input:focus, .image-card-body select:focus {
+          border-color: #ffa300;
+          box-shadow: 0 0 0 3px rgba(255, 163, 0, .09);
+        }
         .row-actions { min-height: 36px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .row-actions > span { color: #6e809e; font-size: 10px; font-weight: 700; }
-        .delete-item { border: 0; color: #c84b4b; background: #fff1f1; border-radius: 6px; padding: 7px; display: inline-flex; align-items: center; }
+        .delete-item {
+          border: 0;
+          color: #ef4444;
+          background: #fef2f2;
+          border-radius: 8px;
+          padding: 8px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: background 0.15s ease, color 0.15s ease;
+        }
+        .delete-item:hover {
+          background: #fee2e2;
+          color: #dc2626;
+        }
         @media (max-width: 1150px) { .image-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
         @media (max-width: 760px) { .section-heading { align-items: flex-start; flex-wrap: wrap; } .add-item { margin-left: 0; } .image-card-grid { grid-template-columns: 1fr; padding: 16px; } }
       `}</style>
