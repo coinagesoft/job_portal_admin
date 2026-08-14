@@ -158,7 +158,7 @@ export default function CandidateDetailsPage({ searchParams }) {
       }
     }
 
-    if (targetId) {
+    if (targetId && targetId !== 'undefined') {
       fetchCandidateDetails(targetId)
     } else {
       setLoading(false)
@@ -170,8 +170,8 @@ export default function CandidateDetailsPage({ searchParams }) {
     const reason = newStatus === 'Active' ? 'Activated by admin' : 'Suspended by admin'
     
     let targetId = id
-    if (!targetId && candidateData) {
-      targetId = candidateData.id
+    if ((!targetId || targetId === 'undefined') && candidateData) {
+      targetId = candidateData.candidateId || candidateData.id
     }
     
     if (!targetId) return

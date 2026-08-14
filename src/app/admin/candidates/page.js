@@ -377,10 +377,10 @@ export default function CandidatesPage() {
                     </tr>
                   ) : (
                     visibleCandidates.map((c) => (
-                      <tr key={c.id}>
+                      <tr key={c.candidateId || c.id}>
                         <td className="align-middle">
                           <Link
-                            href={`/admin/candidates/candidateDetails?id=${c.id}`}
+                            href={`/admin/candidates/candidateDetails?id=${c.candidateId || c.id}`}
                             className="d-flex align-items-center text-decoration-none color-brand-1"
                           >
                             <img
@@ -414,7 +414,7 @@ export default function CandidatesPage() {
                                 fontSize: "14px",
                               }}
                             >
-                              {c.trade || "N/A"}
+                              {c.trade || c.tradeCategory || c.primaryTrade || "N/A"}
                             </span>
                           </div>
                         </td>
@@ -447,7 +447,7 @@ export default function CandidatesPage() {
                         <td className="align-middle">
                           <div className="d-flex align-items-center gap-2">
                             <Link
-                              href={`/admin/candidates/candidateDetails?id=${c.id}`}
+                              href={`/admin/candidates/candidateDetails?id=${c.candidateId || c.id}`}
                               className="action-icon action-view"
                               title="View Candidate"
                             >
@@ -458,7 +458,7 @@ export default function CandidatesPage() {
                               <button
                                 className="action-icon action-active"
                                 title="Activate"
-                                onClick={() => handleSetStatus(c.id, "Active")}
+                                onClick={() => handleSetStatus(c.candidateId || c.id, "Active")}
                               >
                                 <ShieldCheck size={18} />
                               </button>
@@ -467,7 +467,7 @@ export default function CandidatesPage() {
                                 className="action-icon action-suspend"
                                 title="Suspend"
                                 onClick={() =>
-                                  handleSetStatus(c.id, "Suspended")
+                                  handleSetStatus(c.candidateId || c.id, "Suspended")
                                 }
                               >
                                 <Ban size={18} />
@@ -495,12 +495,12 @@ export default function CandidatesPage() {
               ) : (
                 <div className="row">
                   {visibleCandidates.map((c) => (
-                    <div className="col-md-6 mb-15" key={c.id}>
+                    <div className="col-md-6 mb-15" key={c.candidateId || c.id}>
                       <div className="panel-white h-100">
                         <div className="box-padding">
                           <div className="d-flex align-items-center mb-15">
                             <Link
-                              href={`/admin/candidates/candidateDetails?id=${c.id}`}
+                              href={`/admin/candidates/candidateDetails?id=${c.candidateId || c.id}`}
                               className="d-flex align-items-center text-decoration-none color-brand-1"
                             >
                               <img
@@ -526,7 +526,7 @@ export default function CandidatesPage() {
                           <div className="mb-10">
                             <p className="font-sm mb-5 d-flex align-items-center gap-2">
                               <HardHat size={14} color="#ffa300" />
-                              <strong>Trade:</strong> {c.trade || "N/A"}
+                              <strong>Trade:</strong> {c.trade || c.tradeCategory || c.primaryTrade || "N/A"}
                             </p>
 
                             <p className="font-sm mb-5">
@@ -559,7 +559,7 @@ export default function CandidatesPage() {
 
                         <div className="d-flex gap-2 mt-15">
                           <Link
-                            href={`/admin/candidates/candidateDetails?id=${c.id}`}
+                            href={`/admin/candidates/candidateDetails?id=${c.candidateId || c.id}`}
                             className="btn hover-up w-100 action-btn action-btn-view justify-content-center"
                           >
                             <Eye size={13} />
@@ -569,7 +569,7 @@ export default function CandidatesPage() {
                           {c.status === "Suspended" ? (
                             <button
                               className="btn hover-up w-100 action-btn action-btn-activate justify-content-center"
-                              onClick={() => handleSetStatus(c.id, "Active")}
+                              onClick={() => handleSetStatus(c.candidateId || c.id, "Active")}
                             >
                               <ShieldCheck size={13} />
                               Activate
@@ -577,7 +577,7 @@ export default function CandidatesPage() {
                           ) : (
                             <button
                               className="btn hover-up w-100 action-btn action-btn-suspend justify-content-center"
-                              onClick={() => handleSetStatus(c.id, "Suspended")}
+                              onClick={() => handleSetStatus(c.candidateId || c.id, "Suspended")}
                             >
                               <Ban size={13} />
                               Suspend
