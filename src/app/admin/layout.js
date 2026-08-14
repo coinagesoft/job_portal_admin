@@ -17,6 +17,10 @@ export default function DashboardLayout({ children }) {
   // Sync profile on mount
   useEffect(() => {
     const fetchProfileAndVerify = async () => {
+      if (!authService.isAuthenticated()) {
+        setProfileLoaded(true);
+        return;
+      }
       try {
         console.log('layout: fetchProfileAndVerify running...');
         const response = await authService.getCurrentUser();
@@ -92,6 +96,48 @@ export default function DashboardLayout({ children }) {
     const checkAccess = () => {
       try {
         console.log('layout: checkAccess checking route:', pathname);
+        
+        // If on the signin page
+        if (pathname === '/admin/signin') {
+          if (authService.isAuthenticated()) {
+            console.log('layout: already authenticated, redirecting from signin.');
+            const saved = JSON.parse(window.localStorage.getItem('jobbox_logged_in_admin') || window.localStorage.getItem('jobbox_superadmin') || 'null');
+            if (saved && saved.adminType === 'SubAdmin') {
+              const perms = saved.permissions || {};
+              const routeOrder = [
+                { key: 'dashboard', path: '/admin/dashboard' },
+                { key: 'candidates', path: '/admin/candidates' },
+                { key: 'recruiters', path: '/admin/recruiters' },
+                { key: 'revenue', path: '/admin/revenue' },
+                { key: 'plans', path: '/admin/Plans' },
+                { key: 'home_management', path: '/admin/homepage-management' },
+                { key: 'users', path: '/admin/users' },
+                { key: 'help_support', path: '/admin/helpAndsupport' },
+                { key: 'audit_logs', path: '/admin/audit' },
+                { key: 'legal_pages', path: '/admin/managePolicies' },
+                { key: 'settings', path: '/admin/settings' }
+              ];
+              const firstAllowed = routeOrder.find(r => perms[r.key] === true);
+              if (firstAllowed) {
+                router.push(firstAllowed.path);
+                return;
+              }
+            }
+            router.push('/admin/dashboard');
+          } else {
+            setAuthorized(true);
+            setLoading(false);
+          }
+          return;
+        }
+
+        // If not on signin page and not authenticated, redirect to signin
+        if (!authService.isAuthenticated()) {
+          console.log('layout: not authenticated, redirecting to signin.');
+          router.push('/admin/signin');
+          return;
+        }
+
         if (pathname.startsWith('/admin/profile')) {
           console.log('layout: profile page blocked.');
           setAuthorized(false);
@@ -138,7 +184,32 @@ export default function DashboardLayout({ children }) {
     };
 
     checkAccess();
-  }, [pathname, profileLoaded]);
+  }, [pathname, profileLoaded, router]);
+
+  // For sign-in page, render page children directly without dashboard wrapper layout
+  if (pathname === '/admin/signin') {
+    if (loading) {
+      return (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '4px solid #f3f3f3',
+            borderTop: '4px solid #ff9900',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }} />
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
+      );
+    }
+    return <>{children}</>;
+  }
 
   return (
     <>
