@@ -747,6 +747,42 @@ export default function HomePageManagement() {
       setTimeout(() => setError(null), 5000)
       return
     }
+
+    if (industries.some(ind => !ind.name || !ind.name.trim())) {
+      setError('Industry names cannot be empty.')
+      setTimeout(() => setError(null), 5000)
+      return
+    }
+
+    if (locations.some(loc => !loc.name || !loc.name.trim())) {
+      setError('Location names cannot be empty.')
+      setTimeout(() => setError(null), 5000)
+      return
+    }
+
+    if (roles.some(role => !role.name || !role.name.trim())) {
+      setError('Role names cannot be empty.')
+      setTimeout(() => setError(null), 5000)
+      return
+    }
+
+    if (registrationIndustries.some(item => !item.name || !item.name.trim())) {
+      setError('Registration industry names cannot be empty.')
+      setTimeout(() => setError(null), 5000)
+      return
+    }
+
+    if (departments.some(item => !item.name || !item.name.trim())) {
+      setError('Department names cannot be empty.')
+      setTimeout(() => setError(null), 5000)
+      return
+    }
+
+    if (tradeCategories.some(item => !item.name || !item.name.trim())) {
+      setError('Trade category names cannot be empty.')
+      setTimeout(() => setError(null), 5000)
+      return
+    }
     setSaving(true)
     setError(null)
     setSuccessMessage('')
@@ -817,7 +853,8 @@ export default function HomePageManagement() {
             name: loc.name,
             country: loc.name,
             jobCountOverride: 0,
-            displayOrder: index
+            displayOrder: index,
+            showInDropdown: loc.showInDropdown !== false
           }
           return homepageService.updateLocation(loc.id, payload)
         })
@@ -902,7 +939,8 @@ export default function HomePageManagement() {
         const payload = {
           name: loc.name,
           country: loc.name,
-          jobCountOverride: 0
+          jobCountOverride: 0,
+          showInDropdown: loc.showInDropdown !== false
         }
         const response = await homepageService.createLocation(payload)
         const realId = response.locationId
@@ -1371,7 +1409,7 @@ export default function HomePageManagement() {
 
           <ContentImageSection
             title="Jobs by location" description="Manage country cards and their featured images shown on the home page."
-            icon={<MapPin size={19} />} items={locations.filter(item => !item.showInDropdown)} setItems={setLocations} type="location" markChanged={markChanged}
+            icon={<MapPin size={19} />} items={locations} setItems={setLocations} type="location" markChanged={markChanged}
             newItem={() => ({ id: newId('location'), name: 'New location', image: '', enabled: true, showInDropdown: false })}
             onFileChange={(id, file) => {
               setLocationFiles(prev => ({ ...prev, [id]: file }))
