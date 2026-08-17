@@ -176,8 +176,9 @@ export default function PlansPage() {
       return dbCreditPlans.filter(plan => {
         const planRegion = (plan.region || '').toLowerCase();
         const currentRegion = regions.find(r => r.id === regionId);
-        return planRegion === regionId.toLowerCase() || 
+        const matchesRegion = planRegion === regionId.toLowerCase() || 
                (currentRegion && planRegion === currentRegion.name.toLowerCase());
+        return matchesRegion && plan.active === true;
       });
     }
     
@@ -191,7 +192,9 @@ export default function PlansPage() {
              (currentRegion && planRegion === currentRegion.name.toLowerCase());
     });
 
-    // Enforce single plan requirement for Recruiter and Candidate membership
+    const activePlans = filtered.filter(plan => plan.active === true);
+
+    // Enforce single plan requirement for Recruiter and Candidate membership if no plans exist in DB
     if (filtered.length === 0) {
       const defaultId = `${activeTab}-default-${regionId}`;
       const defaultPlan = activeTab === 'recruiter' 
@@ -222,8 +225,7 @@ export default function PlansPage() {
       return [defaultPlan];
     }
     
-    // Return only the first plan
-    return [filtered[0]];
+    return activePlans;
   }, [dbPlans, dbCreditPlans, activeTab, regionId]);
 
   const tabs = [
@@ -539,9 +541,9 @@ export default function PlansPage() {
                 </div>
               ) : <ul className="plan-features">{plan.features.map((feature) => <li key={feature}><Check size={16} />{feature}</li>)}</ul>)}
               <div className="plan-footer">
-                <button className={`plan-status ${plan.active ? 'is-active' : 'is-inactive'}`} onClick={() => updatePlan(plan.id, { active: !plan.active })} aria-label={`Set ${plan.name} ${plan.active ? 'inactive' : 'active'}`}>
-                  <i /> {plan.active ? 'Active' : 'Inactive'}
-                </button>
+                <span className="plan-status is-active">
+                  <i /> Active
+                </span>
                 {isEditing ? (
                   <button className="card-save" onClick={() => setEditingId(null)}><Save size={14} />Done</button>
                 ) : (
