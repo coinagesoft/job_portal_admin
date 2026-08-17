@@ -104,6 +104,16 @@ const formatTimestamp = (ts) => {
   }
 };
 
+// Clean description by removing API paths and HTTP methods (e.g. "via PUT /api/admin/settings" or "/api/...")
+const formatDescription = (desc) => {
+  if (!desc) return '—';
+  // Matches " via [HTTP_METHOD] /api/..." or " via /api/..." or similar, case-insensitive
+  let cleaned = desc.replace(/\s*via\s+(?:GET|POST|PUT|DELETE|PATCH|OPTIONS|HEAD)?\s*\/api\/[a-zA-Z0-9_\-\/]+/gi, '');
+  // Matches standalone "/api/..."
+  cleaned = cleaned.replace(/\/api\/[a-zA-Z0-9_\-\/]+/gi, '');
+  return cleaned.trim() || '—';
+};
+
 // Render Changes dynamically in a key-by-key comparison view
 const renderChanges = (oldVal, newVal) => {
   let oldObj = {};
@@ -278,13 +288,44 @@ export default function AuditLogsPage() {
     })
     .then((res) => {
       setLoading(false);
-      if (res && res.items) {
-        setLogs(res.items);
-        setTotalCount(res.totalCount || 0);
-      } else if (Array.isArray(res)) {
-        setLogs(res);
-        setTotalCount(res.length);
+      console.log("Audit Logs API Response:", res);
+      if (!res) {
+        setLogs([]);
+        setTotalCount(0);
+        return;
       }
+
+      let finalLogs = [];
+      let finalTotal = 0;
+
+      if (res.items && Array.isArray(res.items)) {
+        finalLogs = res.items;
+        finalTotal = res.totalCount || res.total || res.items.length || 0;
+      } else if (res.data && Array.isArray(res.data)) {
+        finalLogs = res.data;
+        finalTotal = res.totalCount || res.total || res.data.length || 0;
+      } else if (res.logs && Array.isArray(res.logs)) {
+        finalLogs = res.logs;
+        finalTotal = res.totalCount || res.total || res.logs.length || 0;
+      } else if (res.data && res.data.items && Array.isArray(res.data.items)) {
+        finalLogs = res.data.items;
+        finalTotal = res.data.totalCount || res.data.total || res.data.items.length || 0;
+      } else if (res.data && res.data.logs && Array.isArray(res.data.logs)) {
+        finalLogs = res.data.logs;
+        finalTotal = res.data.totalCount || res.data.total || res.data.logs.length || 0;
+      } else if (Array.isArray(res)) {
+        finalLogs = res;
+        finalTotal = res.length;
+      } else if (typeof res === 'object') {
+        const arrayKey = Object.keys(res).find(key => Array.isArray(res[key]));
+        if (arrayKey) {
+          finalLogs = res[arrayKey];
+          finalTotal = res.totalCount || res.total || res.totalLogs || finalLogs.length || 0;
+        }
+      }
+
+      setLogs(finalLogs);
+      setTotalCount(finalTotal || finalLogs.length || 0);
     })
     .catch((err) => {
       setLoading(false);
@@ -297,7 +338,9 @@ export default function AuditLogsPage() {
   }, [actionFilter, actorTypeFilter, severityFilter, dateFilter, page]);
 
   const pageCount = Math.max(1, Math.ceil(totalCount / pageSize))
-  const visibleLogs = logs
+  const visibleLogs = logs.length > pageSize
+    ? logs.slice((page - 1) * pageSize, page * pageSize)
+    : logs
   const hasActiveFilters = !!(actionFilter || dateFilter || severityFilter || actorTypeFilter)
 
   function handleExport(kind) {
@@ -884,7 +927,7 @@ export default function AuditLogsPage() {
                                     </div>
                                     <div>
                                       <p className="font-xs color-text-paragraph-2 mb-5">Description / Reason</p>
-                                      <span className="font-sm">{row.description || '—'}</span>
+                                      <span className="font-sm">{formatDescription(row.description)}</span>
                                     </div>
                                     <div style={{ gridColumn: 'span 2' }}>
                                       <p className="font-xs color-text-paragraph-2 mb-5">Change Parameters</p>
@@ -909,10 +952,38 @@ export default function AuditLogsPage() {
               </div>
 
               {totalCount > 0 && (
-                <div className="audit-table-pagination">
+                <div style={{
+                  padding: '15px 20px',
+                  borderTop: '1px solid #edf1f6',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  color: '#7b8aa5',
+                  fontSize: '12px',
+                  flexWrap: 'wrap'
+                }}>
                   <span>Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalCount)} of {totalCount} logs</span>
-                  <div>
-                    <button disabled={page === 1} onClick={() => setPage((current) => current - 1)}>Previous</button>
+                  <div style={{ display: 'flex', gap: '5px' }}>
+                    <button
+                      disabled={page === 1}
+                      onClick={() => setPage((current) => current - 1)}
+                      style={{
+                        height: '30px',
+                        minWidth: '30px',
+                        padding: '0 9px',
+                        border: '1px solid #dce4ef',
+                        borderRadius: '5px',
+                        background: '#fff',
+                        color: '#5f7194',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: page === 1 ? 'not-allowed' : 'pointer',
+                        opacity: page === 1 ? 0.45 : 1
+                      }}
+                    >
+                      Previous
+                    </button>
                     {getVisiblePageNumbers().map((item, index) => {
                       if (item === 'ellipsis-start' || item === 'ellipsis-end') {
                         return (
@@ -930,17 +1001,47 @@ export default function AuditLogsPage() {
                           </span>
                         );
                       }
+                      const isActive = page === item;
                       return (
                         <button
                           key={item}
-                          className={page === item ? 'active' : ''}
                           onClick={() => setPage(item)}
+                          style={{
+                            height: '30px',
+                            minWidth: '30px',
+                            padding: '0 9px',
+                            border: '1px solid ' + (isActive ? '#ffa300' : '#dce4ef'),
+                            borderRadius: '5px',
+                            background: isActive ? '#ffa300' : '#fff',
+                            color: isActive ? '#fff' : '#5f7194',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
                         >
                           {item}
                         </button>
                       );
                     })}
-                    <button disabled={page === pageCount} onClick={() => setPage((current) => current + 1)}>Next</button>
+                    <button
+                      disabled={page === pageCount}
+                      onClick={() => setPage((current) => current + 1)}
+                      style={{
+                        height: '30px',
+                        minWidth: '30px',
+                        padding: '0 9px',
+                        border: '1px solid #dce4ef',
+                        borderRadius: '5px',
+                        background: '#fff',
+                        color: '#5f7194',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: page === pageCount ? 'not-allowed' : 'pointer',
+                        opacity: page === pageCount ? 0.45 : 1
+                      }}
+                    >
+                      Next
+                    </button>
                   </div>
                 </div>
               )}
