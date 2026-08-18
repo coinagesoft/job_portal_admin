@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, Fragment } from 'react'
+import { useState, useEffect, useMemo, Fragment } from 'react'
 import Footer from '../../../components/Footer'
 import {
   Monitor,
@@ -271,76 +271,115 @@ export default function AuditLogsPage() {
   const [exportMsg, setExportMsg] = useState('')
   const [page, setPage] = useState(1)
 
-  const [logs, setLogs] = useState([])
+  // Full dataset from the API. All filtering + pagination below is done on the
+  // client so the toolbar filters work reliably regardless of what query
+  // params the backend actually understands.
+  const [allLogs, setAllLogs] = useState([])
   const [loading, setLoading] = useState(true)
-  const [totalCount, setTotalCount] = useState(0)
   const pageSize = 8
 
   const fetchAuditLogs = () => {
     setLoading(true);
     auditLogService.getAuditLogs({
-      search: actionFilter,
-      actorType: actorTypeFilter,
-      severity: severityFilter,
-      date: dateFilter,
-      page: page,
-      pageSize: pageSize
+      page: 1,
+      pageSize: 1000, // pull a large batch so client-side filtering has the full picture
     })
-    .then((res) => {
-      setLoading(false);
-      console.log("Audit Logs API Response:", res);
-      if (!res) {
-        setLogs([]);
-        setTotalCount(0);
-        return;
-      }
-
-      let finalLogs = [];
-      let finalTotal = 0;
-
-      if (res.items && Array.isArray(res.items)) {
-        finalLogs = res.items;
-        finalTotal = res.totalCount || res.total || res.items.length || 0;
-      } else if (res.data && Array.isArray(res.data)) {
-        finalLogs = res.data;
-        finalTotal = res.totalCount || res.total || res.data.length || 0;
-      } else if (res.logs && Array.isArray(res.logs)) {
-        finalLogs = res.logs;
-        finalTotal = res.totalCount || res.total || res.logs.length || 0;
-      } else if (res.data && res.data.items && Array.isArray(res.data.items)) {
-        finalLogs = res.data.items;
-        finalTotal = res.data.totalCount || res.data.total || res.data.items.length || 0;
-      } else if (res.data && res.data.logs && Array.isArray(res.data.logs)) {
-        finalLogs = res.data.logs;
-        finalTotal = res.data.totalCount || res.data.total || res.data.logs.length || 0;
-      } else if (Array.isArray(res)) {
-        finalLogs = res;
-        finalTotal = res.length;
-      } else if (typeof res === 'object') {
-        const arrayKey = Object.keys(res).find(key => Array.isArray(res[key]));
-        if (arrayKey) {
-          finalLogs = res[arrayKey];
-          finalTotal = res.totalCount || res.total || res.totalLogs || finalLogs.length || 0;
+      .then((res) => {
+        setLoading(false);
+        console.log("Audit Logs API Response:", res);
+        if (!res) {
+          setAllLogs([]);
+          return;
         }
-      }
 
-      setLogs(finalLogs);
-      setTotalCount(finalTotal || finalLogs.length || 0);
-    })
-    .catch((err) => {
-      setLoading(false);
-      console.error("Failed to fetch audit logs:", err);
-    });
+        let finalLogs = [];
+
+        if (res.items && Array.isArray(res.items)) {
+          finalLogs = res.items;
+        } else if (res.data && Array.isArray(res.data)) {
+          finalLogs = res.data;
+        } else if (res.logs && Array.isArray(res.logs)) {
+          finalLogs = res.logs;
+        } else if (res.data && res.data.items && Array.isArray(res.data.items)) {
+          finalLogs = res.data.items;
+        } else if (res.data && res.data.logs && Array.isArray(res.data.logs)) {
+          finalLogs = res.data.logs;
+        } else if (Array.isArray(res)) {
+          finalLogs = res;
+        } else if (typeof res === 'object') {
+          const arrayKey = Object.keys(res).find(key => Array.isArray(res[key]));
+          if (arrayKey) {
+            finalLogs = res[arrayKey];
+          }
+        }
+
+        setAllLogs(finalLogs);
+      })
+      .catch((err) => {
+        setLoading(false);
+        console.error("Failed to fetch audit logs:", err);
+      });
   };
 
+  // Fetch once on mount. Filters no longer trigger a refetch — they just
+  // change what's shown from the data we already have.
   useEffect(() => {
     fetchAuditLogs();
-  }, [actionFilter, actorTypeFilter, severityFilter, dateFilter, page]);
+  }, []);
 
+  // Whenever a filter changes, jump back to page 1 so you don't get stuck
+  // looking at an empty page from a previous filter's pagination state.
+  useEffect(() => {
+    setPage(1);
+  }, [actionFilter, actorTypeFilter, severityFilter, dateFilter]);
+
+  const filteredLogs = useMemo(() => {
+    const q = actionFilter.trim().toLowerCase();
+
+    return allLogs.filter((row) => {
+      if (q) {
+        const haystack = [
+          row.action,
+          row.admin,
+          row.sessionId,
+          row.targetEntity,
+          row.description,
+          row.module,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+
+      if (actorTypeFilter) {
+        const rowType = (row.actorType || '').toLowerCase().replace('-', '_');
+        if (rowType !== actorTypeFilter.toLowerCase()) return false;
+      }
+
+      if (severityFilter) {
+        if ((row.severity || '').toLowerCase() !== severityFilter.toLowerCase()) return false;
+      }
+
+      if (dateFilter) {
+        if (!row.timestamp) return false;
+        let rowDate = '';
+        try {
+          rowDate = new Date(row.timestamp).toISOString().slice(0, 10);
+        } catch (e) {
+          rowDate = '';
+        }
+        if (rowDate !== dateFilter) return false;
+      }
+
+      return true;
+    });
+  }, [allLogs, actionFilter, actorTypeFilter, severityFilter, dateFilter]);
+
+  const totalAllLogs = allLogs.length
+  const totalCount = filteredLogs.length
   const pageCount = Math.max(1, Math.ceil(totalCount / pageSize))
-  const visibleLogs = logs.length > pageSize
-    ? logs.slice((page - 1) * pageSize, page * pageSize)
-    : logs
+  const visibleLogs = filteredLogs.slice((page - 1) * pageSize, page * pageSize)
   const hasActiveFilters = !!(actionFilter || dateFilter || severityFilter || actorTypeFilter)
 
   function handleExport(kind) {
@@ -424,7 +463,7 @@ export default function AuditLogsPage() {
             <div className="card-style-1 hover-up">
               <div className="card-image"><Monitor size={28} strokeWidth={2.2} /></div>
               <div className="card-info">
-                <h3>{loading ? '...' : totalCount}</h3>
+                <h3>{loading ? '...' : totalAllLogs}</h3>
                 <p>Total Logs (24h)</p>
               </div>
             </div>
@@ -477,7 +516,7 @@ export default function AuditLogsPage() {
                     type="text"
                     placeholder="Search by action, actor or session..."
                     value={actionFilter}
-                    onChange={(e) => { setActionFilter(e.target.value); setPage(1) }}
+                    onChange={(e) => setActionFilter(e.target.value)}
                     autoComplete="off"
                   />
                 </label>
@@ -507,7 +546,6 @@ export default function AuditLogsPage() {
                       max={TODAY_ISO}
                       onChange={(e) => {
                         setDateFilter(e.target.value);
-                        setPage(1);
                       }}
                       aria-label="Filter by date"
                       className="audit-date-input"
@@ -521,7 +559,6 @@ export default function AuditLogsPage() {
                           e.preventDefault();
                           e.stopPropagation();
                           setDateFilter("");
-                          setPage(1);
                         }}
                       >
                         <X size={12} />
@@ -532,7 +569,7 @@ export default function AuditLogsPage() {
                   <select
                     className="audit-pill-select"
                     value={actorTypeFilter}
-                    onChange={(e) => { setActorTypeFilter(e.target.value); setPage(1) }}
+                    onChange={(e) => setActorTypeFilter(e.target.value)}
                   >
                     <option value="">Actor Type: All</option>
                     <option value="admin">Admin</option>
@@ -542,7 +579,7 @@ export default function AuditLogsPage() {
                   <select
                     className="audit-pill-select"
                     value={severityFilter}
-                    onChange={(e) => { setSeverityFilter(e.target.value); setPage(1) }}
+                    onChange={(e) => setSeverityFilter(e.target.value)}
                   >
                     <option value="">Severity: All</option>
                     <option value="critical">Critical</option>

@@ -336,10 +336,10 @@ Thank you for your business.
                       label: "COMPANY SIZE",
                       value: "1001–5000 Employees",
                     },
-                    {
-                      label: "COMPANY TYPE",
-                      value: "Direct Employer",
-                    },
+                    // {
+                    //   label: "COMPANY TYPE",
+                    //   value: "Direct Employer",
+                    // },
                     {
                       label: "OFFICIAL WEBSITE",
                       value: "www.stellarlogistics.com",
