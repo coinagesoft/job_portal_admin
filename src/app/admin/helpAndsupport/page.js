@@ -281,7 +281,7 @@ export default function AdminSupportPage() {
                         <tr key={ticket.ticketId}>
                           <td>
                             <div className="ticket-user">
-                              <img src={getAvatarUrl(ticket.raisedByAvatarUrl, ticket.raisedByName, index)} alt="" />
+                              {/* <img src={getAvatarUrl(ticket.raisedByAvatarUrl, ticket.raisedByName, index)} alt="" /> */}
                               <div>
                                 <h6>{ticket.raisedByName}</h6>
                                 <span>{ticket.ticketId.slice(0, 8).toUpperCase()}</span>

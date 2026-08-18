@@ -191,7 +191,7 @@ export default function CandidatesPage() {
                 <div className="card-title">
                   <h3>
                     {candidatesList.length} <br />
-                    <span className="font-sm status up">Total</span>
+                    {/* <span className="font-sm status up">Total</span> */}
                   </h3>
                 </div>
                 <p className="color-text-paragraph-2">Total Candidates</p>
@@ -219,7 +219,7 @@ export default function CandidatesPage() {
                   <h3>
                     {activeCount}
                     <br />
-                    <span className="font-sm status up">Active</span>
+                    {/* <span className="font-sm status up">Active</span> */}
                   </h3>
                 </div>
                 <p className="color-text-paragraph-2">Active Candidates</p>
@@ -247,7 +247,7 @@ export default function CandidatesPage() {
                   <h3>
                     {joinedThisMonth}
                     <br />
-                    <span className="font-sm status up">This Month</span>
+                    {/* <span className="font-sm status up">This Month</span> */}
                   </h3>
                 </div>
 

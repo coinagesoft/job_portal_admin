@@ -346,7 +346,7 @@ export default function RecruiterPage() {
                 <div className="card-title">
                   <h3>
                     {recruitersList.length}
-                    <span className="font-sm status up ms-2">Total</span>
+                    {/* <span className="font-sm status up ms-2">Total</span> */}
                   </h3>
                 </div>
                 <p className="color-text-paragraph-2">Total Employers</p>
@@ -382,7 +382,7 @@ export default function RecruiterPage() {
                 <div className="card-title">
                   <h3>
                     {verificationRate}% <br />
-                    <span className="font-sm status up ms-2">GST</span>
+                    {/* <span className="font-sm status up ms-2">GST</span> */}
                   </h3>
                 </div>
                 <p className="color-text-paragraph-2">Verification Rate</p>
@@ -400,7 +400,7 @@ export default function RecruiterPage() {
                 <div className="card-title">
                   <h3>
                     {activeRecruitersCount} <br />
-                    <span className="font-sm status up ms-2">Active</span>
+                    {/* <span className="font-sm status up ms-2">Active</span> */}
                   </h3>
                 </div>
                 <p className="color-text-paragraph-2">Active Recruiters</p>

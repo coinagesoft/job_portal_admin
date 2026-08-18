@@ -217,7 +217,9 @@ export default function DashboardPage() {
             <Link href="/admin/revenue" className="card-style-1 hover-up" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="card-image"><Wallet size={28} strokeWidth={2.2} color={NAVY} /></div>
               <div className="card-info">
-                <div className="card-title"><h3>$128,430<span className="font-sm status up">12.5<span>%</span></span></h3></div>
+                <div className="card-title"><h3>$128,430
+                  {/* <span className="font-sm status up">12.5<span>%</span></span> */}
+                  </h3></div>
                 <p className="color-text-paragraph-2">Total Revenue</p>
               </div>
             </Link>
@@ -226,7 +228,9 @@ export default function DashboardPage() {
             <Link href="/admin/candidates" className="card-style-1 hover-up" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="card-image"><img src="/assets/imgs/page/dashboard/candidates.svg" alt="jobBox" /></div>
               <div className="card-info">
-                <div className="card-title"><h3>14,205<span className="font-sm status up">4.2<span>%</span></span></h3></div>
+                <div className="card-title"><h3>14,205
+                  {/* <span className="font-sm status up">4.2<span>%</span></span> */}
+                  </h3></div>
                 <p className="color-text-paragraph-2">Total Candidates</p>
               </div>
             </Link>
@@ -235,7 +239,9 @@ export default function DashboardPage() {
             <Link href="/admin/recruiters" className="card-style-1 hover-up" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="card-image"><img src="/assets/imgs/page/dashboard/recruiters.svg" alt="jobBox" /></div>
               <div className="card-info">
-                <div className="card-title"><h3>842<span className="font-sm status up">1.8<span>%</span></span></h3></div>
+                <div className="card-title"><h3>842
+                  {/* <span className="font-sm status up">1.8<span>%</span></span> */}
+                  </h3></div>
                 <p className="color-text-paragraph-2">Total Recruiters</p>
               </div>
             </Link>
@@ -244,7 +250,7 @@ export default function DashboardPage() {
             <Link href="/admin/Plans" className="card-style-1 hover-up" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="card-image"><FileText size={28} strokeWidth={2.2} color={NAVY} /></div>
               <div className="card-info">
-                <div className="card-title"><h3>24,500<span className="font-sm status down">- 0.4%</span></h3></div>
+                <div className="card-title"><h3>24,500</h3></div>
                 <p className="color-text-paragraph-2">Credits Sold</p>
               </div>
             </Link>
