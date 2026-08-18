@@ -577,8 +577,7 @@ export default function HomePageManagement() {
         const mapped = tradeCategoriesData.map(item => ({
           id: item.id,
           name: item.name || '',
-          enabled: item.isActive !== false,
-          showInDropdown: true
+          enabled: item.isActive !== false
         }))
         setTradeCategories(mapped)
         setOriginalTradeCategories(JSON.parse(JSON.stringify(mapped)))
@@ -1137,10 +1136,6 @@ export default function HomePageManagement() {
     setLocations((items) => [...items, { id: newId('location'), name, image: '', enabled: true, showInDropdown: true }])
     markChanged()
   }
-  const addTradeCategoryToDropdown = (name) => {
-    setTradeCategories((items) => [...items, { id: `trade-${Date.now()}`, name, enabled: true, showInDropdown: true }])
-    markChanged()
-  }
 
   const approveSuggestion = async (suggestion) => {
     try {
@@ -1332,7 +1327,7 @@ export default function HomePageManagement() {
                   <label>Location dropdown label<input value={hero.locationPlaceholder} disabled={saving} onChange={(event) => { setHero({ ...hero, locationPlaceholder: event.target.value }); markChanged() }} /></label>
                 </div>
                 <div className="search-field-grid">
-                  <DropdownItemsEditor label="Industry dropdown items" items={tradeCategories} onAdd={addTradeCategoryToDropdown} onRemove={removeTradeCategory} />
+                  <DropdownItemsEditor label="Industry dropdown items" items={industries} onAdd={addIndustryToDropdown} onRemove={(id) => updateIndustry(id, { showInDropdown: false })} />
                   <DropdownItemsEditor label="Location dropdown items" items={locations} onAdd={addLocationToDropdown} onRemove={(id) => updateLocation(id, { showInDropdown: false })} />
                 </div>
               </div>
@@ -1365,7 +1360,7 @@ export default function HomePageManagement() {
               <button type="button" className="add-item" onClick={() => { setIndustries((items) => [...items, { id: newId('industry'), name: '', jobs: 0, icon: '', enabled: true, showInDropdown: false }]); markChanged() }}><Plus size={15} />Add industry</button>
             </div>
             <div className="compact-list">
-              {industries.map((industry) => (
+              {industries.filter(item => !item.showInDropdown).map((industry) => (
                 <div className="compact-row industry-row" key={industry.id}>
                   <IconUploadField value={industry.icon} onChange={(value) => updateIndustry(industry.id, { icon: value })} />
                   <div className="industry-card-content">
