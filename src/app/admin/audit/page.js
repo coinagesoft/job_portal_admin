@@ -43,12 +43,13 @@ const ACTION_STYLES = {
   APPLICANT_STATUS_CHANGED: { color: '#5e35b1', bg: '#ede7f6' },
 }
 
-const dpdpRules = [
-  { rule: 'Notice of Purpose', status: 'Compliant', statusColor: '#2e7d32', statusBg: '#e8f5e9', desc: 'Admin must state why data is accessed.' },
-  { rule: 'Data Minimization', status: 'Compliant', statusColor: '#2e7d32', statusBg: '#e8f5e9', desc: 'Only required fields were exported in the last 24h.' },
-  { rule: 'Right to Erasure', status: 'Action Required', statusColor: '#e65100', statusBg: '#fff3e0', desc: 'Pending user deletion requests are processed.' },
-  { rule: 'Auditability', status: 'Compliant', statusColor: '#2e7d32', statusBg: '#e8f5e9', desc: 'System logs are hashed and non-repudiable.' },
-]
+// ── DPDP panel data — kept for when the DPDP export/guidelines UI is re-enabled ──
+// const dpdpRules = [
+//   { rule: 'Notice of Purpose', status: 'Compliant', statusColor: '#2e7d32', statusBg: '#e8f5e9', desc: 'Admin must state why data is accessed.' },
+//   { rule: 'Data Minimization', status: 'Compliant', statusColor: '#2e7d32', statusBg: '#e8f5e9', desc: 'Only required fields were exported in the last 24h.' },
+//   { rule: 'Right to Erasure', status: 'Action Required', statusColor: '#e65100', statusBg: '#fff3e0', desc: 'Pending user deletion requests are processed.' },
+//   { rule: 'Auditability', status: 'Compliant', statusColor: '#2e7d32', statusBg: '#e8f5e9', desc: 'System logs are hashed and non-repudiable.' },
+// ]
 
 // Small badge helper — keeps table markup readable
 function Badge({ color, bg, children, pill = true }) {
@@ -269,6 +270,7 @@ export default function AuditLogsPage() {
   const [actorTypeFilter, setActorTypeFilter] = useState('')
   const [openRow, setOpenRow] = useState(null)
   const [exportMsg, setExportMsg] = useState('')
+  const [exporting, setExporting] = useState(false)
   const [page, setPage] = useState(1)
 
   // Full dataset from the API. All filtering + pagination below is done on the
@@ -382,10 +384,52 @@ export default function AuditLogsPage() {
   const visibleLogs = filteredLogs.slice((page - 1) * pageSize, page * pageSize)
   const hasActiveFilters = !!(actionFilter || dateFilter || severityFilter || actorTypeFilter)
 
-  function handleExport(kind) {
-    setExportMsg(kind === 'csv' ? 'CSV export started…' : 'Preparing DPDP-compliant export…')
-    setTimeout(() => setExportMsg(''), 2500)
+  // ── Export CSV — calls the real /api/admin/audit-logs/export/csv endpoint
+  // and downloads the returned file using whatever filters are active.
+  async function handleExportCsv() {
+    setExporting(true)
+    setExportMsg('Preparing CSV export…')
+    try {
+      let actorTypeVal = undefined;
+      if (actorTypeFilter === 'admin') actorTypeVal = 0;
+      else if (actorTypeFilter === 'sub_admin') actorTypeVal = 1;
+
+      let severityVal = undefined;
+      if (severityFilter === 'info') severityVal = 0;
+      else if (severityFilter === 'warning') severityVal = 1;
+      else if (severityFilter === 'critical') severityVal = 2;
+
+      const { blob, filename } = await auditLogService.exportCsv({
+        action: actionFilter || undefined,
+        date: dateFilter || undefined,
+        actorType: actorTypeVal,
+        severity: severityVal,
+      })
+
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+
+      setExportMsg('CSV downloaded')
+    } catch (err) {
+      console.error('CSV export failed:', err)
+      setExportMsg('CSV export failed — please try again')
+    } finally {
+      setExporting(false)
+      setTimeout(() => setExportMsg(''), 2500)
+    }
   }
+
+  // ── DPDP export — disabled for now, see commented-out button below ──
+  // function handleExportDpdp() {
+  //   setExportMsg('Preparing DPDP-compliant export…')
+  //   setTimeout(() => setExportMsg(''), 2500)
+  // }
 
   const getVisiblePageNumbers = () => {
     const pages = [];
@@ -421,7 +465,7 @@ export default function AuditLogsPage() {
             <div>
               <h3 className="mb-5">Audit &amp; Compliance</h3>
               <p className="font-sm color-text-paragraph-2 mb-0">
-                Monitor immutable action logs and ensure DPDP regulatory compliance.
+                Monitor immutable action logs.
               </p>
             </div>
           </div>
@@ -443,23 +487,30 @@ export default function AuditLogsPage() {
           <span className="font-xs" style={{ color: '#2e7d32', fontWeight: 600 }}>{exportMsg}</span>
         )}
         <button
-          onClick={() => handleExport('csv')}
+          onClick={handleExportCsv}
+          disabled={exporting}
           className="btn btn-secondary hover-up"
-          style={{ padding: '9px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', border: 'none', cursor: 'pointer' }}>
-          <Download size={14} /> Export CSV
+          style={{
+            padding: '9px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px',
+            border: 'none', cursor: exporting ? 'not-allowed' : 'pointer', opacity: exporting ? 0.6 : 1,
+          }}>
+          <Download size={14} /> {exporting ? 'Exporting…' : 'Export CSV'}
         </button>
+
+        {/* ── DPDP export button — disabled for now ──
         <button
-          onClick={() => handleExport('dpdp')}
+          onClick={handleExportDpdp}
           className="btn btn-primary hover-up"
           style={{ padding: '9px 16px', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', border: 'none', cursor: 'pointer' }}>
           <ShieldCheck size={14} /> Export for DPDP
         </button>
+        */}
       </div>
 
       {/* ── STAT WIDGETS ── */}
       <div className="section-box mt-2">
         <div className="row">
-          <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6">
+          <div className="col-xxl-4 col-xl-4 col-lg-4 col-md-6">
             <div className="card-style-1 hover-up">
               <div className="card-image"><Monitor size={28} strokeWidth={2.2} /></div>
               <div className="card-info">
@@ -469,7 +520,7 @@ export default function AuditLogsPage() {
             </div>
           </div>
 
-          <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6">
+          <div className="col-xxl-4 col-xl-4 col-lg-4 col-md-6">
             <div className="card-style-1 hover-up">
               <div className="card-image"><AlertTriangle size={28} strokeWidth={2.2} /></div>
               <div className="card-info">
@@ -479,6 +530,7 @@ export default function AuditLogsPage() {
             </div>
           </div>
 
+          {/* ── DPDP status card — disabled ──
           <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6">
             <div className="card-style-1 hover-up">
               <div className="card-image"><ShieldCheck size={28} strokeWidth={2.2} /></div>
@@ -488,8 +540,9 @@ export default function AuditLogsPage() {
               </div>
             </div>
           </div>
+          */}
 
-          <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6">
+          <div className="col-xxl-4 col-xl-4 col-lg-4 col-md-6">
             <div className="card-style-1 hover-up">
               <div className="card-image"><Download size={28} strokeWidth={2.2} /></div>
               <div className="card-info">
@@ -1088,6 +1141,7 @@ export default function AuditLogsPage() {
         </div>
       </div>
 
+      {/* ── DPDP GUIDELINES PANEL — disabled for now ──
       <div className='row'>
         <div className="col-xxl-4 col-xl-4 col-lg-4 col-md-12">
           <div className="section-box">
@@ -1117,6 +1171,7 @@ export default function AuditLogsPage() {
           </div>
         </div>
       </div>
+      */}
 
       <Footer />
     </>
