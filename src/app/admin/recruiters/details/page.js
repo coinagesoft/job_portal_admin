@@ -84,20 +84,21 @@ export default function EmployerDetailsPage({ searchParams }) {
                   (d.documentTypeId && d.documentTypeId === chkDoc.documentTypeId)
               );
               
-              const status = chkDoc.status || "NotUploaded";
+              const status = uploadedDoc?.status || chkDoc.status || "NotUploaded";
+              const docId = (uploadedDoc?.documentId && uploadedDoc.documentId !== "00000000-0000-0000-0000-000000000000") ? uploadedDoc.documentId : chkDoc.documentId;
               
               return {
-                documentId: chkDoc.documentId,
+                documentId: docId,
                 documentTypeId: chkDoc.documentTypeId,
                 title: chkDoc.documentName || "Document",
                 sub: `${chkDoc.category || "General"} (${chkDoc.documentCategory || "Optional"})`,
                 status: status,
                 statusColor: status === "Verified" ? "#2e7d32" : status === "Rejected" ? "#c62828" : status === "Pending" ? "#e65100" : "#64748b",
                 statusBg: status === "Verified" ? "#e8f5e9" : status === "Rejected" ? "#fdecea" : status === "Pending" ? "#fff3e0" : "#f1f5f9",
-                img: uploadedDoc?.url || uploadedDoc?.documentUrl || chkDoc.url || null,
+                img: uploadedDoc?.fileUrl || uploadedDoc?.url || uploadedDoc?.documentUrl || chkDoc.url || chkDoc.fileUrl || null,
                 isMandatory: chkDoc.isMandatory,
                 requiresVerification: chkDoc.requiresVerification,
-                uploadedAt: chkDoc.uploadedAt && chkDoc.uploadedAt !== "0001-01-01T00:00:00" ? new Date(chkDoc.uploadedAt).toLocaleDateString() : null,
+                uploadedAt: (uploadedDoc?.uploadedAt || chkDoc.uploadedAt) && (uploadedDoc?.uploadedAt || chkDoc.uploadedAt) !== "0001-01-01T00:00:00" ? new Date(uploadedDoc?.uploadedAt || chkDoc.uploadedAt).toLocaleDateString() : null,
               };
             });
             
@@ -115,7 +116,7 @@ export default function EmployerDetailsPage({ searchParams }) {
                 status: status,
                 statusColor: status === "Verified" ? "#2e7d32" : status === "Rejected" ? "#c62828" : status === "Pending" ? "#e65100" : "#64748b",
                 statusBg: status === "Verified" ? "#e8f5e9" : status === "Rejected" ? "#fdecea" : status === "Pending" ? "#fff3e0" : "#f1f5f9",
-                img: null,
+                img: chkDoc.fileUrl || chkDoc.url || null,
                 isMandatory: chkDoc.isMandatory,
                 requiresVerification: chkDoc.requiresVerification,
                 uploadedAt: chkDoc.uploadedAt && chkDoc.uploadedAt !== "0001-01-01T00:00:00" ? new Date(chkDoc.uploadedAt).toLocaleDateString() : null,
@@ -174,7 +175,7 @@ export default function EmployerDetailsPage({ searchParams }) {
   };
 
   const handleUpdateDocumentStatus = (docId, newStatus) => {
-    const remarks = prompt("Enter remarks/reason for this status change:", newStatus === "Verified" ? "Verified by admin" : "Rejected by admin");
+    const remarks = prompt("Enter remarks/reason for this status change:", newStatus === "Approved" || newStatus === "Verified" ? "Verified by admin" : "Rejected by admin");
     if (remarks === null) return;
     
     recruiterService.updateDocumentStatus(docId, newStatus, remarks)
@@ -593,7 +594,7 @@ Thank you for your business.
                                 fontWeight: 700,
                               }}
                             >
-                              {doc.status}
+                              {doc.status === "Approved" ? "Verified" : doc.status}
                             </span>
                             {doc.uploadedAt && (
                               <span className="font-xs text-muted">
@@ -614,11 +615,11 @@ Thank you for your business.
                                   Preview
                                 </button>
                               )}
-                              {doc.status !== "Verified" && (
+                              {doc.status !== "Verified" && doc.status !== "Approved" && (
                                 <button
                                   type="button"
                                   className="btn btn-warning text-white font-xs hover-up flex-grow-1"
-                                  onClick={() => handleUpdateDocumentStatus(doc.documentId, "Verified")}
+                                  onClick={() => handleUpdateDocumentStatus(doc.documentId, "Approved")}
                                   style={{ padding: "6px 0", fontSize: "11px" }}
                                 >
                                   Verify

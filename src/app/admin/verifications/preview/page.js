@@ -573,6 +573,7 @@ export default function RecruiterDocumentsPage({ searchParams }) {
       NotUploaded: 'Not Uploaded',
       Pending: 'Pending Review',
       Verified: 'Verified',
+      Approved: 'Verified',
       Rejected: 'Action Required',
     };
 
@@ -584,19 +585,20 @@ export default function RecruiterDocumentsPage({ searchParams }) {
             (d.documentTypeId && d.documentTypeId === chkDoc.documentTypeId)
         );
         
-        const docUrl = uploadedDoc?.url || uploadedDoc?.documentUrl || chkDoc.url || null;
-        const status = chkDoc.status || 'NotUploaded';
+        const docUrl = uploadedDoc?.fileUrl || uploadedDoc?.url || uploadedDoc?.documentUrl || chkDoc.url || chkDoc.fileUrl || null;
+        const status = uploadedDoc?.status || chkDoc.status || 'NotUploaded';
+        const docId = (uploadedDoc?.documentId && uploadedDoc.documentId !== "00000000-0000-0000-0000-000000000000") ? uploadedDoc.documentId : chkDoc.documentId;
         
         return {
-          id: chkDoc.documentId && chkDoc.documentId !== "00000000-0000-0000-0000-000000000000" ? chkDoc.documentId : chkDoc.documentTypeId,
-          documentId: chkDoc.documentId,
+          id: docId && docId !== "00000000-0000-0000-0000-000000000000" ? docId : chkDoc.documentTypeId,
+          documentId: docId,
           documentTypeId: chkDoc.documentTypeId,
           title: chkDoc.documentName,
           category: chkDoc.category || 'Company Documents',
-          status: statusMap[status] || 'Not Uploaded',
+          status: statusMap[status] || status || 'Not Uploaded',
           isMissing: status === 'NotUploaded',
-          uploadedOn: chkDoc.uploadedAt && chkDoc.uploadedAt !== '0001-01-01T00:00:00' ? new Date(chkDoc.uploadedAt).toLocaleDateString() : 'N/A',
-          validTill: chkDoc.verifiedAt && chkDoc.verifiedAt !== '0001-01-01T00:00:00' ? new Date(chkDoc.verifiedAt).toLocaleDateString() : 'Permanent',
+          uploadedOn: (uploadedDoc?.uploadedAt || chkDoc.uploadedAt) && (uploadedDoc?.uploadedAt || chkDoc.uploadedAt) !== '0001-01-01T00:00:00' ? new Date(uploadedDoc?.uploadedAt || chkDoc.uploadedAt).toLocaleDateString() : 'N/A',
+          validTill: (uploadedDoc?.verifiedAt || chkDoc.verifiedAt) && (uploadedDoc?.verifiedAt || chkDoc.verifiedAt) !== '0001-01-01T00:00:00' ? new Date(uploadedDoc?.verifiedAt || chkDoc.verifiedAt).toLocaleDateString() : 'Permanent',
           docId: chkDoc.isMandatory ? 'Mandatory' : 'Optional',
           img: docUrl,
         };
@@ -618,7 +620,7 @@ export default function RecruiterDocumentsPage({ searchParams }) {
           uploadedOn: doc.uploadedAt && doc.uploadedAt !== '0001-01-01T00:00:00' ? new Date(doc.uploadedAt).toLocaleDateString() : 'N/A',
           validTill: doc.verifiedAt && doc.verifiedAt !== '0001-01-01T00:00:00' ? new Date(doc.verifiedAt).toLocaleDateString() : 'Permanent',
           docId: doc.isMandatory ? 'Mandatory' : 'Optional',
-          img: doc.url || doc.documentUrl || null,
+          img: doc.fileUrl || doc.url || doc.documentUrl || null,
         };
       });
       setDocs(mapped);
@@ -697,7 +699,7 @@ export default function RecruiterDocumentsPage({ searchParams }) {
   }, [recruiterId]);
 
   const handleVerify = (docId) => {
-    recruiterService.updateDocumentStatus(docId, 'Verified', 'Approved by verification admin')
+    recruiterService.updateDocumentStatus(docId, 'Approved', 'Approved by verification admin')
       .then(() => {
         showToast('Document verified successfully', 'success');
         fetchData(recruiterId || recruiterData?.id);
