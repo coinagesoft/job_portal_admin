@@ -68,7 +68,7 @@ export const apiRequest = async (endpoint, options = {}) => {
             // Retry the original request with the new token
             config.headers['Authorization'] = `Bearer ${data.accessToken}`;
             const retryResponse = await fetch(url, config);
-            return await handleResponse(retryResponse);
+            return await handleResponse(retryResponse, options.responseType);
           } else {
             // Refresh token failed/expired - clear session and redirect to login
             logoutUser();
@@ -81,14 +81,27 @@ export const apiRequest = async (endpoint, options = {}) => {
       }
     }
     
-    return await handleResponse(response);
+    return await handleResponse(response, options.responseType);
   } catch (error) {
     console.error('API request error:', error);
     throw error;
   }
 };
 
-const handleResponse = async (response) => {
+const handleResponse = async (response, responseType) => {
+  if (responseType === 'blob') {
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorData = errorText;
+      try { errorData = JSON.parse(errorText); } catch { /* The API returned a non-JSON error. */ }
+      const error = new Error((errorData && errorData.message) || response.statusText || 'An error occurred');
+      error.status = response.status;
+      error.data = errorData;
+      throw error;
+    }
+    return await response.blob();
+  }
+
   const contentType = response.headers.get('content-type');
   let data = null;
   

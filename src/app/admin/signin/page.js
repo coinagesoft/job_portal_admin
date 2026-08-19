@@ -62,7 +62,7 @@ function Card({ children, step }) {
       style={{
         minHeight: '100vh', background: '#ffffff', display: 'flex',
         alignItems: 'center', justifyContent: 'center', padding: '40px 16px',
-        position: 'relative', overflow: 'hidden',
+        position: 'relative', overflow: 'hidden', marginTop: 0,
       }}
     >
       <BackgroundArt />
