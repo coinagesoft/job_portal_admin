@@ -569,7 +569,11 @@ Thank you for your business.
                 <div className="row">
                   {documentsList.map((doc, idx) => (
                     <div key={doc.title + idx} className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-20">
-                      <div className="card-grid-2" style={{ marginBottom: 0 }}>
+                      <div 
+                        className="card-grid-2 hover-up" 
+                        onClick={() => router.push(`/admin/verifications/preview?id=${recruiterData?.id || id}`)}
+                        style={{ marginBottom: 0, cursor: "pointer" }}
+                      >
                         <div className="card-block-info" style={{ padding: "15px" }}>
                           <div className="d-flex align-items-center gap-2 mb-10">
                             <FileText size={18} color="#94a3b8" />
@@ -583,7 +587,7 @@ Thank you for your business.
                             </div>
                           </div>
 
-                          <div className="d-flex align-items-center justify-content-between mb-15">
+                          <div className="d-flex align-items-center justify-content-between">
                             <span
                               style={{
                                 background: doc.statusBg,
@@ -594,53 +598,18 @@ Thank you for your business.
                                 fontWeight: 700,
                               }}
                             >
-                              {doc.status === "Approved" ? "Verified" : doc.status}
+                              {doc.status === "Approved" ? "Verified" : (doc.status === "NotUploaded" ? "Not Uploaded" : doc.status)}
                             </span>
-                            {doc.uploadedAt && (
+                            {doc.uploadedAt ? (
                               <span className="font-xs text-muted">
                                 Uploaded: {doc.uploadedAt}
                               </span>
+                            ) : (
+                              <span className="font-xs text-muted">
+                                Not Uploaded
+                              </span>
                             )}
                           </div>
-
-                          {doc.documentId && doc.documentId !== "00000000-0000-0000-0000-000000000000" ? (
-                            <div className="d-flex gap-2">
-                              {doc.img && (
-                                <button
-                                  type="button"
-                                  className="btn btn-border font-xs hover-up flex-grow-1"
-                                  onClick={() => setPreviewDoc(doc)}
-                                  style={{ padding: "6px 0", fontSize: "11px" }}
-                                >
-                                  Preview
-                                </button>
-                              )}
-                              {doc.status !== "Verified" && doc.status !== "Approved" && (
-                                <button
-                                  type="button"
-                                  className="btn btn-warning text-white font-xs hover-up flex-grow-1"
-                                  onClick={() => handleUpdateDocumentStatus(doc.documentId, "Approved")}
-                                  style={{ padding: "6px 0", fontSize: "11px" }}
-                                >
-                                  Verify
-                                </button>
-                              )}
-                              {doc.status !== "Rejected" && (
-                                <button
-                                  type="button"
-                                  className="btn btn-danger text-white font-xs hover-up flex-grow-1"
-                                  onClick={() => handleUpdateDocumentStatus(doc.documentId, "Rejected")}
-                                  style={{ padding: "6px 0", fontSize: "11px" }}
-                                >
-                                  Reject
-                                </button>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="font-xs text-center color-text-paragraph-2 py-2" style={{ background: "#f8fafc", borderRadius: "6px", fontWeight: 600 }}>
-                              Not Uploaded
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>
