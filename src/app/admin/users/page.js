@@ -112,7 +112,26 @@ const DEFAULT_SUPER_ADMIN = {
   img: 'avata1',
 }
 
-const BLANK = { name: '', email: '', phone: '', role: 'Verification Officer', presets: ['Verification Officer'], status: 'Active', access: [...PRESETS['Verification Officer']] }
+const SUB_ADMIN_ROLE = 'Sub Admin'
+const BLANK = { name: '', email: '', phone: '', role: SUB_ADMIN_ROLE, presets: [], status: 'Active', access: [...PRESETS['Verification Officer']] }
+
+const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+
+// Stored values can include +91; newly entered numbers are kept as 10 digits.
+const isValidPhone = (phone) => {
+  const digits = phone.replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '')
+  return /^\d{10}$/.test(digits)
+}
+
+const getEmailError = (email) => {
+  if (!email.trim()) return 'Email address is required.'
+  return isValidEmail(email) ? '' : 'Enter a valid email address.'
+}
+
+const getPhoneError = (phone) => {
+  if (!phone.trim()) return 'Phone number is required.'
+  return isValidPhone(phone) ? '' : 'Enter a valid 10-digit phone number.'
+}
 
 function StatusBadge({ status }) {
   const s = status === 'Active'
@@ -219,7 +238,7 @@ const mapUiToApi = (uiForm, isUpdate = false) => {
     fullName: uiForm.name,
     mobileNumber: uiForm.phone,
     countryCode: "+91",
-    roleName: uiForm.role,
+    roleName: SUB_ADMIN_ROLE,
     permissions: permissions,
     isActive: uiForm.status === 'Active'
   };
@@ -239,6 +258,7 @@ export default function SubAdminPage() {
   const [drawer, setDrawer] = useState(false)     // 'create' | 'edit' | false
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState(BLANK)
+  const [formErrors, setFormErrors] = useState({})
   const [delId, setDelId] = useState(null)      // confirm delete
   const [hydrated, setHydrated] = useState(false)
   const [page, setPage] = useState(1)
@@ -296,24 +316,19 @@ export default function SubAdminPage() {
   const openCreate = () => {
     setSearch('')
     setPage(1)
-    setForm({ ...BLANK, presets: ['Verification Officer'], access: [...PRESETS['Verification Officer']] })
+    setForm({ ...BLANK, access: [...PRESETS['Verification Officer']] })
+    setFormErrors({})
     setEditId(null)
     setDrawer('create')
   }
   const openEdit = (a) => {
     setSearch('')
     setPage(1)
-    setForm({ name: a.name, email: a.email, phone: a.phone, role: a.role, presets: PRESETS[a.role] ? [a.role] : [], status: a.status, access: [...a.access] })
+    setForm({ name: a.name, email: a.email, phone: a.phone, role: SUB_ADMIN_ROLE, presets: [], status: a.status, access: [...a.access] })
+    setFormErrors({})
     setEditId(a.id)
     setDrawer('edit')
   }
-  const selectRole = (role) => {
-    setForm(f => ({
-      ...f,
-      role,
-    }))
-  }
-
   const toggleTab = (key) => {
     setForm(f => {
       const has = f.access.includes(key)
@@ -330,7 +345,18 @@ export default function SubAdminPage() {
   }
 
   const handleSave = () => {
-    if (!form.name.trim() || !form.email.trim()) return
+    const errors = {}
+    if (!form.name.trim()) errors.name = 'Full name is required.'
+    const emailError = getEmailError(form.email)
+    const phoneError = getPhoneError(form.phone)
+    if (emailError) errors.email = emailError
+    if (phoneError) errors.phone = phoneError
+
+    if (Object.keys(errors).length) {
+      setFormErrors(errors)
+      return
+    }
+    setFormErrors({})
     
     if (drawer === 'super') {
       const updatedProfile = { ...superAdmin, name: form.name.trim(), email: form.email.trim(), phone: form.phone, role: 'Super Admin', status: 'Active' }
@@ -392,6 +418,7 @@ export default function SubAdminPage() {
 
   const openSuperAdminEditor = () => {
     setForm({ name: superAdmin.name, email: superAdmin.email, phone: superAdmin.phone || '', role: 'Super Admin', presets: [], status: 'Active', access: [...ALL_KEYS] })
+    setFormErrors({})
     setDrawer('super')
   }
 
@@ -531,7 +558,7 @@ export default function SubAdminPage() {
                 <tr style={{ borderBottom: '1px solid #f0d69b', background: '#fffaf0' }}>
                   <td style={{ padding: '14px 12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <img src={`/assets/imgs/page/dashboard/${superAdmin.img}.png`} alt="" style={{ width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0 }} />
+                      {/* <img src={`/assets/imgs/page/dashboard/${superAdmin.img}.png`} alt="" style={{ width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0 }} /> */}
                       <div>
                         <h6>{superAdmin.name}</h6>
                         <span className="font-sm color-text-paragraph-2">{superAdmin.email}</span>
@@ -556,8 +583,8 @@ export default function SubAdminPage() {
                       {/* Name + email */}
                       <td style={{ padding: '14px 12px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <img src={`/assets/imgs/page/dashboard/${admin.img}.png`} alt=""
-                            style={{ width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0 }} />
+                          {/* <img src={`/assets/imgs/page/dashboard/${admin.img}.png`} alt=""
+                            style={{ width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0 }} /> */}
                           <div>
                             <h6>{admin.name}</h6>
                             <span className="font-sm color-text-paragraph-2">{admin.email}</span>
@@ -716,7 +743,12 @@ export default function SubAdminPage() {
                     Full Name *
                   </label>
                   <input className="form-control" type="text" placeholder="e.g. Sarah Jenkins"
-                    value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+                    value={form.name} aria-invalid={Boolean(formErrors.name)}
+                    onChange={e => {
+                      setForm(f => ({ ...f, name: e.target.value }))
+                      setFormErrors(errors => ({ ...errors, name: undefined }))
+                    }} />
+                  {formErrors.name && <p className="form-validation-error">{formErrors.name}</p>}
                 </div>
                 <div className="col-12 mb-15">
                   <label className="font-xs color-text-paragraph-2 mb-5"
@@ -725,15 +757,35 @@ export default function SubAdminPage() {
                   </label>
                   <input className="form-control" type="email" placeholder="admin@skillbridge.io"
                     value={form.email} disabled={drawer === 'edit' || drawer === 'super'}
-                    onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+                    aria-invalid={Boolean(formErrors.email)}
+                    onChange={e => {
+                      const email = e.target.value
+                      setForm(f => ({ ...f, email }))
+                      setFormErrors(errors => ({ ...errors, email: getEmailError(email) || undefined }))
+                    }}
+                    onBlur={e => setFormErrors(errors => ({ ...errors, email: getEmailError(e.target.value) || undefined }))} />
+                  {formErrors.email && <p className="form-validation-error">{formErrors.email}</p>}
                 </div>
                 <div className="col-12 mb-15">
                   <label className="font-xs color-text-paragraph-2 mb-5"
                     style={{ display: 'block', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                    Phone Number
+                    Phone Number *
                   </label>
-                  <input className="form-control" type="tel" placeholder="+91 98000 00000"
-                    value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
+                  <input className="form-control" type="tel" placeholder="98000 00000"
+                    value={form.phone} inputMode="numeric" maxLength={10} pattern="[0-9]{10}"
+                    aria-invalid={Boolean(formErrors.phone)}
+                    onChange={e => {
+                      // Keep this field numeric and limit it to one 10-digit mobile number.
+                      const enteredValue = e.target.value
+                      const phone = enteredValue.replace(/\D/g, '').replace(/^91(?=\d{10,}$)/, '').slice(0, 10)
+                      setForm(f => ({ ...f, phone }))
+                      const phoneError = /[^\d]/.test(enteredValue)
+                        ? 'Phone number can contain digits only.'
+                        : getPhoneError(phone)
+                      setFormErrors(errors => ({ ...errors, phone: phoneError || undefined }))
+                    }}
+                    onBlur={e => setFormErrors(errors => ({ ...errors, phone: getPhoneError(e.target.value) || undefined }))} />
+                  {formErrors.phone && <p className="form-validation-error">{formErrors.phone}</p>}
                 </div>
                 <div className="col-12 mb-15">
                   <label
@@ -748,18 +800,13 @@ export default function SubAdminPage() {
                     Role
                   </label>
 
-                  <select
+                  <input
                     className="form-control"
-                    value={form.role}
-                    disabled={drawer === 'super'}
-                    onChange={(e) => selectRole(e.target.value)}
-                  >
-                    {drawer === 'super' && <option value="Super Admin">Super Admin</option>}
-                    <option value="Verification Officer">Verification Officer</option>
-                    <option value="Finance Admin">Finance Admin</option>
-                    <option value="Employer Manager">Employer Manager</option>
-                    <option value="Read Only">Read Only</option>
-                  </select>
+                    type="text"
+                    value={drawer === 'super' ? 'Super Admin' : SUB_ADMIN_ROLE}
+                    readOnly
+                    aria-label="Role"
+                  />
                 </div>
                 <div className="col-12 mb-15">
                   <label className="font-xs color-text-paragraph-2 mb-5"
@@ -864,6 +911,8 @@ export default function SubAdminPage() {
       )}
 
       <style jsx>{`
+        .form-validation-error { margin: 5px 0 0; color: #c62828; font-size: 11px; font-weight: 600; }
+        .form-control[aria-invalid='true'] { border-color: #c62828; }
         .preset-picker { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
         .preset-option { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 0 12px; border: 1px solid #dce3ef; border-radius: 8px; background: #fff; color: #526685; font-size: 12px; font-weight: 700; cursor: pointer; transition: .2s ease; }
         .preset-option:hover { border-color: #ffa300; color: #122359; background: #fffaf1; }
