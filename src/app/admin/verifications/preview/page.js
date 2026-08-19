@@ -386,7 +386,7 @@ function DocCard({ doc, onPreview, onVerifyOpen, onRejectOpen, onResubmitOpen, o
           <p style={{ fontSize: '11px', color: '#64748b', margin: 0 }}>Not Uploaded by Recruiter</p>
           
           <div style={{ marginTop: 'auto', paddingTop: '10px' }}>
-            <button onClick={() => onRequestDocument(doc.title)} style={{
+            <button onClick={() => onRequestDocument(doc)} style={{
               width: '100%', padding: '8px 0', background: '#eff6ff', border: '1px solid #bfdbfe',
               borderRadius: '8px', fontSize: '11px', fontWeight: 700, color: '#1d4ed8', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
@@ -568,7 +568,7 @@ export default function RecruiterDocumentsPage({ searchParams }) {
     setTimeout(() => setToast(null), 3200);
   };
 
-  const processDocuments = (checklistData, docsData) => {
+  const processDocuments = (checklistData, docsData, masterData = []) => {
     const statusMap = {
       NotUploaded: 'Not Uploaded',
       Pending: 'Pending Review',
@@ -577,8 +577,10 @@ export default function RecruiterDocumentsPage({ searchParams }) {
       Rejected: 'Action Required',
     };
 
+    let merged = [];
+
     if (checklistData && checklistData.length > 0) {
-      const merged = checklistData.map((chkDoc) => {
+      merged = checklistData.map((chkDoc) => {
         const uploadedDoc = docsData.find(
           (d) => 
             (d.documentId && d.documentId !== "00000000-0000-0000-0000-000000000000" && d.documentId === chkDoc.documentId) ||
@@ -596,17 +598,16 @@ export default function RecruiterDocumentsPage({ searchParams }) {
           title: chkDoc.documentName,
           category: chkDoc.category || 'Company Documents',
           status: statusMap[status] || status || 'Not Uploaded',
-          isMissing: status === 'NotUploaded',
+          isMissing: status === 'NotUploaded' || status === 'Not Uploaded',
           uploadedOn: (uploadedDoc?.uploadedAt || chkDoc.uploadedAt) && (uploadedDoc?.uploadedAt || chkDoc.uploadedAt) !== '0001-01-01T00:00:00' ? new Date(uploadedDoc?.uploadedAt || chkDoc.uploadedAt).toLocaleDateString() : 'N/A',
           validTill: (uploadedDoc?.verifiedAt || chkDoc.verifiedAt) && (uploadedDoc?.verifiedAt || chkDoc.verifiedAt) !== '0001-01-01T00:00:00' ? new Date(uploadedDoc?.verifiedAt || chkDoc.verifiedAt).toLocaleDateString() : 'Permanent',
           docId: chkDoc.isMandatory ? 'Mandatory' : 'Optional',
           img: docUrl,
         };
       });
-      setDocs(merged);
     } else {
       // Fallback: use docsData directly
-      const mapped = docsData.map((doc) => {
+      merged = docsData.map((doc) => {
         const status = doc.status || 'Pending';
         const uiStatus = statusMap[status] || status || 'Pending Review';
         return {
@@ -616,18 +617,48 @@ export default function RecruiterDocumentsPage({ searchParams }) {
           title: doc.documentName || doc.title || 'Document',
           category: doc.category || 'Company Documents',
           status: uiStatus,
-          isMissing: uiStatus === 'Not Uploaded',
+          isMissing: uiStatus === 'Not Uploaded' || uiStatus === 'NotUploaded',
           uploadedOn: doc.uploadedAt && doc.uploadedAt !== '0001-01-01T00:00:00' ? new Date(doc.uploadedAt).toLocaleDateString() : 'N/A',
           validTill: doc.verifiedAt && doc.verifiedAt !== '0001-01-01T00:00:00' ? new Date(doc.verifiedAt).toLocaleDateString() : 'Permanent',
           docId: doc.isMandatory ? 'Mandatory' : 'Optional',
           img: doc.fileUrl || doc.url || doc.documentUrl || null,
         };
       });
-      setDocs(mapped);
     }
+
+    // Append missing mandatory/required documents from masterData
+    if (masterData && masterData.length > 0) {
+      masterData.forEach((masterDoc) => {
+        if (masterDoc.isMandatory) {
+          const exists = merged.some(
+            (d) => 
+              d.documentTypeId === masterDoc.id || 
+              (d.title && masterDoc.documentName && d.title.toLowerCase().trim() === masterDoc.documentName.toLowerCase().trim())
+          );
+          
+          if (!exists) {
+            merged.push({
+              id: masterDoc.id,
+              documentId: null,
+              documentTypeId: masterDoc.id,
+              title: masterDoc.documentName,
+              category: masterDoc.category || 'Company Documents',
+              status: 'Not Uploaded',
+              isMissing: true,
+              uploadedOn: 'N/A',
+              validTill: 'Permanent',
+              docId: 'Mandatory',
+              img: null,
+            });
+          }
+        }
+      });
+    }
+
+    setDocs(merged);
   };
 
-  const fetchData = (recId) => {
+  const fetchData = async (recId) => {
     setLoading(true);
     // 1. Fetch Recruiter Profile
     recruiterService.getRecruiterById(recId)
@@ -642,36 +673,33 @@ export default function RecruiterDocumentsPage({ searchParams }) {
       })
       .catch(console.error);
 
-    // 2. Fetch Checklist and merge with uploaded documents
-    recruiterService.getRecruiterDocumentChecklist(recId)
-      .then((checklistRes) => {
-        const checklistData = checklistRes?.data?.documents || checklistRes?.documents || [];
-        
-        recruiterService.getRecruiterDocuments(recId)
-          .then((docsRes) => {
-            const docsData = docsRes?.data?.documents || docsRes?.documents || [];
-            processDocuments(checklistData, docsData);
-            setLoading(false);
-          })
-          .catch((docsErr) => {
-            console.error("Failed to fetch uploaded documents:", docsErr);
-            processDocuments(checklistData, []);
-            setLoading(false);
-          });
-      })
-      .catch((err) => {
-        console.warn("Failed checklist fetch, falling back to uploaded documents:", err);
-        recruiterService.getRecruiterDocuments(recId)
-          .then((docsRes) => {
-            const docsData = docsRes?.data?.documents || docsRes?.documents || [];
-            processDocuments([], docsData);
-            setLoading(false);
-          })
-          .catch((docsErr) => {
-            console.error("Failed to fetch documents completely:", docsErr);
-            setLoading(false);
-          });
-      });
+    // 2. Fetch Checklist, Uploaded Docs, and Master Docs in parallel
+    try {
+      const [checklistRes, docsRes, masterRes] = await Promise.all([
+        recruiterService.getRecruiterDocumentChecklist(recId).catch((err) => {
+          console.warn("Failed checklist fetch:", err);
+          return [];
+        }),
+        recruiterService.getRecruiterDocuments(recId).catch((err) => {
+          console.warn("Failed documents fetch:", err);
+          return [];
+        }),
+        recruiterService.getMasterAllDocuments().catch((err) => {
+          console.warn("Failed master documents fetch:", err);
+          return [];
+        })
+      ]);
+
+      const checklistData = checklistRes?.data?.documents || checklistRes?.documents || (Array.isArray(checklistRes) ? checklistRes : []);
+      const docsData = docsRes?.data?.documents || docsRes?.documents || (Array.isArray(docsRes) ? docsRes : []);
+      const masterData = masterRes?.data || masterRes || [];
+
+      processDocuments(checklistData, docsData, masterData);
+    } catch (err) {
+      console.error("Error during fetchData:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -767,12 +795,17 @@ export default function RecruiterDocumentsPage({ searchParams }) {
       });
   };
 
-  const handleRequestMissingDoc = (docTitle) => {
+  const handleRequestMissingDoc = (doc) => {
     const recId = recruiterId || recruiterData?.id;
     if (!recId) return;
 
-    const matched = optionalDocs.find(o => o.documentName === docTitle);
-    const docTypeId = matched ? matched.documentTypeId : '';
+    const docTitle = doc.title;
+    let docTypeId = doc.documentTypeId || '';
+
+    if (!docTypeId) {
+      const matched = optionalDocs.find(o => o.documentName === docTitle);
+      docTypeId = matched ? (matched.documentTypeId || matched.id) : '';
+    }
 
     recruiterService.requestDocument(recId, docTypeId, docTitle, "Mandatory company document missing. Please upload.")
       .then(() => {
