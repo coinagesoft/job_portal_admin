@@ -584,13 +584,24 @@ export default function HomePageManagement() {
       }
 
       if (suggestionsData && Array.isArray(suggestionsData)) {
-        setSuggestions(suggestionsData.map(item => ({
-          id: item.id,
-          name: item.name || '',
-          type: item.type || '',
-          submittedBy: item.submittedBy || item.submittedByCompany || item.userName || 'Recruiter',
-          date: item.date || (item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Recent')
-        })))
+        setSuggestions(suggestionsData
+          .filter(item => !item.reviewedAt)
+          .map(item => {
+            let mappedType = '';
+            if (item.type === 3 || item.type === '3') mappedType = 'Role';
+            else if (item.type === 4 || item.type === '4') mappedType = 'Department';
+            else if (item.type === 5 || item.type === '5') mappedType = 'Industry';
+            else mappedType = item.type || '';
+
+            return {
+              id: item.suggestionId || item.id,
+              name: item.suggestedName || item.name || '',
+              type: mappedType,
+              submittedBy: item.submittedByName || item.submittedBy || item.submittedByCompany || item.userName || 'Recruiter',
+              date: item.date || (item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Recent')
+            };
+          })
+        )
       }
     } catch (err) {
       console.error('Failed to fetch homepage details:', err)
