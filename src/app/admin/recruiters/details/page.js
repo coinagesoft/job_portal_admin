@@ -1,6 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, use } from "react";
+import { recruiterService } from "../../../../services/recruiterService";
 import Footer from "../../../../components/Footer";
+import { useRouter } from "next/navigation";
 import {
   Brain,
   AlertTriangle,
@@ -14,98 +16,242 @@ import {
   Receipt,
   FileText,
   Info,
+  UserCheck,
+  Ban,
+  Eye,
+  ShieldCheck
 } from "lucide-react";
-export default function EmployerDetailsPage() {
+
+export default function EmployerDetailsPage({ searchParams }) {
+  const router = useRouter();
+  const resolvedSearchParams = use(searchParams);
+  const id = resolvedSearchParams?.id;
+
+  const getDocUrl = (url) => {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      return url;
+    }
+    const base = "https://jobportal.coinage.in";
+    return url.startsWith("/") ? `${base}${url}` : `${base}/${url}`;
+  };
+
+  const [recruiterData, setRecruiterData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [previewDoc, setPreviewDoc] = useState(null);
   const [invoiceTxn, setInvoiceTxn] = useState(null);
+  const [documentsList, setDocumentsList] = useState([]);
+  
+  // Document request states
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [optionalDocs, setOptionalDocs] = useState([]);
+  const [selectedDocId, setSelectedDocId] = useState("");
+  const [requestMessage, setRequestMessage] = useState("");
+  const [submittingRequest, setSubmittingRequest] = useState(false);
 
-  const TRANSACTIONS = [
-    {
-      id: "REV-10491",
-      invoice: "INV-10491",
-      date: "25 Jul 2026",
-      description: "Enterprise Credit Pack",
-      type: "Credit Pack",
-      credits: "10,000",
-      amount: "₹10,000",
-      payment: "UPI",
-      status: "Paid",
-    },
-    {
-      id: "REV-10486",
-      invoice: "INV-10486",
-      date: "18 Jun 2026",
-      description: "Gold Credit Pack",
-      type: "Credit Pack",
-      credits: "5,000",
-      amount: "₹5,000",
-      payment: "Credit Card",
-      status: "Paid",
-    },
-    {
-      id: "REV-10462",
-      invoice: "INV-10462",
-      date: "12 Apr 2026",
-      description: "Silver Credit Pack",
-      type: "Credit Pack",
-      credits: "2,500",
-      amount: "₹2,500",
-      payment: "UPI",
-      status: "Pending",
-    },
-    {
-      id: "REV-10440",
-      invoice: "INV-10440",
-      date: "01 Jan 2026",
-      description: "Gold Membership (Annual)",
-      type: "Membership",
-      credits: "-",
-      amount: "₹4,999",
-      payment: "UPI",
-      status: "Paid",
-    },
-    {
-      id: "REV-10398",
-      invoice: "INV-10398",
-      date: "08 Feb 2025",
-      description: "Starter Credit Pack",
-      type: "Credit Pack",
-      credits: "500",
-      amount: "₹999",
-      payment: "Credit Card",
-      status: "Refunded",
-    },
-    {
-      id: "REV-10312",
-      invoice: "INV-10312",
-      date: "15 Oct 2023",
-      description: "Employer Registration Fee",
-      type: "Registration",
-      credits: "-",
-      amount: "₹499",
-      payment: "Net Banking",
-      status: "Paid",
-    },
-  ];
+  const fetchRecruiterDetails = (recId) => {
+    setLoading(true);
+    recruiterService.getRecruiterById(recId)
+      .then((res) => {
+        if (res && res.success && res.data) {
+          setRecruiterData(res.data);
+        } else if (res && res.data) {
+          setRecruiterData(res.data);
+        } else if (res) {
+          setRecruiterData(res);
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch recruiter details:", err);
+        setLoading(false);
+      });
+  };
 
-  const STATUS_STYLE = {
-    Paid: { bg: "#e8f5e9", color: "#2e7d32" },
-    Pending: { bg: "#fff3e0", color: "#e65100" },
-    Refunded: { bg: "#ffebee", color: "#c62828" },
+  const fetchDocumentsAndChecklist = (recId) => {
+    recruiterService.getRecruiterDocumentChecklist(recId)
+      .then((checklistRes) => {
+        const checklistData = checklistRes?.data?.documents || checklistRes?.documents || [];
+        
+        recruiterService.getRecruiterDocuments(recId)
+          .then((docsRes) => {
+            const docsData = docsRes?.data?.documents || docsRes?.documents || [];
+            
+            const mergedDocs = checklistData.map((chkDoc) => {
+              const uploadedDoc = docsData.find(
+                (d) => 
+                  (d.documentId && d.documentId !== "00000000-0000-0000-0000-000000000000" && d.documentId === chkDoc.documentId) ||
+                  (d.documentTypeId && d.documentTypeId === chkDoc.documentTypeId)
+              );
+              
+              const status = chkDoc.status || "NotUploaded";
+              
+              return {
+                documentId: chkDoc.documentId,
+                documentTypeId: chkDoc.documentTypeId,
+                title: chkDoc.documentName || "Document",
+                sub: `${chkDoc.category || "General"} (${chkDoc.documentCategory || "Optional"})`,
+                status: status,
+                statusColor: status === "Verified" ? "#2e7d32" : status === "Rejected" ? "#c62828" : status === "Pending" ? "#e65100" : "#64748b",
+                statusBg: status === "Verified" ? "#e8f5e9" : status === "Rejected" ? "#fdecea" : status === "Pending" ? "#fff3e0" : "#f1f5f9",
+                img: uploadedDoc?.url || uploadedDoc?.documentUrl || chkDoc.url || null,
+                isMandatory: chkDoc.isMandatory,
+                requiresVerification: chkDoc.requiresVerification,
+                uploadedAt: chkDoc.uploadedAt && chkDoc.uploadedAt !== "0001-01-01T00:00:00" ? new Date(chkDoc.uploadedAt).toLocaleDateString() : null,
+              };
+            });
+            
+            setDocumentsList(mergedDocs);
+          })
+          .catch((docsErr) => {
+            console.error("Failed to fetch uploaded documents:", docsErr);
+            const fallbackMerged = checklistData.map((chkDoc) => {
+              const status = chkDoc.status || "NotUploaded";
+              return {
+                documentId: chkDoc.documentId,
+                documentTypeId: chkDoc.documentTypeId,
+                title: chkDoc.documentName || "Document",
+                sub: `${chkDoc.category || "General"} (${chkDoc.documentCategory || "Optional"})`,
+                status: status,
+                statusColor: status === "Verified" ? "#2e7d32" : status === "Rejected" ? "#c62828" : status === "Pending" ? "#e65100" : "#64748b",
+                statusBg: status === "Verified" ? "#e8f5e9" : status === "Rejected" ? "#fdecea" : status === "Pending" ? "#fff3e0" : "#f1f5f9",
+                img: null,
+                isMandatory: chkDoc.isMandatory,
+                requiresVerification: chkDoc.requiresVerification,
+                uploadedAt: chkDoc.uploadedAt && chkDoc.uploadedAt !== "0001-01-01T00:00:00" ? new Date(chkDoc.uploadedAt).toLocaleDateString() : null,
+              };
+            });
+            setDocumentsList(fallbackMerged);
+          });
+      })
+      .catch((err) => {
+        console.error("Failed to fetch document checklist:", err);
+      });
+  };
+
+  const fetchOptionalDocNames = () => {
+    recruiterService.getAllOptionalNames()
+      .then((res) => {
+        const data = res?.data || res || [];
+        setOptionalDocs(data);
+        if (data.length > 0) {
+          setSelectedDocId(data[0].documentTypeId);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch optional document names:", err);
+      });
+  };
+
+  useEffect(() => {
+    let targetId = id;
+    if (!targetId && typeof window !== 'undefined') {
+      const searchStr = window.location.search;
+      if (searchStr && searchStr.startsWith('?')) {
+        const urlParams = new URLSearchParams(searchStr);
+        targetId = urlParams.get('id');
+      }
+    }
+    if (targetId) {
+      fetchRecruiterDetails(targetId);
+      fetchDocumentsAndChecklist(targetId);
+      fetchOptionalDocNames();
+    } else {
+      setLoading(false);
+    }
+  }, [id]);
+
+  const handleUpdateStatus = (newStatus) => {
+    if (!recruiterData?.id) return;
+    const reason = newStatus === "Active" ? "Activated/Approved by admin" : "Suspended by admin";
+    recruiterService.updateAccountStatus(recruiterData.id, newStatus, reason)
+      .then(() => {
+        fetchRecruiterDetails(recruiterData.id);
+      })
+      .catch((err) => {
+        alert(err.message || `Failed to update status to ${newStatus}`);
+      });
+  };
+
+  const handleUpdateDocumentStatus = (docId, newStatus) => {
+    const remarks = prompt("Enter remarks/reason for this status change:", newStatus === "Verified" ? "Verified by admin" : "Rejected by admin");
+    if (remarks === null) return;
+    
+    recruiterService.updateDocumentStatus(docId, newStatus, remarks)
+      .then(() => {
+        const recId = id || recruiterData?.id;
+        if (recId) {
+          fetchDocumentsAndChecklist(recId);
+        }
+      })
+      .catch((err) => {
+        alert(err.message || `Failed to update document status to ${newStatus}`);
+      });
+  };
+
+  const handleSendDocumentRequest = (e) => {
+    e.preventDefault();
+    const recId = id || recruiterData?.id;
+    if (!recId || !selectedDocId) return;
+    
+    const selectedDoc = optionalDocs.find(d => d.documentTypeId === selectedDocId);
+    const docName = selectedDoc ? selectedDoc.documentName : "";
+    
+    setSubmittingRequest(true);
+    recruiterService.requestDocument(recId, selectedDocId, docName, requestMessage)
+      .then(() => {
+        alert("Document request sent successfully!");
+        setShowRequestModal(false);
+        setRequestMessage("");
+        fetchDocumentsAndChecklist(recId);
+      })
+      .catch((err) => {
+        alert(err.message || "Failed to send document request");
+      })
+      .finally(() => {
+        setSubmittingRequest(false);
+      });
   };
 
   const handleDownloadInvoice = (txn) => {
-    const content = `JOBBOX
-Invoice ${txn.invoice}
---------------------------------
-Payment received from Stellar Logistics Pvt. Ltd.
+    const recId = recruiterData?.id || id;
+    if (!recId) return;
 
-${txn.description}                         ${txn.amount}
+    recruiterService.downloadTransactionInvoice(recId, txn.transactionId || txn.id)
+      .then((res) => {
+        if (res && res.invoiceUrl) {
+          window.open(res.invoiceUrl, '_blank');
+        } else if (res && res.content) {
+          const blob = new Blob([res.content], { type: "text/plain" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `Invoice-${txn.transactionNumber || txn.invoice || txn.transactionId}.txt`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        } else {
+          generateLocalInvoice(txn);
+        }
+      })
+      .catch(() => {
+        generateLocalInvoice(txn);
+      });
+  };
+
+  const generateLocalInvoice = (txn) => {
+    const content = `JOBBOX
+Invoice ${txn.transactionNumber || txn.invoice || txn.transactionId}
+--------------------------------
+Payment received from ${recruiterData?.company || "Employer"}
+
+${txn.description}                         ₹${txn.amount}
 
 Date: ${txn.date}
-Transaction ID: ${txn.id}
+Transaction ID: ${txn.transactionId || txn.id}
 Payment Method: ${txn.payment}
-Status: ${txn.status}
+Status: ${txn.paymentStatus || txn.status}
 --------------------------------
 Thank you for your business.
 `;
@@ -113,43 +259,104 @@ Thank you for your business.
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${txn.invoice}.txt`;
+    a.download = `${txn.transactionNumber || txn.invoice || txn.transactionId}.txt`;
     document.body.appendChild(a);
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
   };
 
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', flexDirection: 'column', gap: '15px' }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '4px solid #f3f3f3',
+          borderTop: '4px solid #ffa300',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <h5 style={{ color: '#122359', fontWeight: 600 }}>Loading Recruiter Profile...</h5>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  if (!recruiterData) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', flexDirection: 'column', gap: '15px' }}>
+        <h5 style={{ color: '#122359', fontWeight: 600 }}>Recruiter Profile Not Found</h5>
+        <p className="color-text-paragraph-2">Please ensure you have selected a valid recruiter.</p>
+        <button className="btn btn-warning text-white" onClick={() => router.push('/admin/recruiters')}>Back to Recruiters</button>
+      </div>
+    );
+  }
+
+  const transactionsList = recruiterData.transactions || [];
+
+  const getTxnStatusStyle = (status) => {
+    switch (status) {
+      case 'Paid':
+      case 'Success':
+      case 'Successfull':
+        return { bg: "#e8f5e9", color: "#2e7d32" };
+      case 'Pending':
+        return { bg: "#fff3e0", color: "#e65100" };
+      case 'Refunded':
+      case 'Failed':
+        return { bg: "#ffebee", color: "#c62828" };
+      default:
+        return { bg: "#f5f5f5", color: "#666" };
+    }
+  };
+
   return (
     <>
-      {/* ── PAGE HEADING: employer name + status + action buttons ── */}
+      {/* ── PAGE HEADING ── */}
       <div className="box-heading d-flex align-items-center justify-content-between mb-3">
         {/* LEFT */}
-        <div
-          className="box-title d-flex align-items-center"
-          style={{ gap: "12px" }}
-        >
-          <div
-            style={{
-              width: "42px",
-              height: "42px",
-              borderRadius: "8px",
-              background: "#ffa300",
-              color: "#fff",
-              flexShrink: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 700,
-              fontSize: "14px",
-            }}
-          >
-            SL
-          </div>
+        <div className="box-title d-flex align-items-center" style={{ gap: "12px" }}>
+          {recruiterData.logo ? (
+            <img
+              src={recruiterData.logo}
+              alt={recruiterData.company}
+              style={{
+                width: "42px",
+                height: "42px",
+                borderRadius: "8px",
+                objectFit: "cover",
+                flexShrink: 0
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: "42px",
+                height: "42px",
+                borderRadius: "8px",
+                background: "#ffa300",
+                color: "#fff",
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: 700,
+                fontSize: "14px",
+              }}
+            >
+              {recruiterData.company ? recruiterData.company.substring(0, 2).toUpperCase() : "CO"}
+            </div>
+          )}
 
           <div className="mt-1">
             <div className="d-flex align-items-center gap-2 mb-1">
-              <h5 className="mb-0">Stellar Logistics Pvt. Ltd.</h5>
+              <h5 className="mb-0">{recruiterData.company || "Company Details"}</h5>
               <span
                 className="badge"
                 style={{
@@ -160,51 +367,34 @@ Thank you for your business.
                   borderRadius: "12px",
                 }}
               >
-                View Only
+                Employer
               </span>
             </div>
 
-            <div
-              className="d-flex align-items-center mt-1"
-              style={{ gap: "10px" }}
-            >
+            <div className="d-flex align-items-center mt-1" style={{ gap: "10px" }}>
               <span
                 style={{
                   fontSize: "11px",
                   fontWeight: 700,
                   padding: "2px 10px",
                   borderRadius: "20px",
-                  background: "#fff3e0",
-                  color: "#e65100",
+                  background: recruiterData.accountStatus === 'Active' ? '#e8f5e9' : recruiterData.accountStatus === 'Suspended' ? '#ffebee' : '#fff3e0',
+                  color: recruiterData.accountStatus === 'Active' ? '#2e7d32' : recruiterData.accountStatus === 'Suspended' ? '#c62828' : '#e65100',
                 }}
               >
-                Pending Review
+                {recruiterData.accountStatus || "Pending"}
               </span>
 
               <span className="font-xs color-text-paragraph-2">
-                ID: REC-902831
+                ID: {recruiterData.id}
               </span>
-            </div>
-            <div
-              className="d-flex align-items-center mt-2"
-              style={{ gap: "14px", flexWrap: "wrap" }}
-            >
-              {/* Removed AI/Risk/Assigned badges from top header */}
-
-              {/* <span className="font-xs color-text-paragraph-2 d-flex align-items-center gap-1">
-    <Clock size={14} strokeWidth={2} />
-    42 mins in queue
-  </span> */}
             </div>
           </div>
         </div>
 
         {/* RIGHT */}
         <div className="box-breadcrumb">
-          <div
-            className="breadcrumbs"
-            style={{ border: "none", backgroundColor: "revert" }}
-          >
+          <div className="breadcrumbs" style={{ border: "none", backgroundColor: "revert" }}>
             <ul>
               <li>
                 <a className="icon-home" href="/admin/dashboard">
@@ -215,16 +405,18 @@ Thank you for your business.
                 <a href="/admin/recruiters">Recruiters</a>
               </li>
               <li>
-                <span>Details - Alexander Wright</span>
+                <span>Details - {recruiterData.recruiter?.name || "View"}</span>
               </li>
             </ul>
           </div>
         </div>
       </div>
+
       {/* ── MAIN LAYOUT ── */}
       <div className="row">
         {/* ════ LEFT COLUMN ════ */}
         <div className="col-xxl-8 col-xl-8 col-lg-8 col-md-12">
+          {/* Recruiter Information */}
           <div className="section-box">
             <div className="panel-white">
               <div className="panel-head">
@@ -236,67 +428,55 @@ Thank you for your business.
                   <div className="col-6 mb-15">
                     <p className="font-xs color-text-paragraph-2">NAME</p>
                     <p className="font-sm mb-0" style={{ fontWeight: 600 }}>
-                      Sarah Jenkins
+                      {recruiterData.recruiter?.name || recruiterData.primaryContact?.name || "N/A"}
                     </p>
                   </div>
 
                   <div className="col-6 mb-15">
                     <p className="font-xs color-text-paragraph-2">ROLE</p>
                     <p className="font-sm mb-0" style={{ fontWeight: 600 }}>
-                      HR Director
+                      {recruiterData.recruiter?.role || recruiterData.primaryContact?.role || "N/A"}
                     </p>
                   </div>
 
                   <div className="col-6 mb-15">
                     <p className="font-xs color-text-paragraph-2">EMAIL</p>
                     <p className="font-sm mb-0" style={{ fontWeight: 600 }}>
-                      sarah@stellar.com
+                      {recruiterData.recruiter?.email || recruiterData.primaryContact?.email || "N/A"}
                     </p>
                   </div>
 
                   <div className="col-6 mb-15">
-                    <p className="font-xs color-text-paragraph-2">
-                      MEMBERSHIP DETAILS
+                    <p className="font-xs color-text-paragraph-2">MEMBERSHIP DETAILS</p>
+                    <p className="font-sm mb-1" style={{ fontWeight: 600, color: "#122359" }}>
+                      {recruiterData.membership?.planName || "Free Plan"}
                     </p>
-
-                    <p
-                      className="font-sm mb-1"
-                      style={{ fontWeight: 600, color: "#122359" }}
-                    >
-                      Gold Membership
-                    </p>
-
                     <span
                       style={{
                         display: "inline-block",
                         padding: "4px 10px",
                         borderRadius: "20px",
-                        background: "#fff7e6",
-                        color: "#b7791f",
+                        background: recruiterData.membership?.isActive ? "#e8f5e9" : "#fff7e6",
+                        color: recruiterData.membership?.isActive ? "#2e7d32" : "#b7791f",
                         fontSize: "11px",
                         fontWeight: 600,
                       }}
                     >
-                      Valid till: 31 Dec 2026
+                      {recruiterData.membership?.expiresAt 
+                        ? `Valid till: ${new Date(recruiterData.membership.expiresAt).toLocaleDateString()}`
+                        : "No expiry"}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+
           {/* Company Information */}
           <div className="section-box">
             <div className="panel-white">
-              {/* ── TOP ACTION BAR (NEW) ── */}
-
-              <div
-                className="panel-head d-flex justify-content-between"
-                style={{ alignItems: "center" }}
-              >
-                <div
-                  className="d-flex align-items-center"
-                  style={{ gap: "8px" }}
-                >
+              <div className="panel-head d-flex justify-content-between" style={{ alignItems: "center" }}>
+                <div className="d-flex align-items-center" style={{ gap: "8px" }}>
                   <h6 className="mb-0">Company Information</h6>
                 </div>
               </div>
@@ -305,50 +485,42 @@ Thank you for your business.
                   {[
                     {
                       label: "LEGAL NAME",
-                      value: "Stellar Logistics Private Limited",
+                      value: recruiterData.companyInformation?.legalName || "N/A",
                     },
                     {
                       label: "INDUSTRY TYPE",
-                      value: "Logistics & Supply Chain",
+                      value: recruiterData.companyInformation?.industryType || recruiterData.sector || "N/A",
                     },
                     {
                       label: "DISPLAY NAME",
-                      value: "Stellar Express",
+                      value: recruiterData.companyInformation?.displayName || recruiterData.company || "N/A",
                     },
                     {
                       label: "TOTAL EMPLOYEES",
-                      value: "1,250+",
+                      value: recruiterData.companyInformation?.totalEmployees || "N/A",
                     },
                     {
                       label: "FOUNDED (YEAR)",
-                      value: "2018",
+                      value: recruiterData.companyInformation?.foundedYear || "N/A",
                     },
                     {
                       label: "ADDRESS",
-                      value:
-                        "Plot 24, MIDC Industrial Area, Andheri East, Mumbai, Maharashtra 400093",
+                      value: recruiterData.companyInformation?.address || "N/A",
                     },
                     {
                       label: "BUSINESS TYPE",
-                      value: "Private Limited Company",
+                      value: recruiterData.companyInformation?.businessType || "N/A",
                     },
                     {
                       label: "COMPANY SIZE",
-                      value: "1001–5000 Employees",
+                      value: recruiterData.companyInformation?.companySize || "N/A",
                     },
-                    // {
-                    //   label: "COMPANY TYPE",
-                    //   value: "Direct Employer",
-                    // },
                     {
                       label: "OFFICIAL WEBSITE",
-                      value: "www.stellarlogistics.com",
+                      value: recruiterData.companyInformation?.website || "N/A",
                     },
                   ].map((item) => (
-                    <div
-                      key={item.label}
-                      className="col-xl-6 col-lg-6 col-md-6 col-sm-6 mb-20 "
-                    >
+                    <div key={item.label} className="col-xl-6 col-lg-6 col-md-6 col-sm-6 mb-20">
                       <p
                         className="font-xs color-text-paragraph-2 mb-5"
                         style={{
@@ -359,10 +531,7 @@ Thank you for your business.
                       >
                         {item.label}
                       </p>
-                      <p
-                        className="font-sm mb-0"
-                        style={{ fontWeight: 600, color: "#122359" }}
-                      >
+                      <p className="font-sm mb-0" style={{ fontWeight: 600, color: "#122359" }}>
                         {item.value}
                       </p>
                     </div>
@@ -372,262 +541,103 @@ Thank you for your business.
             </div>
           </div>
 
-          {/* Risk Analysis section removed */}
-
           {/* Compliance Documents */}
           <div className="section-box">
             <div className="panel-white">
-              <div
-                className="panel-head"
-                style={{
-                  alignItems: "flex-start",
-                  flexWrap: "wrap",
-                  gap: "8px",
-                }}
-              >
+              <div className="panel-head d-flex justify-content-between align-items-center flex-wrap" style={{ gap: "8px" }}>
                 <div>
-                  <div
-                    className="d-flex align-items-center"
-                    style={{ gap: "8px" }}
-                  >
+                  <div className="d-flex align-items-center" style={{ gap: "8px" }}>
                     <i className="fi-rr-document font-sm color-brand-2"></i>
                     <h6 className="mb-0">Compliance Documents</h6>
                   </div>
                   <p className="font-xs color-text-paragraph-2 mt-5 mb-0">
-                    5 documents uploaded for verification
+                    {documentsList.length} documents in checklist
                   </p>
                 </div>
-                <a className="font-sm color-brand-2 hover-up" href="#">
-                  <i className="fi-rr-download mr-5"></i>Download All (.zip)
-                </a>
+                <button
+                  type="button"
+                  className="btn btn-warning text-white font-xs hover-up"
+                  onClick={() => setShowRequestModal(true)}
+                  style={{ padding: "8px 16px", borderRadius: "8px", fontSize: "11px", fontWeight: 700 }}
+                >
+                  + Request Optional Document
+                </button>
               </div>
 
               <div className="panel-body">
                 <div className="row">
-                  {[
-                    {
-                      title: "GST Certificate",
-                      sub: "GST Document",
-                      status: "Verified",
-                      statusColor: "#2e7d32",
-                      statusBg: "#e8f5e9",
-                      img: "https://www.legalwiz.in/wp-content/uploads/image-570.png",
-                      expired: false,
-                      aiMatch: null,
-                      meta: null,
-                    },
-                    {
-                      title: "PAN Card - Corporate",
-                      sub: "PAN Document",
-                      status: "Verified",
-                      statusColor: "#2e7d32",
-                      statusBg: "#e8f5e9",
-                      img: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiGCen-C1d098jk5azlItLqxCsPwRy5ET0KczRjB1I7B6TvbqgyJn5GxG6cuywT3D3yPnnydre4oqifOE03SFYEqmS9kN6azD-TawLZWwLPe9mOiGJqLh0adYt11LqlUNvv_HQOhmVDAJE/s1600/IMG-20180320-WA0001.jpg",
-                      expired: false,
-                      aiMatch: null,
-                      meta: null,
-                    },
-                    {
-                      title: "POE License Copy",
-                      sub: "POE Document",
-                      status: "Verified",
-                      statusColor: "#2e7d32",
-                      statusBg: "#e8f5e9",
-                      img: "https://pbs.twimg.com/media/GYeyu9hW0AE5iyz?format=jpg&name=900x900",
-                      expired: false,
-                      aiMatch: {
-                        label: "98% Match",
-                        color: "#2e7d32",
-                        bg: "#e8f5e9",
-                      },
-                      meta: {
-                        licenseNo: "POE-9928/2023",
-                        validTill: "2025-12-31",
-                      },
-                    },
-                    {
-                      title: "RPSL Certification",
-                      sub: "RPSL Document",
-                      status: "Pending",
-                      statusColor: "#e65100",
-                      statusBg: "#fff3e0",
-                      img: "https://vigilss.com/wp-content/uploads/2023/07/RPSL-LIC-1-768x723.png",
-                      aiMatch: {
-                        label: "64% Match",
-                        color: "#e65100",
-                        bg: "#fff3e0",
-                      },
-                      meta: {
-                        licenseNo: "RPSL-MUM-442",
-                        validTill: "2023-01-15",
-                      },
-                    },
-                    {
-                      title: "Business Reg Certificate",
-                      sub: "BR Document",
-                      status: "Verified",
-                      statusColor: "#2e7d32",
-                      statusBg: "#e8f5e9",
-                      img: "https://imgv2-2-f.scribdassets.com/img/document/768783389/original/959dd3323c/1?v=1",
-                      expired: false,
-                      aiMatch: null,
-                      meta: null,
-                    },
-                  ].map((doc) => (
-                    <div
-                      key={doc.title}
-                      className="col-xl-5 col-lg-5 col-md-6 col-sm-6 mb-20"
-                    >
+                  {documentsList.map((doc, idx) => (
+                    <div key={doc.title + idx} className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-20">
                       <div className="card-grid-2" style={{ marginBottom: 0 }}>
-                        {/* Expired badge */}
-                        {doc.expired && (
-                          <div
-                            style={{
-                              position: "absolute",
-                              top: "10px",
-                              right: "10px",
-                              zIndex: 2,
-                              background: "#dc2626",
-                              color: "#fff",
-                              fontSize: "10px",
-                              fontWeight: 700,
-                              padding: "2px 8px",
-                              borderRadius: "4px",
-                            }}
-                          >
-                            EXPIRED
+                        <div className="card-block-info" style={{ padding: "15px" }}>
+                          <div className="d-flex align-items-center gap-2 mb-10">
+                            <FileText size={18} color="#94a3b8" />
+                            <div>
+                              <h6 className="font-sm mb-0" style={{ fontWeight: 700, color: "#122359" }}>
+                                {doc.title}
+                              </h6>
+                              <span className="font-xs color-text-paragraph-2">
+                                {doc.sub}
+                              </span>
+                            </div>
                           </div>
-                        )}
-                        {/* Thumbnail */}
-                        <div
-                          style={{
-                            height: "165px",
-                            overflow: "hidden",
-                            background: "#dde4f0",
-                          }}
-                        >
-                          <img
-                            src={doc.img}
-                            alt={doc.title}
-                            onClick={() => setPreviewDoc(doc)}
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                              cursor: "pointer", // 🔥 important
-                            }}
-                          />
-                        </div>
-                        {/* Card body */}
-                        <div
-                          className="card-block-info"
-                          style={{ padding: "12px" }}
-                        >
-                          <div className="d-flex align-items-start justify-content-between mb-5">
-                            <p
-                              className="font-sm mb-0"
-                              style={{
-                                fontWeight: 600,
-                                color: "#122359",
-                                lineHeight: 1.3,
-                              }}
-                            >
-                              {doc.title}
-                            </p>
+
+                          <div className="d-flex align-items-center justify-content-between mb-15">
                             <span
                               style={{
-                                fontSize: "10px",
-                                fontWeight: 700,
-                                padding: "2px 8px",
-                                borderRadius: "20px",
                                 background: doc.statusBg,
                                 color: doc.statusColor,
-                                whiteSpace: "nowrap",
-                                marginLeft: "6px",
-                                flexShrink: 0,
+                                padding: "2px 8px",
+                                borderRadius: "12px",
+                                fontSize: "10px",
+                                fontWeight: 700,
                               }}
                             >
                               {doc.status}
                             </span>
+                            {doc.uploadedAt && (
+                              <span className="font-xs text-muted">
+                                Uploaded: {doc.uploadedAt}
+                              </span>
+                            )}
                           </div>
-                          <p className="font-xs color-text-paragraph-2 mb-0">
-                            {doc.sub}
-                          </p>
 
-                          {doc.aiMatch && (
-                            <div
-                              className="d-flex align-items-center mt-10"
-                              style={{ gap: "6px" }}
-                            >
-                              <span
-                                className="font-xs color-text-paragraph-2"
-                                style={{
-                                  textTransform: "uppercase",
-                                  fontSize: "9px",
-                                  letterSpacing: "0.4px",
-                                }}
-                              >
-                                AI EXTRACTION
-                              </span>
-                              <span
-                                style={{
-                                  fontSize: "10px",
-                                  fontWeight: 700,
-                                  padding: "1px 7px",
-                                  borderRadius: "20px",
-                                  background: doc.aiMatch.bg,
-                                  color: doc.aiMatch.color,
-                                }}
-                              >
-                                {doc.aiMatch.label}
-                              </span>
+                          {doc.documentId && doc.documentId !== "00000000-0000-0000-0000-000000000000" ? (
+                            <div className="d-flex gap-2">
+                              {doc.img && (
+                                <button
+                                  type="button"
+                                  className="btn btn-border font-xs hover-up flex-grow-1"
+                                  onClick={() => setPreviewDoc(doc)}
+                                  style={{ padding: "6px 0", fontSize: "11px" }}
+                                >
+                                  Preview
+                                </button>
+                              )}
+                              {doc.status !== "Verified" && (
+                                <button
+                                  type="button"
+                                  className="btn btn-warning text-white font-xs hover-up flex-grow-1"
+                                  onClick={() => handleUpdateDocumentStatus(doc.documentId, "Verified")}
+                                  style={{ padding: "6px 0", fontSize: "11px" }}
+                                >
+                                  Verify
+                                </button>
+                              )}
+                              {doc.status !== "Rejected" && (
+                                <button
+                                  type="button"
+                                  className="btn btn-danger text-white font-xs hover-up flex-grow-1"
+                                  onClick={() => handleUpdateDocumentStatus(doc.documentId, "Rejected")}
+                                  style={{ padding: "6px 0", fontSize: "11px" }}
+                                >
+                                  Reject
+                                </button>
+                              )}
                             </div>
-                          )}
-
-                          {doc.meta && (
-                            <div className="employers-info mt-10">
-                              <div className="row">
-                                <div className="col-6">
-                                  <p
-                                    className="font-xs color-text-paragraph-2 mb-0"
-                                    style={{
-                                      fontSize: "9px",
-                                      textTransform: "uppercase",
-                                    }}
-                                  >
-                                    License No.
-                                  </p>
-                                  <p
-                                    className="font-xs mb-0"
-                                    style={{
-                                      fontWeight: 600,
-                                      color: "#122359",
-                                    }}
-                                  >
-                                    {doc.meta.licenseNo}
-                                  </p>
-                                </div>
-                                <div className="col-6">
-                                  <p
-                                    className="font-xs color-text-paragraph-2 mb-0"
-                                    style={{
-                                      fontSize: "9px",
-                                      textTransform: "uppercase",
-                                    }}
-                                  >
-                                    Valid Till
-                                  </p>
-                                  <p
-                                    className="font-xs mb-0"
-                                    style={{
-                                      fontWeight: 600,
-                                      color: "#122359",
-                                    }}
-                                  >
-                                    {doc.meta.validTill}
-                                  </p>
-                                </div>
-                              </div>
+                          ) : (
+                            <div className="font-xs text-center color-text-paragraph-2 py-2" style={{ background: "#f8fafc", borderRadius: "6px", fontWeight: 600 }}>
+                              Not Uploaded
                             </div>
                           )}
                         </div>
@@ -639,289 +649,54 @@ Thank you for your business.
             </div>
           </div>
 
-          {/* ── Required Company Documents Checklist ── */}
+          {/* Account Status Action Panel */}
           <div className="section-box">
             <div className="panel-white">
-              <div className="panel-head" style={{ alignItems: "center" }}>
-                <div>
-                  <div
-                    className="d-flex align-items-center"
-                    style={{ gap: "8px" }}
-                  >
-                    <Info size={18} className="color-brand-2" />
-                    <h6 className="mb-0">Required Company Documents</h6>
+              <div className="box-padding">
+                <div className="d-flex align-items-center justify-content-between flex-wrap" style={{ gap: '14px' }}>
+                  <div>
+                    <h6 className="mb-5" style={{ fontWeight: 700, color: '#122359' }}>
+                      Account Status Approval Actions
+                    </h6>
+                    <p className="font-xs color-text-paragraph-2 mb-0">
+                      {recruiterData.accountStatus === 'Suspended'
+                        ? 'This employer account is currently suspended.'
+                        : recruiterData.accountStatus === 'Active'
+                        ? 'This account is active and verified.'
+                        : 'Review this employer’s profile details and documents to approve or suspend.'}
+                    </p>
                   </div>
-                  <p className="font-xs color-text-paragraph-2 mt-5 mb-0">
-                    Mandatory and conditional verification documents required for Stellar Logistics Pvt. Ltd.'s business profile.
-                  </p>
-                </div>
-              </div>
-              <div className="panel-body">
-                <div className="table-responsive">
-                  <table className="table font-sm" style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
-                        <th style={{ padding: "12px 10px", fontWeight: "600", fontSize: "11px", color: "#475569", textTransform: "uppercase" }}>Document Type</th>
-                        <th style={{ padding: "12px 10px", fontWeight: "600", fontSize: "11px", color: "#475569", textTransform: "uppercase" }}>Category</th>
-                        <th style={{ padding: "12px 10px", fontWeight: "600", fontSize: "11px", color: "#475569", textTransform: "uppercase" }}>Requirement</th>
-                        <th style={{ padding: "12px 10px", fontWeight: "600", fontSize: "11px", color: "#475569", textTransform: "uppercase" }}>Status</th>
-                        <th style={{ padding: "12px 10px", fontWeight: "600", fontSize: "11px", color: "#475569", textTransform: "uppercase" }}>Description & Purpose</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[
-                        {
-                          name: "GST Certificate (GSTIN)",
-                          category: "Tax & Compliance",
-                          importance: "Mandatory",
-                          impColor: "#dc2626",
-                          impBg: "#fef2f2",
-                          status: "Verified",
-                          statusColor: "#2e7d32",
-                          statusBg: "#e8f5e9",
-                          desc: "Required for all Indian business entities. Verifies legal identity, active status, and tax registration details."
-                        },
-                        {
-                          name: "Corporate PAN Card",
-                          category: "Tax & Compliance",
-                          importance: "Mandatory",
-                          impColor: "#dc2626",
-                          impBg: "#fef2f2",
-                          status: "Verified",
-                          statusColor: "#2e7d32",
-                          statusBg: "#e8f5e9",
-                          desc: "Permanent Account Number registered in company name, validating legal identity and national tax standing."
-                        },
-                        {
-                          name: "Business Registration Certificate",
-                          category: "Company Identity",
-                          importance: "Mandatory",
-                          impColor: "#dc2626",
-                          impBg: "#fef2f2",
-                          status: "Verified",
-                          statusColor: "#2e7d32",
-                          statusBg: "#e8f5e9",
-                          desc: "Certificate of Incorporation (COI), Trade License, or Partnership Deed verifying the legal existence of the business."
-                        },
-                        {
-                          name: "Memorandum & Articles of Association (MOA/AOA)",
-                          category: "Company Governance",
-                          importance: "Mandatory",
-                          impColor: "#dc2626",
-                          impBg: "#fef2f2",
-                          status: "Missing / Required",
-                          statusColor: "#c62828",
-                          statusBg: "#ffebee",
-                          desc: "Bylaws, shareholding registry, and corporate structure documentation. Needed for Private/Public Limited company audits."
-                        },
-                        {
-                          name: "Proof of Establishment (POE)",
-                          category: "Office Verification",
-                          importance: "Mandatory",
-                          impColor: "#dc2626",
-                          impBg: "#fef2f2",
-                          status: "Verified",
-                          statusColor: "#2e7d32",
-                          statusBg: "#e8f5e9",
-                          desc: "Utility bill, rent agreement, or property registry matching the registered operating address of the company."
-                        },
-                        {
-                          name: "RPSL License Copy",
-                          category: "Recruitment License",
-                          importance: "Conditional",
-                          impColor: "#2563eb",
-                          impBg: "#eff6ff",
-                          status: "Pending Review",
-                          statusColor: "#e65100",
-                          statusBg: "#fff3e0",
-                          desc: "Required only for maritime recruitment placing seafarers. Must map to a valid DG Shipping license number."
-                        },
-                        {
-                          name: "POE License Copy",
-                          category: "Recruitment License",
-                          importance: "Conditional",
-                          impColor: "#2563eb",
-                          impBg: "#eff6ff",
-                          status: "Verified",
-                          statusColor: "#2e7d32",
-                          statusBg: "#e8f5e9",
-                          desc: "Required for overseas placement agencies under the Ministry of External Affairs / Protector of Emigrants."
-                        }
-                      ].map((item, idx) => (
-                        <tr key={idx} className="hover-up" style={{ borderBottom: "1px solid #f1f5f9" }}>
-                          <td style={{ padding: "14px 10px", fontWeight: "600", color: "#1e293b" }}>
-                            <div className="d-flex align-items-center" style={{ gap: "6px" }}>
-                              <FileText size={14} className="color-text-paragraph-2" />
-                              <span>{item.name}</span>
-                            </div>
-                          </td>
-                          <td style={{ padding: "14px 10px", color: "#475569" }}>
-                            {item.category}
-                          </td>
-                          <td style={{ padding: "14px 10px" }}>
-                            <span style={{
-                              display: "inline-block",
-                              fontSize: "10px",
-                              fontWeight: "700",
-                              padding: "2px 8px",
-                              borderRadius: "4px",
-                              background: item.impBg,
-                              color: item.impColor,
-                              letterSpacing: "0.2px",
-                              textTransform: "uppercase"
-                            }}>
-                              {item.importance}
-                            </span>
-                          </td>
-                          <td style={{ padding: "14px 10px" }}>
-                            <span style={{
-                              display: "inline-block",
-                              fontSize: "10px",
-                              fontWeight: "700",
-                              padding: "2px 8px",
-                              borderRadius: "4px",
-                              background: item.statusBg,
-                              color: item.statusColor,
-                              letterSpacing: "0.2px",
-                              textTransform: "uppercase"
-                            }}>
-                              {item.status}
-                            </span>
-                          </td>
-                          <td style={{ padding: "14px 10px", fontSize: "12px", color: "#64748b", lineHeight: "1.4", maxWidth: "320px" }}>
-                            {item.desc}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Trust & Verification Badges */}
-          <div className="section-box">
-            <div className="panel-white">
-              <div className="panel-head" style={{ alignItems: "center" }}>
-                <div>
-                  <div
-                    className="d-flex align-items-center"
-                    style={{ gap: "8px" }}
-                  >
-                    <i className="fi-rr-shield-check font-sm color-brand-2"></i>
-                    <h6 className="mb-0">Trust &amp; Verification Badges</h6>
-                  </div>
-                  <p className="font-xs color-text-paragraph-2 mt-5 mb-0">
-                    Verified trust attributes and compliance badges for this
-                    recruiter.
-                  </p>
-                </div>
-              </div>
-              <div className="panel-body">
-                <div className="row gx-2 gy-2">
-                  {[
-                    {
-                      label: "GST Verified",
-                      active: true,
-                      color: "#115e59",
-                      bg: "#d1fae5",
-                      border: "#10b981",
-                    },
-                    {
-                      label: "PAN Verified",
-                      active: true,
-                      color: "#c2410c",
-                      bg: "#ffedd5",
-                      border: "#fb923c",
-                    },
-                    {
-                      label: "Blue-Tick Verified",
-                      active: true,
-                      color: "#1d4ed8",
-                      bg: "#dbeafe",
-                      border: "#93c5fd",
-                    },
-                    {
-                      label: "POE Licensed",
-                      active: false,
-                      color: "#334155",
-                      bg: "#f8fafc",
-                      border: "#cbd5e1",
-                    },
-                    {
-                      label: "RPSL Certified",
-                      active: false,
-                      color: "#334155",
-                      bg: "#f8fafc",
-                      border: "#cbd5e1",
-                    },
-                  ].map((badge) => (
-                    <div key={badge.label} className="col-auto">
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          padding: "8px 16px",
-                          borderRadius: "999px",
-                          background: badge.bg,
-                          color: badge.color,
-                          fontSize: "12px",
-                          fontWeight: 700,
-                          border: `1px solid ${badge.border}`,
-                          minWidth: "fit-content",
-                        }}
+                  <div className="d-flex gap-2">
+                    {recruiterData.accountStatus !== 'Active' && (
+                      <button
+                        onClick={() => handleUpdateStatus('Active')}
+                        className="btn btn-warning font-sm text-white"
+                        style={{ height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}
                       >
-                        {badge.active && (
-                          <i
-                            className="fi-rr-check"
-                            style={{ fontSize: "12px" }}
-                          ></i>
-                        )}
-                        {badge.label}
-                      </span>
-                    </div>
-                  ))}
+                        <UserCheck size={16} />
+                        Approve / Activate Account
+                      </button>
+                    )}
+                    {recruiterData.accountStatus !== 'Suspended' && (
+                      <button
+                        onClick={() => handleUpdateStatus('Suspended')}
+                        className="btn btn-danger font-sm"
+                        style={{ height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                      >
+                        <Ban size={16} />
+                        Suspend Account
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-        {/* end left col */}
 
-        {/* ════ RIGHT SIDEBAR ════ */}
+        {/* ════ RIGHT COLUMN ════ */}
         <div className="col-xxl-4 col-xl-4 col-lg-4 col-md-12">
-          {/* <div className="section-box">
-            <div className="panel-white">
-              <div className="panel-head">
-                <h6 className="mb-0">Verification Summary</h6>
-              </div>
-
-              <div className="panel-body">
-                <div className="d-flex justify-content-between mb-10">
-                  <span className="font-sm color-text-paragraph-2">
-                    Payment Status
-                  </span>
-                  <strong style={{ color: "#2e7d32" }}>Completed</strong>
-                </div>
-
-                <div className="d-flex justify-content-between mb-10">
-                  <span className="font-sm color-text-paragraph-2">
-                    Risk Score
-                  </span>
-                  <strong style={{ color: "#e65100" }}>Medium</strong>
-                </div>
-
-                <div className="d-flex justify-content-between mb-10">
-                  <span className="font-sm color-text-paragraph-2">
-                    Previous Rejections
-                  </span>
-                  <strong>1</strong>
-                </div>
-              </div>
-            </div>
-          </div> */}
           {/* Quick Insights */}
           <div className="section-box">
             <div className="panel-white">
@@ -957,7 +732,11 @@ Thank you for your business.
                       Registered On
                     </p>
                     <div className="card-title mt-2">
-                      <h5 className="mb-0">Oct 2023</h5>
+                      <h5 className="mb-0">
+                        {recruiterData.quickInsights?.registeredOn 
+                          ? new Date(recruiterData.quickInsights.registeredOn).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                          : "N/A"}
+                      </h5>
                     </div>
                   </div>
                 </div>
@@ -980,18 +759,17 @@ Thank you for your business.
                     </p>
                     <div className="card-title mt-2">
                       <h5 className="mb-0">
-                        42{" "}
-                        <span className="font-xs status up">+5 this month</span>
+                        {recruiterData.quickInsights?.totalOpenJobs !== undefined ? recruiterData.quickInsights.totalOpenJobs : "0"}
                       </h5>
                     </div>
                   </div>
                 </div>
+
                 {/* Total Job Posts */}
                 <div className="card-style-1 hover-up mb-15">
                   <div className="card-image">
                     <Briefcase size={24} strokeWidth={2.2} />
                   </div>
-
                   <div className="card-info">
                     <p
                       className="font-xs color-text-paragraph-2 mb-0"
@@ -1003,12 +781,14 @@ Thank you for your business.
                     >
                       Total Job Posts
                     </p>
-
                     <div className="card-title mt-2">
-                      <h5 className="mb-0">68</h5>
+                      <h5 className="mb-0">
+                        {recruiterData.quickInsights?.totalJobPosts !== undefined ? recruiterData.quickInsights.totalJobPosts : "0"}
+                      </h5>
                     </div>
                   </div>
                 </div>
+
                 {/* Credits */}
                 <div className="card-style-1 hover-up">
                   <div className="card-image">
@@ -1026,7 +806,9 @@ Thank you for your business.
                       Current Credits
                     </p>
                     <div className="card-title mt-2">
-                      <h5 className="mb-0">12,500</h5>
+                      <h5 className="mb-0">
+                        {recruiterData.quickInsights?.currentCredits !== undefined ? recruiterData.quickInsights.currentCredits.toLocaleString() : "0"}
+                      </h5>
                     </div>
                   </div>
                 </div>
@@ -1053,25 +835,14 @@ Thank you for your business.
 
               <div className="panel-body">
                 <div className="d-flex align-items-center justify-content-between mb-10">
-                  <span
-                    className="font-sm color-text-paragraph-2"
-                    style={{ fontWeight: 500 }}
-                  >
+                  <span className="font-sm color-text-paragraph-2" style={{ fontWeight: 500 }}>
                     Profile Completion
                   </span>
-
-                  <strong
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: 700,
-                      color: "#122359",
-                    }}
-                  >
-                    85%
+                  <strong style={{ fontSize: "13px", fontWeight: 700, color: "#122359" }}>
+                    {recruiterData.accountHealth?.profileCompletion || 0}%
                   </strong>
                 </div>
 
-                {/* Progress Bar */}
                 <div
                   style={{
                     width: "100%",
@@ -1084,7 +855,7 @@ Thank you for your business.
                 >
                   <div
                     style={{
-                      width: "85%",
+                      width: `${recruiterData.accountHealth?.profileCompletion || 0}%`,
                       height: "100%",
                       background: "#f59e0b",
                       borderRadius: "999px",
@@ -1093,14 +864,10 @@ Thank you for your business.
                   />
                 </div>
 
-                <p
-                  className="font-xs color-text-paragraph-2 mb-0"
-                  style={{
-                    lineHeight: "20px",
-                  }}
-                >
-                  RPSL documentation needs re-upload as the previous file has
-                  reached its expiry date.
+                <p className="font-xs color-text-paragraph-2 mb-0" style={{ lineHeight: "20px" }}>
+                  {recruiterData.accountHealth?.issues && recruiterData.accountHealth.issues.length > 0 
+                    ? recruiterData.accountHealth.issues.join(", ")
+                    : "All verification documentation and credentials are in good standing."}
                 </p>
               </div>
             </div>
@@ -1138,15 +905,15 @@ Thank you for your business.
                     margin: "0 auto 10px",
                   }}
                 >
-                  SJ
+                  {recruiterData.primaryContact?.name ? recruiterData.primaryContact.name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2) : "CO"}
                 </div>
-                <h6 className="mb-0">Sarah Jenkins</h6>
+                <h6 className="mb-0">{recruiterData.primaryContact?.name || "N/A"}</h6>
                 <p className="font-xs color-text-paragraph-2 mt-5 mb-20">
-                  HR Director
+                  {recruiterData.primaryContact?.role || "N/A"}
                 </p>
                 <a
                   className="btn btn-grey-big hover-up font-sm mb-10"
-                  href="#"
+                  href={`mailto:${recruiterData.primaryContact?.email}`}
                   style={{
                     width: "100%",
                     display: "flex",
@@ -1155,27 +922,22 @@ Thank you for your business.
                     gap: "6px",
                   }}
                 >
-                  <i className="fi-rr-envelope"></i>Message HR
-                </a>
-                <a className="font-sm color-brand-2 hover-up" href="#">
-                  View All Team Members
+                  <i className="fi-rr-envelope"></i>Email HR
                 </a>
               </div>
             </div>
           </div>
         </div>
-        {/* end right sidebar */}
       </div>
 
-      {/* ── TRANSACTION HISTORY (full width, bottom of page) ── */}
+      {/* ── TRANSACTION HISTORY ── */}
       <div className="section-box">
         <div className="panel-white">
           <div className="panel-head d-flex justify-content-between align-items-center">
             <div>
               <h6 className="mb-0">Transaction History</h6>
               <p className="font-xs color-text-paragraph-2 mt-5 mb-0">
-                All payments made by this recruiter — memberships, credit
-                packs and fees.
+                All payments made by this recruiter — memberships, credit packs and fees.
               </p>
             </div>
           </div>
@@ -1197,64 +959,73 @@ Thank you for your business.
                 </thead>
 
                 <tbody>
-                  {TRANSACTIONS.map((txn) => {
-                    const s = STATUS_STYLE[txn.status] || STATUS_STYLE.Paid;
-                    return (
-                      <tr key={txn.id}>
-                        <td>{txn.date}</td>
-                        <td style={{ fontWeight: 600, color: "#122359" }}>
-                          {txn.description}
-                        </td>
-                        <td>{txn.type}</td>
-                        <td>{txn.amount}</td>
-                        <td>{txn.payment}</td>
-                        <td>{txn.id}</td>
-                        <td>
-                          <span
-                            style={{
-                              background: s.bg,
-                              color: s.color,
-                              padding: "4px 10px",
-                              borderRadius: "20px",
-                              fontSize: "11px",
-                              fontWeight: 600,
-                            }}
-                          >
-                            {txn.status}
-                          </span>
-                        </td>
-                        <td>
-                          <button
-                            type="button"
-                            onClick={() => setInvoiceTxn(txn)}
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "5px",
-                              background: "#eef2ff",
-                              color: "#3730a3",
-                              border: "1px solid #c7d2fe",
-                              borderRadius: "8px",
-                              padding: "5px 12px",
-                              fontSize: "11px",
-                              fontWeight: 700,
-                              cursor: "pointer",
-                            }}
-                          >
-                            <Receipt size={12} />
-                            {txn.invoice}
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {transactionsList.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="text-center py-4 color-text-paragraph-2">
+                        No transactions found.
+                      </td>
+                    </tr>
+                  ) : (
+                    transactionsList.map((txn) => {
+                      const s = getTxnStatusStyle(txn.paymentStatus || txn.status);
+                      const displayAmt = typeof txn.amount === 'number' ? `₹${txn.amount}` : txn.amount;
+                      const displayDate = txn.date ? new Date(txn.date).toLocaleDateString() : "N/A";
+                      return (
+                        <tr key={txn.transactionId || txn.id}>
+                          <td>{displayDate}</td>
+                          <td style={{ fontWeight: 600, color: "#122359" }}>
+                            {txn.description}
+                          </td>
+                          <td>{txn.type}</td>
+                          <td>{displayAmt}</td>
+                          <td>{txn.payment}</td>
+                          <td>{txn.transactionId || txn.id}</td>
+                          <td>
+                            <span
+                              style={{
+                                background: s.bg,
+                                color: s.color,
+                                padding: "4px 10px",
+                                borderRadius: "20px",
+                                fontSize: "11px",
+                                fontWeight: 600,
+                              }}
+                            >
+                              {txn.paymentStatus || txn.status}
+                            </span>
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              onClick={() => setInvoiceTxn(txn)}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "5px",
+                                background: "#eef2ff",
+                                color: "#3730a3",
+                                border: "1px solid #c7d2fe",
+                                borderRadius: "8px",
+                                padding: "5px 12px",
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                cursor: "pointer",
+                              }}
+                            >
+                              <Receipt size={12} />
+                              {txn.transactionNumber || txn.invoice || "Invoice"}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
 
             <p className="font-xs color-text-paragraph-2 mt-15 mb-0">
-              Showing {TRANSACTIONS.length} of {TRANSACTIONS.length}{" "}
-              transactions
+              Showing {transactionsList.length} of {transactionsList.length} transactions
             </p>
           </div>
         </div>
@@ -1288,23 +1059,8 @@ Thank you for your business.
               textAlign: "center",
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: "18px",
-              }}
-            >
-              <span
-                style={{
-                  fontWeight: 800,
-                  fontSize: "15px",
-                  color: "#ffa300",
-                  letterSpacing: "0.5px",
-                  textAlign: "left",
-                }}
-              >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "18px" }}>
+              <span style={{ fontWeight: 800, fontSize: "15px", color: "#ffa300", letterSpacing: "0.5px", textAlign: "left" }}>
                 JOBBOX
               </span>
               <button
@@ -1325,21 +1081,11 @@ Thank you for your business.
               </button>
             </div>
 
-            <h5
-              style={{
-                margin: "0 0 6px",
-                color: "#122359",
-                fontWeight: 800,
-                textAlign: "left",
-              }}
-            >
-              Invoice {invoiceTxn.invoice}
+            <h5 style={{ margin: "0 0 6px", color: "#122359", fontWeight: 800, textAlign: "left" }}>
+              Invoice {invoiceTxn.transactionNumber || invoiceTxn.invoice}
             </h5>
-            <p
-              className="font-sm color-text-paragraph-2"
-              style={{ margin: "0 0 18px", textAlign: "left" }}
-            >
-              Payment received from Stellar Logistics Pvt. Ltd.
+            <p className="font-sm color-text-paragraph-2" style={{ margin: "0 0 18px", textAlign: "left" }}>
+              Payment received from {recruiterData.company}
             </p>
 
             <div
@@ -1354,24 +1100,20 @@ Thank you for your business.
                 marginBottom: "16px",
               }}
             >
-              <span
-                style={{ fontWeight: 700, color: "#122359", fontSize: "14px" }}
-              >
+              <span style={{ fontWeight: 700, color: "#122359", fontSize: "14px" }}>
                 {invoiceTxn.description}
               </span>
-              <span
-                style={{ fontWeight: 800, color: "#122359", fontSize: "16px" }}
-              >
-                {invoiceTxn.amount}
+              <span style={{ fontWeight: 800, color: "#122359", fontSize: "16px" }}>
+                {typeof invoiceTxn.amount === 'number' ? `₹${invoiceTxn.amount}` : invoiceTxn.amount}
               </span>
             </div>
 
             <div style={{ textAlign: "left", marginBottom: "20px" }}>
               <p className="font-sm mb-1" style={{ color: "#334155" }}>
-                Date: {invoiceTxn.date}
+                Date: {invoiceTxn.date ? new Date(invoiceTxn.date).toLocaleDateString() : "N/A"}
               </p>
               <p className="font-sm mb-1" style={{ color: "#334155" }}>
-                Transaction ID: {invoiceTxn.id}
+                Transaction ID: {invoiceTxn.transactionId || invoiceTxn.id}
               </p>
               <p className="font-sm mb-0" style={{ color: "#334155" }}>
                 Payment: {invoiceTxn.payment}
@@ -1379,7 +1121,10 @@ Thank you for your business.
             </div>
 
             <button
-              onClick={() => handleDownloadInvoice(invoiceTxn)}
+              onClick={() => {
+                handleDownloadInvoice(invoiceTxn);
+                setInvoiceTxn(null);
+              }}
               style={{
                 width: "100%",
                 display: "flex",
@@ -1402,52 +1147,210 @@ Thank you for your business.
           </div>
         </div>
       )}
-      {previewDoc && (
+
+      {/* ── PREVIEW DOC MODAL ── */}
+      {previewDoc && (() => {
+        const resolvedUrl = getDocUrl(previewDoc.img);
+        const isPdf = previewDoc.img && previewDoc.img.toLowerCase().endsWith('.pdf');
+        return (
+          <div
+            onClick={() => setPreviewDoc(null)}
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              background: "rgba(10,20,50,0.72)",
+              backdropFilter: "blur(4px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9999,
+              padding: "20px",
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: "#fff",
+                borderRadius: "16px",
+                maxWidth: "720px",
+                width: "100%",
+                overflow: "hidden",
+                boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
+              }}
+            >
+              {/* Header */}
+              <div style={{
+                padding: '16px 20px', display: 'flex',
+                alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0',
+              }}>
+                <div>
+                  <p style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase',
+                    letterSpacing: '0.5px', fontWeight: 600, margin: 0 }}>{previewDoc.sub}</p>
+                  <h6 style={{ margin: 0, color: '#122359', fontWeight: 700 }}>{previewDoc.title}</h6>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <button onClick={() => setPreviewDoc(null)} style={{
+                    width: '32px', height: '32px', borderRadius: '8px',
+                    background: '#f1f5f9', border: 'none', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <X size={16} color="#475569" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Content Preview */}
+              <div style={{ background: '#f8fafc', padding: '20px', maxHeight: '55vh', overflow: 'auto', display: 'flex', justifyContent: 'center' }}>
+                {previewDoc.img ? (
+                  isPdf ? (
+                    <iframe
+                      src={resolvedUrl}
+                      style={{ width: '100%', height: '50vh', border: '1px solid #e2e8f0', borderRadius: '10px' }}
+                    />
+                  ) : (
+                    <img
+                      src={resolvedUrl}
+                      alt={previewDoc.title}
+                      style={{ width: '100%', borderRadius: '10px', border: '1px solid #e2e8f0' }}
+                    />
+                  )
+                ) : (
+                  <div style={{ padding: "40px", color: "#122359", fontWeight: 600 }}>
+                    No Preview Available
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+      
+      {/* ── REQUEST OPTIONAL DOCUMENT MODAL ── */}
+      {showRequestModal && (
         <div
-          onClick={() => setPreviewDoc(null)}
+          onClick={() => setShowRequestModal(false)}
           style={{
             position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            background: "rgba(0,0,0,0.7)",
+            inset: 0,
+            zIndex: 10000,
+            background: "rgba(10,20,50,0.6)",
+            backdropFilter: "blur(4px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            zIndex: 9999,
+            padding: "20px",
           }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
               background: "#fff",
-              borderRadius: "10px",
-              padding: "10px",
-              maxWidth: "90%",
-              maxHeight: "90%",
+              borderRadius: "16px",
+              maxWidth: "460px",
+              width: "100%",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+              padding: "24px",
             }}
           >
-            <img
-              src={previewDoc.img}
-              alt={previewDoc.title}
-              style={{
-                maxWidth: "100%",
-                maxHeight: "80vh",
-                borderRadius: "6px",
-              }}
-            />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "18px" }}>
+              <h5 style={{ margin: 0, color: "#122359", fontWeight: 800 }}>
+                Request Optional Document
+              </h5>
+              <button
+                onClick={() => setShowRequestModal(false)}
+                style={{
+                  width: "30px",
+                  height: "30px",
+                  borderRadius: "8px",
+                  background: "#f1f5f9",
+                  border: "none",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <X size={15} color="#475569" />
+              </button>
+            </div>
 
-            {/* TITLE */}
-            <p
-              style={{
-                marginTop: "10px",
-                fontWeight: 600,
-                color: "#122359",
-              }}
-            >
-              {previewDoc.title}
-            </p>
+            <form onSubmit={handleSendDocumentRequest}>
+              <div className="mb-15">
+                <label className="form-label font-sm" style={{ fontWeight: 600, color: "#122359", display: "block", marginBottom: "6px" }}>
+                  Select Document Type
+                </label>
+                <select
+                  value={selectedDocId}
+                  onChange={(e) => setSelectedDocId(e.target.value)}
+                  style={{
+                    width: "100%",
+                    height: "42px",
+                    background: "#fff",
+                    border: "1px solid #e3e8f4",
+                    borderRadius: "9px",
+                    padding: "0 14px",
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    color: "#122359"
+                  }}
+                  required
+                >
+                  <option value="" disabled>-- Select Optional Document --</option>
+                  {optionalDocs.map((doc) => (
+                    <option key={doc.documentTypeId} value={doc.documentTypeId}>
+                      {doc.documentName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mb-20">
+                <label className="form-label font-sm" style={{ fontWeight: 600, color: "#122359", display: "block", marginBottom: "6px" }}>
+                  Message (Optional)
+                </label>
+                <textarea
+                  value={requestMessage}
+                  onChange={(e) => setRequestMessage(e.target.value)}
+                  placeholder="e.g. Please upload your optional license copy for further review."
+                  style={{
+                    width: "100%",
+                    height: "100px",
+                    background: "#fff",
+                    border: "1px solid #e3e8f4",
+                    borderRadius: "9px",
+                    padding: "10px 14px",
+                    fontSize: "13px",
+                    color: "#122359",
+                    resize: "none"
+                  }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={submittingRequest}
+                style={{
+                  width: "100%",
+                  background: "#ffa300",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "10px",
+                  padding: "13px 0",
+                  fontWeight: 700,
+                  fontSize: "13px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px"
+                }}
+              >
+                {submittingRequest ? "Sending Request..." : "Send Request"}
+              </button>
+            </form>
           </div>
         </div>
       )}

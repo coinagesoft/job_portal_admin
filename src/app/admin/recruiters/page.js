@@ -4,6 +4,7 @@ import Footer from "../../../components/Footer"
 import { useRouter } from "next/navigation"
 import { ShieldCheck, FileText, Search, MoreVertical, Ban, CheckCircle2, Info } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { recruiterService } from "../../../services/recruiterService";
 
 const initialRecruiters = [
   {
@@ -80,53 +81,56 @@ const initialRecruiters = [
 
 export default function RecruiterPage() {
   const router = useRouter();
-  const [recruitersList, setRecruitersList] = useState(initialRecruiters);
-  const [requiredDocs, setRequiredDocs] = useState({
-    gst: false,
-    pan: false,
-    brc: false,
-    moa: false,
-    poe: false,
-    rpsl: false,
-    poe_license: false,
-    cheque: false,
-    kyc: false,
-    trade: false,
-  });
+  const [recruitersList, setRecruitersList] = useState([]);
+  const [loadingList, setLoadingList] = useState(true);
+  const [requiredDocs, setRequiredDocs] = useState({});
+  const [docOptions, setDocOptions] = useState([]);
 
-  const [docOptions, setDocOptions] = useState([
-    { key: "gst", label: "GST Certificate (GSTIN)" },
-    { key: "pan", label: "Corporate PAN Card" },
-    { key: "brc", label: "Business Reg Certificate" },
-    { key: "moa", label: "MOA / AOA Governance" },
-    { key: "poe", label: "Proof of Establishment" },
-    { key: "rpsl", label: "RPSL Maritime License" },
-    { key: "poe_license", label: "POE License Copy" },
-    { key: "cheque", label: "Cancelled Cheque" },
-    { key: "kyc", label: "Director KYC" },
-    { key: "trade", label: "Trade License" },
-  ]);
+  const fetchRecruiters = () => {
+    setLoadingList(true);
+    recruiterService.getRecruiters()
+      .then((res) => {
+        setLoadingList(false);
+        if (Array.isArray(res)) {
+          setRecruitersList(res);
+        } else if (res && Array.isArray(res.items)) {
+          setRecruitersList(res.items);
+        } else if (res && Array.isArray(res.data)) {
+          setRecruitersList(res.data);
+        }
+      })
+      .catch((err) => {
+        setLoadingList(false);
+        console.error("Failed to fetch recruiters:", err);
+      });
+  };
 
-  // Load initial requiredDocs and docOptions from localStorage if present
+  const fetchMasterDocuments = () => {
+    recruiterService.getMasterAllDocuments()
+      .then((res) => {
+        const data = res?.data || res || [];
+        if (Array.isArray(data)) {
+          const mappedOptions = data.map((doc) => ({
+            key: doc.id,
+            label: doc.documentName,
+          }));
+          setDocOptions(mappedOptions);
+          
+          const mappedRequired = {};
+          data.forEach((doc) => {
+            mappedRequired[doc.id] = doc.isMandatory;
+          });
+          setRequiredDocs(mappedRequired);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch master document types:", err);
+      });
+  };
+
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedDocs = localStorage.getItem("requiredDocs");
-      if (savedDocs) {
-        try {
-          setRequiredDocs(JSON.parse(savedDocs));
-        } catch (e) {
-          console.error(e);
-        }
-      }
-      const savedOptions = localStorage.getItem("docOptions");
-      if (savedOptions) {
-        try {
-          setDocOptions(JSON.parse(savedOptions));
-        } catch (e) {
-          console.error(e);
-        }
-      }
-    }
+    fetchRecruiters();
+    fetchMasterDocuments();
   }, []);
 
   const updateRequiredDocs = (newDocs) => {
@@ -149,21 +153,16 @@ export default function RecruiterPage() {
     if (e) e.preventDefault();
     if (!customDocName.trim()) return;
 
-    const newKey = customDocName.trim().toLowerCase().replace(/[^a-z0-9]/g, "_");
-    
-    // Prevent duplicates
-    if (docOptions.some(opt => opt.key === newKey)) {
-      setCustomDocName("");
-      return;
-    }
+    const docName = customDocName.trim();
 
-    const newOption = { key: newKey, label: customDocName.trim() };
-    const updatedOptions = [...docOptions, newOption];
-    updateDocOptions(updatedOptions);
-    
-    const updatedDocs = { ...requiredDocs, [newKey]: true };
-    updateRequiredDocs(updatedDocs);
-    setCustomDocName("");
+    recruiterService.addOptionalDocumentType(docName, "General")
+      .then(() => {
+        setCustomDocName("");
+        fetchMasterDocuments();
+      })
+      .catch((err) => {
+        alert(err.message || "Failed to add optional document type to server");
+      });
   };
 
   const recruiterDocs = {
@@ -192,11 +191,18 @@ export default function RecruiterPage() {
   };
 
   const handleDocCheckboxChange = (docKey) => {
-    const updated = {
-      ...requiredDocs,
-      [docKey]: !requiredDocs[docKey],
-    };
-    updateRequiredDocs(updated);
+    const newMandatory = !requiredDocs[docKey];
+    recruiterService.updateRequiredDocStatus(docKey, newMandatory)
+      .then(() => {
+        const updated = {
+          ...requiredDocs,
+          [docKey]: newMandatory,
+        };
+        updateRequiredDocs(updated);
+      })
+      .catch((err) => {
+        alert(err.message || "Failed to update document configuration status on server");
+      });
   };
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -233,27 +239,25 @@ export default function RecruiterPage() {
   };
 
   const handleToggleVerification = (id) => {
-    setRecruitersList((prev) =>
-      prev.map((r) => {
-        if (r.id === id) {
-          const newGst = r.gst === "Verified" ? "Pending" : "Verified";
-          return { ...r, gst: newGst };
-        }
-        return r;
+    recruiterService.updateAccountStatus(id, "Active", "Verified by admin")
+      .then(() => {
+        fetchRecruiters();
       })
-    );
+      .catch((err) => {
+        alert(err.message || "Failed to update verification status");
+      });
   };
 
-  const handleToggleSuspend = (id) => {
-    setRecruitersList((prev) =>
-      prev.map((r) => {
-        if (r.id === id) {
-          const newStatus = r.status === "Suspended" ? "Active" : "Suspended";
-          return { ...r, status: newStatus };
-        }
-        return r;
+  const handleToggleSuspend = (id, currentStatus) => {
+    const newStatus = currentStatus === "Suspended" ? "Active" : "Suspended";
+    const reason = newStatus === "Active" ? "Activated by admin" : "Suspended by admin";
+    recruiterService.updateAccountStatus(id, newStatus, reason)
+      .then(() => {
+        fetchRecruiters();
       })
-    );
+      .catch((err) => {
+        alert(err.message || `Failed to update status to ${newStatus}`);
+      });
   };
 
   const getStatusStyle = (status) => {
@@ -284,11 +288,11 @@ export default function RecruiterPage() {
 
   const goToDetails = (id) => router.push(`/admin/recruiters/details?id=${id}`);
 
-  const filteredRecruiters = recruitersList.filter((r) => {
+  const filteredRecruiters = (recruitersList || []).filter((r) => {
     return (
-      (r.company.toLowerCase().includes(search.toLowerCase()) ||
-        r.email.toLowerCase().includes(search.toLowerCase()) ||
-        r.person.toLowerCase().includes(search.toLowerCase())) &&
+      ((r.company || "").toLowerCase().includes(search.toLowerCase()) ||
+        (r.email || "").toLowerCase().includes(search.toLowerCase()) ||
+        (r.person || "").toLowerCase().includes(search.toLowerCase())) &&
       (status === "" || r.status === status)
     );
   });
@@ -300,10 +304,10 @@ export default function RecruiterPage() {
     currentPage * ITEMS_PER_PAGE
   );
 
-  const verifiedCount = recruitersList.filter(r => r.gst === 'Verified').length;
-  const verificationRate = recruitersList.length > 0 ? Math.round((verifiedCount / recruitersList.length) * 100) : 0;
-  const pendingApprovalsCount = recruitersList.filter(r => r.status === 'Pending').length;
-  const activeRecruitersCount = recruitersList.filter(r => r.status === 'Active').length;
+  const verifiedCount = (recruitersList || []).filter(r => (r.verificationStatus || r.gst) === 'Verified').length;
+  const verificationRate = (recruitersList || []).length > 0 ? Math.round((verifiedCount / recruitersList.length) * 100) : 0;
+  const pendingApprovalsCount = (recruitersList || []).filter(r => r.status === 'Pending').length;
+  const activeRecruitersCount = (recruitersList || []).filter(r => r.status === 'Active').length;
 
   return (
     <>
@@ -734,7 +738,29 @@ export default function RecruiterPage() {
                 </thead>
 
                 <tbody>
-                  {filteredRecruiters.length === 0 ? (
+                  {loadingList ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-5">
+                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
+                          <div style={{
+                            width: '24px',
+                            height: '24px',
+                            border: '3px solid #f3f3f3',
+                            borderTop: '3px solid #ff9900',
+                            borderRadius: '50%',
+                            animation: 'spin 1s linear infinite'
+                          }} />
+                          <span className="font-sm color-text-paragraph-2">Loading recruiters...</span>
+                        </div>
+                        <style>{`
+                          @keyframes spin {
+                            0% { transform: rotate(0deg); }
+                            100% { transform: rotate(360deg); }
+                          }
+                        `}</style>
+                      </td>
+                    </tr>
+                  ) : filteredRecruiters.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="text-center py-4 color-text-paragraph-2">
                         No recruiters found.
@@ -747,16 +773,35 @@ export default function RecruiterPage() {
                         {/* Company */}
                         <td className="align-middle">
                           <div className="d-flex align-items-center">
-                            <img
-                              src={`/assets/imgs/page/candidates/${r.logo}`}
-                              alt={r.company}
-                              style={{
-                                width: "46px",
-                                height: "46px",
-                                borderRadius: "50%",
-                                objectFit: "cover"
-                              }}
-                            />
+                            {r.logo ? (
+                              <img
+                                src={r.logo.startsWith('http') ? r.logo : `/assets/imgs/page/candidates/${r.logo}`}
+                                alt={r.company}
+                                style={{
+                                  width: "46px",
+                                  height: "46px",
+                                  borderRadius: "50%",
+                                  objectFit: "cover"
+                                }}
+                              />
+                            ) : (
+                              <div
+                                style={{
+                                  width: "46px",
+                                  height: "46px",
+                                  borderRadius: "50%",
+                                  background: "#f1f5f9",
+                                  color: "#122359",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontWeight: 700,
+                                  fontSize: "14px"
+                                }}
+                              >
+                                {r.company ? r.company.substring(0, 2).toUpperCase() : "CO"}
+                              </div>
+                            )}
 
                             <div className="ms-3">
                               <h6 className="mb-0 text-dark">{r.company}</h6>
@@ -778,8 +823,10 @@ export default function RecruiterPage() {
                         {/* Verification */}
                         <td>
                           {(() => {
-                            const v = getVerificationStyle(r.gst);
-                            const { verifiedCount, totalCount } = getRecruiterDocCounts(r.id, requiredDocs);
+                            const verificationStatus = r.verificationStatus || r.gst || "Pending";
+                            const v = getVerificationStyle(verificationStatus);
+                            const verifiedCount = r.docsVerified !== undefined ? r.docsVerified : 0;
+                            const totalCount = r.docsTotal !== undefined ? r.docsTotal : 8;
                             const docsComplete = verifiedCount >= totalCount;
                             return (
                               <div className="verify-cell">
@@ -795,7 +842,7 @@ export default function RecruiterPage() {
                                     display: 'inline-block'
                                   }}
                                 >
-                                  {r.gst}
+                                  {verificationStatus}
                                 </span>
                                 <span className={`verify-docs-count ${docsComplete ? 'is-complete' : ''}`}>
                                   <FileText size={12} />
@@ -860,7 +907,7 @@ export default function RecruiterPage() {
 
                                 <div className="actions-menu-divider" />
 
-                                {r.gst === 'Verified' ? (
+                                {(r.verificationStatus || r.gst) === 'Verified' ? (
                                   <span className="actions-menu-item is-disabled">
                                     <CheckCircle2 size={14} />
                                     <span>Verified</span>
@@ -880,7 +927,7 @@ export default function RecruiterPage() {
                                   <button
                                     type="button"
                                     className="actions-menu-item is-positive"
-                                    onClick={() => { handleToggleSuspend(r.id); setOpenMenuId(null); }}
+                                    onClick={() => { handleToggleSuspend(r.id, r.status); setOpenMenuId(null); }}
                                   >
                                     <CheckCircle2 size={14} />
                                     <span>Activate</span>
@@ -889,7 +936,7 @@ export default function RecruiterPage() {
                                   <button
                                     type="button"
                                     className="actions-menu-item is-danger"
-                                    onClick={() => { handleToggleSuspend(r.id); setOpenMenuId(null); }}
+                                    onClick={() => { handleToggleSuspend(r.id, r.status); setOpenMenuId(null); }}
                                   >
                                     <Ban size={14} />
                                     <span>Suspend</span>

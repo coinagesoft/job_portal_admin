@@ -1,54 +1,29 @@
-'use client'
-import { useState, useEffect } from 'react'
-import Footer from '../../../../components/Footer'
-import { FileText, CheckCircle, Send, ChevronDown, X, Eye, ShieldCheck, ShieldX, RefreshCw, AlertCircle } from 'lucide-react'
+'use client';
+import { useState, useEffect, use } from 'react';
+import Footer from '../../../../components/Footer';
+import { recruiterService } from '../../../../services/recruiterService';
+import {
+  FileText,
+  CheckCircle,
+  Send,
+  ChevronDown,
+  X,
+  Eye,
+  ShieldCheck,
+  ShieldX,
+  RefreshCw,
+  AlertCircle
+} from 'lucide-react';
 
-/* ─── Initial document data ─── */
-const INITIAL_DOCS = [
-  {
-    id: 'gst', title: 'GST Registration Certificate', category: 'Tax & Compliance',
-    status: 'Pending Review', uploadedOn: '15 Oct 2023', validTill: '31 Mar 2026',
-    docId: 'GSTIN: 27AACS1234L1Z5',
-    img: 'https://templates.invoicehome.com/gst-invoice-template-us-neat-750px.png',
-  },
-  {
-    id: 'pan', title: 'Corporate PAN Card', category: 'Tax & Compliance',
-    status: 'Pending Review', uploadedOn: '15 Oct 2023', validTill: 'Permanent',
-    docId: 'PAN: AACS1234L',
-    img: 'https://www.bankbazaar.com/tax/wp-content/uploads/sites/4/2015/09/pan-card-copy.jpg',
-  },
-  {
-    id: 'brc', title: 'Business Registration Certificate', category: 'Company Documents',
-    status: 'Pending Review', uploadedOn: '16 Oct 2023', validTill: 'Permanent',
-    docId: 'CIN: U74900MH2019PTC...',
-    img: 'https://imgv2-2-f.scribdassets.com/img/document/768783389/original/959dd3323c/1?v=1',
-  },
-  {
-    id: 'poe', title: 'POE License', category: 'Recruitment License',
-    status: 'Pending Review', uploadedOn: '17 Oct 2023', validTill: '14 Oct 2025',
-    docId: 'POE-MUM-3391',
-    img: 'https://i.pinimg.com/736x/bc/de/87/bcde87c193ed3acbd43d0e73f1e02ed8.jpg',
-  },
-  {
-    id: 'rpsl', title: 'RPSL Certification', category: 'Recruitment License',
-    status: 'Action Required', uploadedOn: '17 Oct 2023', validTill: '15 Jan 2023',
-    docId: 'RPSL-MUM-442',
-    img: 'https://vigilss.com/wp-content/uploads/2023/07/RPSL-LIC-1-768x723.png',
-    note: 'Document expired. Please re-upload a valid RPSL certificate.',
-  },
-  {
-    id: 'moa', title: 'Memorandum of Association', category: 'Company Documents',
-    status: 'Pending Review', uploadedOn: '18 Oct 2023', validTill: '-',
-    docId: 'MOA-SL-2019',
-    img: 'https://templates.invoicehome.com/gst-invoice-template-us-neat-750px.png',
-  },
-]
-
-const REQUEST_OPTIONS = [
-  'Incorporation Certificate', 'Bank Cancelled Cheque', 'Address Proof / Utility Bill',
-  'Director Aadhaar / PAN (KYC)', 'Labour License', 'Trade License',
-  'ISO Certification', 'Letter of Authorization', 'Audited Financial Statements', 'Custom / Other Document',
-]
+/* ─── Helper for URL formatting ─── */
+const getDocUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  const base = 'https://jobportal.coinage.in';
+  return url.startsWith('/') ? `${base}${url}` : `${base}/${url}`;
+};
 
 const STATUS_STYLE = {
   'Verified': { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' },
@@ -56,11 +31,11 @@ const STATUS_STYLE = {
   'Action Required': { bg: '#fff1f2', color: '#be123c', border: '#fecdd3' },
   'Rejected': { bg: '#fff1f2', color: '#be123c', border: '#fecdd3' },
   'Resubmission': { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
-}
+};
 
 /* ─── Verify Confirm Modal ─── */
 function VerifyModal({ doc, onClose, onConfirm }) {
-  if (!doc) return null
+  if (!doc) return null;
   return (
     <div onClick={onClose} style={{
       position: 'fixed', inset: 0, zIndex: 10000,
@@ -74,7 +49,7 @@ function VerifyModal({ doc, onClose, onConfirm }) {
         {/* Header */}
         <div style={{
           padding: '18px 22px', borderBottom: '1px solid #f1f5f9',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          display: 'flex', alignItems: 'center', justifycontent: 'space-between',
         }}>
           <div>
             <p style={{
@@ -98,128 +73,40 @@ function VerifyModal({ doc, onClose, onConfirm }) {
             background: '#f0fdf4', border: '1px solid #bbf7d0',
             display: 'flex', alignItems: 'flex-start', gap: '10px',
           }}>
-            <ShieldCheck size={16} color="#16a34a" style={{ flexShrink: 0, marginTop: '1px' }} />
-            <p style={{ fontSize: '12px', color: '#166534', margin: 0, fontWeight: 500, lineHeight: 1.5 }}>
-              This will mark <strong>{doc.title}</strong> as verified. The recruiter's profile
-              will reflect this document as approved. Are you sure you want to continue?
-            </p>
+            <ShieldCheck size={18} color="#16a34a" style={{ marginTop: '2px', flexShrink: 0 }} />
+            <div>
+              <p style={{ fontSize: '12px', color: '#14532d', fontWeight: 600, margin: '0 0 4px' }}>
+                Confirm Verification
+              </p>
+              <p style={{ fontSize: '11px', color: '#166534', margin: 0, lineHeight: 1.4 }}>
+                This marks the document as verified. The recruiter will see this status in their dashboard.
+              </p>
+            </div>
           </div>
         </div>
         {/* Footer */}
         <div style={{
           padding: '14px 22px', borderTop: '1px solid #f1f5f9',
-          display: 'flex', gap: '10px', justifyContent: 'flex-end',
+          display: 'flex', justifyContent: 'end', gap: '10px',
         }}>
           <button onClick={onClose} style={{
-            padding: '10px 20px', background: '#f8fafc', border: '1px solid #e2e8f0',
-            borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: '#475569', cursor: 'pointer',
+            padding: '8px 16px', background: '#f1f5f9', border: 'none',
+            borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: '#475569', cursor: 'pointer',
           }}>Cancel</button>
-          <button
-            onClick={() => { onConfirm(doc.id); onClose() }}
-            style={{
-              padding: '10px 20px', background: '#16a34a', color: '#fff',
-              border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '6px',
-            }}
-          ><ShieldCheck size={14} /> Confirm Verification</button>
+          <button onClick={() => { onConfirm(doc.documentId); onClose(); }} style={{
+            padding: '8px 18px', background: '#16a34a', border: 'none',
+            borderRadius: '8px', fontSize: '12px', fontWeight: 700, color: '#fff', cursor: 'pointer',
+          }}>Verify Document</button>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-/* ─── Resubmission Request Modal ─── */
-function ResubmitModal({ doc, onClose, onConfirm }) {
-  const [message, setMessage] = useState('')
-  if (!doc) return null
-  return (
-    <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 10000,
-      background: 'rgba(10,20,50,0.6)', backdropFilter: 'blur(4px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
-    }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
-        background: '#fff', borderRadius: '16px', maxWidth: '480px', width: '100%',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: '18px 22px', borderBottom: '1px solid #f1f5f9',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <div>
-            <p style={{
-              fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase',
-              letterSpacing: '0.5px', fontWeight: 600, margin: 0
-            }}>Request Resubmission</p>
-            <h6 style={{ margin: 0, color: '#122359', fontWeight: 700 }}>{doc.title}</h6>
-          </div>
-          <button onClick={onClose} style={{
-            width: '32px', height: '32px', borderRadius: '8px',
-            background: '#f1f5f9', border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <X size={16} color="#475569" />
-          </button>
-        </div>
-        {/* Body */}
-        <div style={{ padding: '18px 22px' }}>
-          <div style={{
-            padding: '12px 14px', borderRadius: '10px',
-            background: '#eff6ff', border: '1px solid #bfdbfe', marginBottom: '16px',
-          }}>
-            <p style={{ fontSize: '12px', color: '#1d4ed8', margin: 0, fontWeight: 500 }}>
-              The recruiter will be notified and asked to re-upload this document.
-            </p>
-          </div>
-          <label style={{
-            fontSize: '11px', fontWeight: 700, color: '#475569',
-            textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px',
-          }}>
-            Message to Recruiter <span style={{ color: '#1d4ed8' }}>*</span>
-          </label>
-          <textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="E.g. Please re-upload a clearer scan / the correct document version..."
-            style={{
-              width: '100%', minHeight: '100px', resize: 'vertical',
-              borderRadius: '10px', border: '1.5px solid #e2e8f0',
-              padding: '10px 12px', fontSize: '13px', fontFamily: 'inherit',
-              outline: 'none', boxSizing: 'border-box',
-            }}
-          />
-        </div>
-        {/* Footer */}
-        <div style={{
-          padding: '14px 22px', borderTop: '1px solid #f1f5f9',
-          display: 'flex', gap: '10px', justifyContent: 'flex-end',
-        }}>
-          <button onClick={onClose} style={{
-            padding: '10px 20px', background: '#f8fafc', border: '1px solid #e2e8f0',
-            borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: '#475569', cursor: 'pointer',
-          }}>Cancel</button>
-          <button
-            onClick={() => { if (message.trim()) { onConfirm(doc.id, message); onClose() } }}
-            disabled={!message.trim()}
-            style={{
-              padding: '10px 20px',
-              background: message.trim() ? '#1d4ed8' : '#e2e8f0',
-              color: message.trim() ? '#fff' : '#94a3b8',
-              border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 700,
-              cursor: message.trim() ? 'pointer' : 'not-allowed',
-            }}
-          >Confirm Request</button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/* ─── Reject Reason Modal ─── */
+/* ─── Reject Modal ─── */
 function RejectModal({ doc, onClose, onConfirm }) {
-  const [reason, setReason] = useState('')
-  if (!doc) return null
+  const [reason, setReason] = useState('');
+  if (!doc) return null;
   return (
     <div onClick={onClose} style={{
       position: 'fixed', inset: 0, zIndex: 10000,
@@ -227,13 +114,13 @@ function RejectModal({ doc, onClose, onConfirm }) {
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        background: '#fff', borderRadius: '16px', maxWidth: '480px', width: '100%',
+        background: '#fff', borderRadius: '16px', maxWidth: '440px', width: '100%',
         boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
       }}>
         {/* Header */}
         <div style={{
           padding: '18px 22px', borderBottom: '1px solid #f1f5f9',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          display: 'flex', alignItems: 'center', justifycontent: 'space-between',
         }}>
           <div>
             <p style={{
@@ -252,63 +139,114 @@ function RejectModal({ doc, onClose, onConfirm }) {
         </div>
         {/* Body */}
         <div style={{ padding: '18px 22px' }}>
-          <div style={{
-            padding: '12px 14px', borderRadius: '10px',
-            background: '#fff1f2', border: '1px solid #fecdd3', marginBottom: '16px',
-          }}>
-            <p style={{ fontSize: '12px', color: '#be123c', margin: 0, fontWeight: 500 }}>
-              The recruiter will be notified and asked to re-upload a corrected document.
-            </p>
-          </div>
-          <label style={{
-            fontSize: '11px', fontWeight: 700, color: '#475569',
-            textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px',
-          }}>
-            Rejection Reason <span style={{ color: '#be123c' }}>*</span>
+          <label style={{ fontSize: '12px', fontWeight: 700, color: '#122359', display: 'block', marginBottom: '8px' }}>
+            Reason for Rejection
           </label>
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="E.g. Document is expired / unclear / incorrect format. Please re-upload a valid copy..."
+            placeholder="e.g. GST registration certificate copy is blurry and unreadable."
             style={{
-              width: '100%', minHeight: '100px', resize: 'vertical',
-              borderRadius: '10px', border: '1.5px solid #e2e8f0',
-              padding: '10px 12px', fontSize: '13px', fontFamily: 'inherit',
-              outline: 'none', boxSizing: 'border-box',
+              width: '100%', height: '100px', padding: '10px 12px', borderRadius: '8px',
+              border: '1px solid #cbd5e1', fontSize: '12px', resize: 'none', color: '#122359'
             }}
           />
         </div>
         {/* Footer */}
         <div style={{
           padding: '14px 22px', borderTop: '1px solid #f1f5f9',
-          display: 'flex', gap: '10px', justifyContent: 'flex-end',
+          display: 'flex', justifyContent: 'end', gap: '10px',
         }}>
           <button onClick={onClose} style={{
-            padding: '10px 20px', background: '#f8fafc', border: '1px solid #e2e8f0',
-            borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: '#475569', cursor: 'pointer',
+            padding: '8px 16px', background: '#f1f5f9', border: 'none',
+            borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: '#475569', cursor: 'pointer',
           }}>Cancel</button>
-          <button
-            onClick={() => { if (reason.trim()) { onConfirm(doc.id, reason); onClose() } }}
-            disabled={!reason.trim()}
-            style={{
-              padding: '10px 20px',
-              background: reason.trim() ? '#be123c' : '#e2e8f0',
-              color: reason.trim() ? '#fff' : '#94a3b8',
-              border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 700,
-              cursor: reason.trim() ? 'pointer' : 'not-allowed',
-            }}
-          >Confirm Rejection</button>
+          <button onClick={() => { onConfirm(doc.documentId, reason); onClose(); }} style={{
+            padding: '8px 18px', background: '#be123c', border: 'none',
+            borderRadius: '8px', fontSize: '12px', fontWeight: 700, color: '#fff', cursor: 'pointer',
+          }}>Confirm Rejection</button>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-/* ─── Document Preview Modal ─── */
+/* ─── Resubmit Modal ─── */
+function ResubmitModal({ doc, onClose, onConfirm }) {
+  const [note, setNote] = useState('');
+  if (!doc) return null;
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 10000,
+      background: 'rgba(10,20,50,0.6)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        background: '#fff', borderRadius: '16px', maxWidth: '440px', width: '100%',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: '18px 22px', borderBottom: '1px solid #f1f5f9',
+          display: 'flex', alignItems: 'center', justifycontent: 'space-between',
+        }}>
+          <div>
+            <p style={{
+              fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase',
+              letterSpacing: '0.5px', fontWeight: 600, margin: 0
+            }}>Request Resubmission</p>
+            <h6 style={{ margin: 0, color: '#122359', fontWeight: 700 }}>{doc.title}</h6>
+          </div>
+          <button onClick={onClose} style={{
+            width: '32px', height: '32px', borderRadius: '8px',
+            background: '#f1f5f9', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <X size={16} color="#475569" />
+          </button>
+        </div>
+        {/* Body */}
+        <div style={{ padding: '18px 22px' }}>
+          <label style={{ fontSize: '12px', fontWeight: 700, color: '#122359', display: 'block', marginBottom: '8px' }}>
+            Instructions for Recruiter
+          </label>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="e.g. Please re-upload the latest certificate for current assessment."
+            style={{
+              width: '100%', height: '100px', padding: '10px 12px', borderRadius: '8px',
+              border: '1px solid #cbd5e1', fontSize: '12px', resize: 'none', color: '#122359'
+            }}
+          />
+        </div>
+        {/* Footer */}
+        <div style={{
+          padding: '14px 22px', borderTop: '1px solid #f1f5f9',
+          display: 'flex', justifyContent: 'end', gap: '10px',
+        }}>
+          <button onClick={onClose} style={{
+            padding: '8px 16px', background: '#f1f5f9', border: 'none',
+            borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: '#475569', cursor: 'pointer',
+          }}>Cancel</button>
+          <button onClick={() => { onConfirm(doc.documentId, note); onClose(); }} style={{
+            padding: '8px 18px', background: '#1d4ed8', border: 'none',
+            borderRadius: '8px', fontSize: '12px', fontWeight: 700, color: '#fff', cursor: 'pointer',
+          }}>Request Resubmit</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Preview Modal with PDF and Image support ─── */
 function PreviewModal({ doc, onClose, onVerifyOpen, onRejectOpen, onResubmitOpen }) {
-  if (!doc) return null
-  const s = STATUS_STYLE[doc.status] || STATUS_STYLE['Pending Review']
-  const isVerified = doc.status === 'Verified'
+  if (!doc) return null;
+  const s = STATUS_STYLE[doc.status] || STATUS_STYLE['Pending Review'];
+  const isVerified = doc.status === 'Verified';
+  const resolvedUrl = getDocUrl(doc.img);
+  const isPdf = doc.img && doc.img.toLowerCase().endsWith('.pdf');
+
   return (
     <div onClick={onClose} style={{
       position: 'fixed', inset: 0, zIndex: 9999,
@@ -345,10 +283,26 @@ function PreviewModal({ doc, onClose, onVerifyOpen, onRejectOpen, onResubmitOpen
             </button>
           </div>
         </div>
-        {/* Image */}
-        <div style={{ background: '#f8fafc', padding: '20px', maxHeight: '55vh', overflow: 'auto' }}>
-          <img src={doc.img} alt={doc.title}
-            style={{ width: '100%', borderRadius: '10px', border: '1px solid #e2e8f0' }} />
+        {/* Content Viewer (dynamic PDF/Image) */}
+        <div style={{ background: '#f8fafc', padding: '20px', maxHeight: '55vh', overflow: 'auto', display: 'flex', justifyContent: 'center' }}>
+          {doc.img ? (
+            isPdf ? (
+              <iframe
+                src={resolvedUrl}
+                style={{ width: '100%', height: '50vh', border: '1px solid #e2e8f0', borderRadius: '10px' }}
+              />
+            ) : (
+              <img
+                src={resolvedUrl}
+                alt={doc.title}
+                style={{ width: '100%', borderRadius: '10px', border: '1px solid #e2e8f0' }}
+              />
+            )
+          ) : (
+            <div style={{ padding: '40px', color: '#122359', fontWeight: 600 }}>
+              No Preview Available
+            </div>
+          )}
         </div>
         {/* Footer with action buttons */}
         <div style={{
@@ -357,29 +311,29 @@ function PreviewModal({ doc, onClose, onVerifyOpen, onRejectOpen, onResubmitOpen
         }}>
           <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '12px', color: '#64748b' }}>
-              <strong style={{ color: '#334155' }}>Doc ID:</strong> {doc.docId}
+              <strong style={{ color: '#334155' }}>Required Type:</strong> {doc.docId}
             </span>
             <span style={{ fontSize: '12px', color: '#64748b' }}>
-              <strong style={{ color: '#334155' }}>Valid Till:</strong> {doc.validTill}
+              <strong style={{ color: '#334155' }}>Uploaded:</strong> {doc.uploadedOn}
             </span>
           </div>
           {!isVerified ? (
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button onClick={() => { onResubmitOpen(doc); onClose() }} style={{
+              <button onClick={() => { onResubmitOpen(doc); onClose(); }} style={{
                 padding: '9px 14px', background: '#eff6ff', border: '1px solid #bfdbfe',
                 borderRadius: '8px', fontSize: '12px', fontWeight: 600,
                 color: '#1d4ed8', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
               }}>
                 <RefreshCw size={12} /> Request Resubmission
               </button>
-              <button onClick={() => { onRejectOpen(doc); onClose() }} style={{
+              <button onClick={() => { onRejectOpen(doc); onClose(); }} style={{
                 padding: '9px 14px', background: '#fff1f2', border: '1px solid #fecdd3',
                 borderRadius: '8px', fontSize: '12px', fontWeight: 600,
                 color: '#be123c', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
               }}>
                 <ShieldX size={12} /> Reject
               </button>
-              <button onClick={() => { onVerifyOpen(doc); onClose() }} style={{
+              <button onClick={() => { onVerifyOpen(doc); onClose(); }} style={{
                 padding: '9px 16px', background: '#16a34a', border: 'none',
                 borderRadius: '8px', fontSize: '12px', fontWeight: 700,
                 color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
@@ -398,10 +352,10 @@ function PreviewModal({ doc, onClose, onVerifyOpen, onRejectOpen, onResubmitOpen
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-/* ─── Document Card ─── */
+/* ─── Document Card Component ─── */
 function DocCard({ doc, onPreview, onVerifyOpen, onRejectOpen, onResubmitOpen, onRequestDocument }) {
   if (doc.isMissing) {
     return (
@@ -445,8 +399,11 @@ function DocCard({ doc, onPreview, onVerifyOpen, onRejectOpen, onResubmitOpen, o
     );
   }
 
-  const s = STATUS_STYLE[doc.status] || STATUS_STYLE['Pending Review']
-  const isVerified = doc.status === 'Verified'
+  const s = STATUS_STYLE[doc.status] || STATUS_STYLE['Pending Review'];
+  const isVerified = doc.status === 'Verified';
+  const resolvedUrl = getDocUrl(doc.img);
+  const isPdf = doc.img && doc.img.toLowerCase().endsWith('.pdf');
+
   return (
     <div style={{
       background: '#fff', border: `1.5px solid ${s.border}`, borderRadius: '14px',
@@ -456,7 +413,20 @@ function DocCard({ doc, onPreview, onVerifyOpen, onRejectOpen, onResubmitOpen, o
       {/* Thumbnail */}
       <div style={{ height: '148px', background: '#f1f5f9', overflow: 'hidden', position: 'relative', cursor: 'pointer' }}
         onClick={() => onPreview(doc)}>
-        <img src={doc.img} alt={doc.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        {doc.img ? (
+          isPdf ? (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', gap: '8px', flexDirection: 'column' }}>
+              <FileText size={40} color="#e11d48" />
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#1e293b' }}>PDF Certificate</span>
+            </div>
+          ) : (
+            <img src={resolvedUrl} alt={doc.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          )
+        ) : (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9' }}>
+            <FileText size={32} color="#94a3b8" />
+          </div>
+        )}
         {/* Status badge */}
         <span style={{
           position: 'absolute', top: '10px', right: '10px',
@@ -551,148 +521,307 @@ function DocCard({ doc, onPreview, onVerifyOpen, onRejectOpen, onResubmitOpen, o
                 </button>
               </div>
               <button onClick={() => onResubmitOpen(doc)} style={{
-                width: '100%', padding: '6px 0', background: '#eff6ff', border: '1px solid #bfdbfe',
+                width: '100%', padding: '7px 0', background: '#eff6ff', border: '1px solid #bfdbfe',
                 borderRadius: '8px', fontSize: '11px', fontWeight: 600, color: '#1d4ed8', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
               }}>
-                <RefreshCw size={11} /> Request Resubmission
+                <RefreshCw size={12} /> Request Resubmission
               </button>
             </>
           ) : (
             <div style={{
-              padding: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0',
-              borderRadius: '8px', textAlign: 'center',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+              width: '100%', padding: '8px 0', background: '#f0fdf4', border: '1px solid #bbf7d0',
+              borderRadius: '8px', fontSize: '11px', fontWeight: 700, color: '#16a34a',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
             }}>
-              <ShieldCheck size={13} color="#16a34a" />
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a' }}>Verified by Admin</span>
+              <ShieldCheck size={12} /> Verified by Admin
             </div>
           )}
-          {/* <button onClick={() => onPreview(doc)} style={{
-            width: '100%', padding: '6px 0', background: '#f8fafc', border: '1px solid #e2e8f0',
-            borderRadius: '8px', fontSize: '11px', fontWeight: 600, color: '#334155', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
-          }}>
-            <Eye size={12} /> Preview Document
-          </button> */}
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 /* ─── Main Page ─── */
-export default function RecruiterDocumentsPage() {
-  const [docs, setDocs] = useState(INITIAL_DOCS)
-  const [previewDoc, setPreviewDoc] = useState(null)
-  const [rejectTarget, setRejectTarget] = useState(null)
-  const [verifyTarget, setVerifyTarget] = useState(null)
-  const [resubmitTarget, setResubmitTarget] = useState(null)
-  const [requestedDocs, setRequestedDocs] = useState([])
-  const [selectedDocType, setSelectedDocType] = useState('')
-  const [customDocName, setCustomDocName] = useState('')
-  const [requestNote, setRequestNote] = useState('')
-  const [toast, setToast] = useState(null)
+export default function RecruiterDocumentsPage({ searchParams }) {
+  const resolvedSearchParams = use(searchParams);
+  const recruiterId = resolvedSearchParams?.id;
+
+  const [recruiterData, setRecruiterData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
+  const [docs, setDocs] = useState([]);
+  const [previewDoc, setPreviewDoc] = useState(null);
+  const [rejectTarget, setRejectTarget] = useState(null);
+  const [verifyTarget, setVerifyTarget] = useState(null);
+  const [resubmitTarget, setResubmitTarget] = useState(null);
+  const [requestedDocs, setRequestedDocs] = useState([]);
+  const [optionalDocs, setOptionalDocs] = useState([]);
+  const [selectedDocType, setSelectedDocType] = useState('');
+  const [customDocName, setCustomDocName] = useState('');
+  const [requestNote, setRequestNote] = useState('');
+  const [toast, setToast] = useState(null);
 
   const showToast = (msg, type = 'success') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3200)
-  }
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3200);
+  };
 
-  const handleVerify = (id) => {
-    setDocs((prev) => prev.map((d) => d.id === id ? { ...d, status: 'Verified', rejectReason: null } : d))
-    showToast('Document verified successfully', 'success')
-  }
+  const processDocuments = (checklistData, docsData) => {
+    const statusMap = {
+      NotUploaded: 'Not Uploaded',
+      Pending: 'Pending Review',
+      Verified: 'Verified',
+      Rejected: 'Action Required',
+    };
 
-  const handleReject = (id, reason) => {
-    setDocs((prev) => prev.map((d) => d.id === id ? { ...d, status: 'Action Required', rejectReason: reason } : d))
-    showToast('Document rejected — recruiter notified', 'error')
-  }
-
-  const handleResubmit = (id, message) => {
-    setDocs((prev) => prev.map((d) => d.id === id ? { ...d, status: 'Resubmission', rejectReason: null, resubmitNote: message } : d))
-    showToast('Resubmission request sent to recruiter', 'info')
-  }
-
-  const handleSendRequest = () => {
-    if (!selectedDocType) return
-    let docTypeToSend = selectedDocType
-    if (selectedDocType === 'Custom / Other Document') {
-      if (!customDocName.trim()) return
-      docTypeToSend = customDocName.trim()
+    if (checklistData && checklistData.length > 0) {
+      const merged = checklistData.map((chkDoc) => {
+        const uploadedDoc = docsData.find(
+          (d) => 
+            (d.documentId && d.documentId !== "00000000-0000-0000-0000-000000000000" && d.documentId === chkDoc.documentId) ||
+            (d.documentTypeId && d.documentTypeId === chkDoc.documentTypeId)
+        );
+        
+        const docUrl = uploadedDoc?.url || uploadedDoc?.documentUrl || chkDoc.url || null;
+        const status = chkDoc.status || 'NotUploaded';
+        
+        return {
+          id: chkDoc.documentId && chkDoc.documentId !== "00000000-0000-0000-0000-000000000000" ? chkDoc.documentId : chkDoc.documentTypeId,
+          documentId: chkDoc.documentId,
+          documentTypeId: chkDoc.documentTypeId,
+          title: chkDoc.documentName,
+          category: chkDoc.category || 'Company Documents',
+          status: statusMap[status] || 'Not Uploaded',
+          isMissing: status === 'NotUploaded',
+          uploadedOn: chkDoc.uploadedAt && chkDoc.uploadedAt !== '0001-01-01T00:00:00' ? new Date(chkDoc.uploadedAt).toLocaleDateString() : 'N/A',
+          validTill: chkDoc.verifiedAt && chkDoc.verifiedAt !== '0001-01-01T00:00:00' ? new Date(chkDoc.verifiedAt).toLocaleDateString() : 'Permanent',
+          docId: chkDoc.isMandatory ? 'Mandatory' : 'Optional',
+          img: docUrl,
+        };
+      });
+      setDocs(merged);
+    } else {
+      // Fallback: use docsData directly
+      const mapped = docsData.map((doc) => {
+        const status = doc.status || 'Pending';
+        const uiStatus = statusMap[status] || status || 'Pending Review';
+        return {
+          id: doc.documentId || doc.id || doc.documentTypeId,
+          documentId: doc.documentId || doc.id,
+          documentTypeId: doc.documentTypeId,
+          title: doc.documentName || doc.title || 'Document',
+          category: doc.category || 'Company Documents',
+          status: uiStatus,
+          isMissing: uiStatus === 'Not Uploaded',
+          uploadedOn: doc.uploadedAt && doc.uploadedAt !== '0001-01-01T00:00:00' ? new Date(doc.uploadedAt).toLocaleDateString() : 'N/A',
+          validTill: doc.verifiedAt && doc.verifiedAt !== '0001-01-01T00:00:00' ? new Date(doc.verifiedAt).toLocaleDateString() : 'Permanent',
+          docId: doc.isMandatory ? 'Mandatory' : 'Optional',
+          img: doc.url || doc.documentUrl || null,
+        };
+      });
+      setDocs(mapped);
     }
-    setRequestedDocs((prev) => [{
-      id: Date.now(), docType: docTypeToSend, note: requestNote,
-      sentAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    }, ...prev])
-    showToast(`Request sent: ${docTypeToSend}`, 'info')
-    setSelectedDocType('')
-    setCustomDocName('')
-    setRequestNote('')
-  }
+  };
 
-  const [requiredDocs, setRequiredDocs] = useState({});
+  const fetchData = (recId) => {
+    setLoading(true);
+    // 1. Fetch Recruiter Profile
+    recruiterService.getRecruiterById(recId)
+      .then((res) => {
+        if (res && res.success && res.data) {
+          setRecruiterData(res.data);
+        } else if (res && res.data) {
+          setRecruiterData(res.data);
+        } else {
+          setRecruiterData(res);
+        }
+      })
+      .catch(console.error);
+
+    // 2. Fetch Checklist and merge with uploaded documents
+    recruiterService.getRecruiterDocumentChecklist(recId)
+      .then((checklistRes) => {
+        const checklistData = checklistRes?.data?.documents || checklistRes?.documents || [];
+        
+        recruiterService.getRecruiterDocuments(recId)
+          .then((docsRes) => {
+            const docsData = docsRes?.data?.documents || docsRes?.documents || [];
+            processDocuments(checklistData, docsData);
+            setLoading(false);
+          })
+          .catch((docsErr) => {
+            console.error("Failed to fetch uploaded documents:", docsErr);
+            processDocuments(checklistData, []);
+            setLoading(false);
+          });
+      })
+      .catch((err) => {
+        console.warn("Failed checklist fetch, falling back to uploaded documents:", err);
+        recruiterService.getRecruiterDocuments(recId)
+          .then((docsRes) => {
+            const docsData = docsRes?.data?.documents || docsRes?.documents || [];
+            processDocuments([], docsData);
+            setLoading(false);
+          })
+          .catch((docsErr) => {
+            console.error("Failed to fetch documents completely:", docsErr);
+            setLoading(false);
+          });
+      });
+  };
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("requiredDocs");
-      if (saved) {
-        try {
-          setRequiredDocs(JSON.parse(saved));
-        } catch (e) {
-          console.error(e);
-        }
+    let targetId = recruiterId;
+    if (!targetId && typeof window !== 'undefined') {
+      const searchStr = window.location.search;
+      if (searchStr && searchStr.startsWith('?')) {
+        const urlParams = new URLSearchParams(searchStr);
+        targetId = urlParams.get('id');
       }
     }
-  }, []);
+    if (targetId) {
+      fetchData(targetId);
+      
+      // Load optional doc names
+      recruiterService.getAllOptionalNames()
+        .then((res) => {
+          const data = res?.data || res || [];
+          setOptionalDocs(data);
+        })
+        .catch(console.error);
+    } else {
+      setLoading(false);
+    }
+  }, [recruiterId]);
 
-  const DOC_DETAILS_MAP = {
-    gst: { title: "GST Registration Certificate", category: "Tax & Compliance" },
-    pan: { title: "Corporate PAN Card", category: "Tax & Compliance" },
-    brc: { title: "Business Registration Certificate", category: "Company Documents" },
-    moa: { title: "Memorandum & Articles of Association (MOA/AOA)", category: "Company Documents" },
-    poe: { title: "Proof of Establishment (POE)", category: "Office Verification" },
-    rpsl: { title: "RPSL Certification", category: "Recruitment License" },
-    poe_license: { title: "POE License Copy", category: "Recruitment License" },
-    cheque: { title: "Cancelled Cheque", category: "Bank Details" },
-    kyc: { title: "Director KYC", category: "Director Identity" },
-    trade: { title: "Trade License", category: "Local Licensing" },
+  const handleVerify = (docId) => {
+    recruiterService.updateDocumentStatus(docId, 'Verified', 'Approved by verification admin')
+      .then(() => {
+        showToast('Document verified successfully', 'success');
+        fetchData(recruiterId || recruiterData?.id);
+      })
+      .catch((err) => {
+        showToast(err.message || 'Failed to verify document', 'error');
+      });
   };
 
-  const displayDocs = [...docs];
-  
-  Object.keys(requiredDocs).forEach((key) => {
-    if (requiredDocs[key]) {
-      const alreadyUploaded = docs.some((d) => d.id === key);
-      if (!alreadyUploaded) {
-        const details = DOC_DETAILS_MAP[key] || { 
-          title: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " "), 
-          category: "Required Document" 
-        };
-        displayDocs.push({
-          id: key,
-          title: details.title,
-          category: details.category,
-          isMissing: true,
-          status: "Not Uploaded",
-        });
-      }
+  const handleReject = (docId, reason) => {
+    recruiterService.updateDocumentStatus(docId, 'Rejected', reason)
+      .then(() => {
+        showToast('Document rejected — recruiter notified', 'error');
+        fetchData(recruiterId || recruiterData?.id);
+      })
+      .catch((err) => {
+        showToast(err.message || 'Failed to reject document', 'error');
+      });
+  };
+
+  const handleResubmit = (docId, message) => {
+    recruiterService.updateDocumentStatus(docId, 'Rejected', message)
+      .then(() => {
+        showToast('Resubmission request sent to recruiter', 'info');
+        fetchData(recruiterId || recruiterData?.id);
+      })
+      .catch((err) => {
+        showToast(err.message || 'Failed to send resubmit request', 'error');
+      });
+  };
+
+  const handleSendRequest = () => {
+    if (!selectedDocType) return;
+    let docTypeToSend = selectedDocType;
+    let docTypeId = '';
+    
+    const matchedOpt = optionalDocs.find(o => o.documentName === selectedDocType);
+    if (matchedOpt) {
+      docTypeId = matchedOpt.documentTypeId;
     }
-  });
+    
+    if (selectedDocType === 'Custom / Other Document') {
+      if (!customDocName.trim()) return;
+      docTypeToSend = customDocName.trim();
+    }
+    
+    const recId = recruiterId || recruiterData?.id;
+    if (!recId) return;
+
+    recruiterService.requestDocument(recId, docTypeId, docTypeToSend, requestNote)
+      .then(() => {
+        setRequestedDocs((prev) => [{
+          id: Date.now(), docType: docTypeToSend, note: requestNote,
+          sentAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        }, ...prev]);
+        
+        showToast(`Request sent: ${docTypeToSend}`, 'info');
+        setSelectedDocType('');
+        setCustomDocName('');
+        setRequestNote('');
+        fetchData(recId);
+      })
+      .catch((err) => {
+        showToast(err.message || 'Failed to send request', 'error');
+      });
+  };
 
   const handleRequestMissingDoc = (docTitle) => {
-    setRequestedDocs((prev) => [{
-      id: Date.now(), docType: docTitle, note: "Mandatory company document missing. Please upload.",
-      sentAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    }, ...prev]);
-    showToast(`Request sent: ${docTitle}`, 'info');
+    const recId = recruiterId || recruiterData?.id;
+    if (!recId) return;
+
+    const matched = optionalDocs.find(o => o.documentName === docTitle);
+    const docTypeId = matched ? matched.documentTypeId : '';
+
+    recruiterService.requestDocument(recId, docTypeId, docTitle, "Mandatory company document missing. Please upload.")
+      .then(() => {
+        setRequestedDocs((prev) => [{
+          id: Date.now(), docType: docTitle, note: "Mandatory company document missing. Please upload.",
+          sentAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        }, ...prev]);
+        showToast(`Request sent: ${docTitle}`, 'info');
+        fetchData(recId);
+      })
+      .catch((err) => {
+        showToast(err.message || 'Failed to send request', 'error');
+      });
   };
 
-  const verified = displayDocs.filter((d) => d.status === 'Verified').length
-  const pending = displayDocs.filter((d) => d.status === 'Pending Review').length
-  const actionReq = displayDocs.filter((d) => d.status === 'Action Required' || d.status === 'Resubmission' || d.isMissing).length
-  const allVerified = verified === displayDocs.length
-  const pct = displayDocs.length > 0 ? Math.round((verified / displayDocs.length) * 100) : 0
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', flexDirection: 'column', gap: '15px' }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '4px solid #f3f3f3',
+          borderTop: '4px solid #ffa300',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <h5 style={{ color: '#122359', fontWeight: 600 }}>Loading Documents...</h5>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  if (!recruiterData) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', flexDirection: 'column', gap: '15px' }}>
+        <h5 style={{ color: '#122359', fontWeight: 600 }}>Recruiter Data Not Found</h5>
+        <button className="btn btn-warning text-white" onClick={() => router.push('/admin/recruiters')}>Back to Recruiters</button>
+      </div>
+    );
+  }
+
+  const verified = docs.filter((d) => d.status === 'Verified').length;
+  const pending = docs.filter((d) => d.status === 'Pending Review').length;
+  const actionReq = docs.filter((d) => d.status === 'Action Required' || d.status === 'Resubmission' || d.isMissing).length;
+  const allVerified = verified === docs.length && docs.length > 0;
+  const pct = docs.length > 0 ? Math.round((verified / docs.length) * 100) : 0;
 
   return (
     <>
@@ -741,7 +870,7 @@ export default function RecruiterDocumentsPage() {
             <ul>
               <li><a className="icon-home" href="/admin/dashboard">Admin</a></li>
               <li><a href="/admin/recruiters">Recruiters</a></li>
-              <li><span>Documents — Stellar Logistics Pvt. Ltd.</span></li>
+              <li><span>Documents — {recruiterData.company || "Details"}</span></li>
             </ul>
           </div>
         </div>
@@ -752,15 +881,27 @@ export default function RecruiterDocumentsPage() {
         <div className="panel-white" style={{ padding: '16px 20px' }}>
           <div className="d-flex align-items-center justify-content-between" style={{ flexWrap: 'wrap', gap: '12px' }}>
             <div className="d-flex align-items-center" style={{ gap: '14px' }}>
-              <div style={{
-                width: '46px', height: '46px', borderRadius: '10px', background: '#ffa300',
-                color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontWeight: 700, fontSize: '16px', flexShrink: 0,
-              }}>SL</div>
+              {recruiterData.logo ? (
+                <img
+                  src={recruiterData.logo}
+                  alt={recruiterData.company}
+                  style={{
+                    width: '46px', height: '46px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0
+                  }}
+                />
+              ) : (
+                <div style={{
+                  width: '46px', height: '46px', borderRadius: '10px', background: '#ffa300',
+                  color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontWeight: 700, fontSize: '16px', flexShrink: 0,
+                }}>
+                  {recruiterData.company ? recruiterData.company.substring(0, 2).toUpperCase() : "CO"}
+                </div>
+              )}
               <div>
-                <h6 className="mb-0" style={{ color: '#122359' }}>Stellar Logistics Pvt. Ltd.</h6>
+                <h6 className="mb-0" style={{ color: '#122359' }}>{recruiterData.company}</h6>
                 <p className="font-xs color-text-paragraph-2 mb-0">
-                  GSTIN: 27AACS1234L1Z5 &nbsp;·&nbsp; Registered: Oct 2023 &nbsp;·&nbsp; Mumbai, India
+                  {recruiterData.gstin && `GSTIN: ${recruiterData.gstin} · `}Registered: {recruiterData.registered ? new Date(recruiterData.registered).toLocaleDateString() : "N/A"} · {recruiterData.city || recruiterData.country || "India"}
                 </p>
               </div>
             </div>
@@ -769,7 +910,7 @@ export default function RecruiterDocumentsPage() {
                 { label: 'Verified', val: verified, bg: '#f0fdf4', border: '#bbf7d0', color: '#16a34a' },
                 { label: 'Pending', val: pending, bg: '#fffbeb', border: '#fde68a', color: '#b45309' },
                 { label: 'Action Req.', val: actionReq, bg: '#fff1f2', border: '#fecdd3', color: '#be123c' },
-                { label: 'Total', val: displayDocs.length, bg: '#f0f4ff', border: '#c7d2fe', color: '#3730a3' },
+                { label: 'Total', val: docs.length, bg: '#f0f4ff', border: '#c7d2fe', color: '#3730a3' },
               ].map(({ label, val, bg, border, color }) => (
                 <div key={label} style={{
                   padding: '8px 14px', borderRadius: '10px', background: bg,
@@ -789,7 +930,6 @@ export default function RecruiterDocumentsPage() {
 
       {/* MAIN LAYOUT */}
       <div className="row">
-
         {/* LEFT — Document Cards */}
         <div className="col-xxl-8 col-xl-8 col-lg-8 col-md-12">
           <div className="section-box">
@@ -801,7 +941,7 @@ export default function RecruiterDocumentsPage() {
                   <span style={{
                     fontSize: '11px', fontWeight: 700, padding: '2px 9px',
                     borderRadius: '20px', background: '#f1f5f9', color: '#475569',
-                  }}>{displayDocs.length} files</span>
+                  }}>{docs.length} files</span>
                 </div>
                 <p className="font-xs color-text-paragraph-2 mb-0">
                   Preview each document and take action — Verify ✓, Reject ✗, or Request Resubmission ↺
@@ -809,15 +949,21 @@ export default function RecruiterDocumentsPage() {
               </div>
               <div className="panel-body">
                 <div className="row">
-                  {displayDocs.map((doc) => (
-                    <div key={doc.id} className="col-xl-4 col-lg-4 col-md-6 col-sm-6 mb-20">
-                      <DocCard
-                        doc={doc} onPreview={setPreviewDoc}
-                        onVerifyOpen={setVerifyTarget} onRejectOpen={setRejectTarget} onResubmitOpen={setResubmitTarget}
-                        onRequestDocument={handleRequestMissingDoc}
-                      />
+                  {docs.length === 0 ? (
+                    <div className="col-12 text-center py-4 color-text-paragraph-2">
+                      No compliance documents requirements configured.
                     </div>
-                  ))}
+                  ) : (
+                    docs.map((doc) => (
+                      <div key={doc.id} className="col-xl-4 col-lg-4 col-md-6 col-sm-6 mb-20">
+                        <DocCard
+                          doc={doc} onPreview={setPreviewDoc}
+                          onVerifyOpen={setVerifyTarget} onRejectOpen={setRejectTarget} onResubmitOpen={setResubmitTarget}
+                          onRequestDocument={handleRequestMissingDoc}
+                        />
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -872,7 +1018,6 @@ export default function RecruiterDocumentsPage() {
 
         {/* RIGHT SIDEBAR */}
         <div className="col-xxl-4 col-xl-4 col-lg-4 col-md-12">
-
           {/* Admin Verification Summary */}
           <div className="section-box">
             <div className="panel-white">
@@ -889,7 +1034,7 @@ export default function RecruiterDocumentsPage() {
                   border: `1px solid ${allVerified ? '#bbf7d0' : '#e2e8f0'}`,
                 }}>
                   <p style={{ fontSize: '38px', fontWeight: 800, color: '#122359', margin: 0, lineHeight: 1 }}>
-                    {verified}<span style={{ fontSize: '20px', color: '#94a3b8' }}>/{displayDocs.length}</span>
+                    {verified}<span style={{ fontSize: '20px', color: '#94a3b8' }}>/{docs.length}</span>
                   </p>
                   <p style={{ fontSize: '12px', color: '#475569', margin: '4px 0 10px', fontWeight: 600 }}>
                     Documents Verified
@@ -918,256 +1063,85 @@ export default function RecruiterDocumentsPage() {
               <div className="panel-head" style={{ alignItems: 'flex-start' }}>
                 <div>
                   <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-                    <Send size={15} color="#ffa300" />
-                    <h6 className="mb-0">Request Additional Document</h6>
+                    <RefreshCw size={15} color="#ffa300" />
+                    <h6 className="mb-0">Request Additional Documents</h6>
                   </div>
                   <p className="font-xs color-text-paragraph-2 mt-5 mb-0">
-                    Ask the recruiter to upload a missing document
+                    Ask the recruiter to upload further verification certificates.
                   </p>
                 </div>
               </div>
               <div className="panel-body">
                 <div className="form-group mb-15">
-                  <label style={{
-                    fontSize: '9px', fontWeight: 700, color: '#475569',
-                    textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px'
-                  }}>
+                  <label className="form-label font-xs" style={{ fontWeight: 700, color: '#122359', marginBottom: '6px', display: 'block' }}>
                     Document Type
                   </label>
-                  <div style={{ position: 'relative', width: '100%' }}>
+                  <div style={{ position: 'relative' }}>
                     <select
                       value={selectedDocType}
-                      onChange={(e) => {
-                        setSelectedDocType(e.target.value)
-                        setCustomDocName('')
-                      }}
+                      onChange={(e) => setSelectedDocType(e.target.value)}
                       style={{
-                        width: '100%',
-                        height: '44px',
-                        padding: '0 42px 0 14px',
-
-                        fontSize: '13px',
-                        fontWeight: 500,
-                        color: '#334155',
-                        lineHeight: '44px',
-
-                        background: '#fff',
-                        border: '1.5px solid #e2e8f0',
-                        borderRadius: '10px',
-
-                        outline: 'none',
-                        boxShadow: 'none',
-
-                        appearance: 'none',
-                        WebkitAppearance: 'none',
-                        MozAppearance: 'none',
-
-                        boxSizing: 'border-box',
-                        cursor: 'pointer',
-
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.borderColor = '#ffa300';
-                        e.target.style.boxShadow = '0 0 0 3px rgba(255,163,0,.12)';
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.borderColor = '#e2e8f0';
-                        e.target.style.boxShadow = 'none';
+                        width: '100%', height: '40px', padding: '0 14px', borderRadius: '8px',
+                        border: '1px solid #cbd5e1', fontSize: '12px', background: '#fff', color: '#122359'
                       }}
                     >
-                      <option value="">Select document to request</option>
-
-                      {REQUEST_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
+                      <option value="" disabled>Select Document Type</option>
+                      {optionalDocs.map((o) => (
+                        <option key={o.documentTypeId} value={o.documentName}>
+                          {o.documentName}
                         </option>
                       ))}
+                      <option value="Custom / Other Document">Custom / Other Document</option>
                     </select>
-
-                    <ChevronDown
-                      size={16}
-                      color="#94a3b8"
-                      style={{
-                        position: 'absolute',
-                        top: '50%',
-                        right: '14px',
-                        transform: 'translateY(-50%)',
-                        pointerEvents: 'none',
-                      }}
-                    />
                   </div>
                 </div>
+
                 {selectedDocType === 'Custom / Other Document' && (
                   <div className="form-group mb-15">
-                    <label style={{
-                      fontSize: '9px', fontWeight: 700, color: '#475569',
-                      textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px'
-                    }}>
-                      Document Name <span style={{ color: '#be123c' }}>*</span>
+                    <label className="form-label font-xs" style={{ fontWeight: 700, color: '#122359', marginBottom: '6px', display: 'block' }}>
+                      Document Name
                     </label>
                     <input
                       type="text"
-                      className="form-control font-sm"
-                      placeholder="Enter custom document name..."
                       value={customDocName}
                       onChange={(e) => setCustomDocName(e.target.value)}
+                      placeholder="e.g. ISO 9001 Certificate"
                       style={{
-                        width: '100%',
-                        height: '44px',
-                        padding: '0 14px',
-                        fontSize: '13px',
-                        fontWeight: 500,
-                        color: '#334155',
-                        background: '#fff',
-                        border: '1.5px solid #e2e8f0',
-                        borderRadius: '10px',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.borderColor = '#ffa300';
-                        e.target.style.boxShadow = '0 0 0 3px rgba(255,163,0,.12)';
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.borderColor = '#e2e8f0';
-                        e.target.style.boxShadow = 'none';
+                        width: '100%', height: '40px', padding: '0 14px', borderRadius: '8px',
+                        border: '1px solid #cbd5e1', fontSize: '12px', color: '#122359'
                       }}
                     />
                   </div>
                 )}
-                <div className="form-group mb-15">
-                  <label style={{
-                    fontSize: '9px', fontWeight: 700, color: '#475569',
-                    textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px'
-                  }}>
-                    Message <span style={{ color: '#94a3b8', textTransform: 'none', fontSize: '11px' }}>(optional)</span>
-                  </label>
-                  <textarea className="form-control font-sm"
-                    placeholder="Explain why this document is needed..."
-                    value={requestNote} onChange={(e) => setRequestNote(e.target.value)}
-                    style={{ minHeight: '80px', resize: 'vertical', borderRadius: '10px', border: '1.5px solid #e2e8f0' }} />
-                </div>
-                <button
-                  onClick={handleSendRequest}
-                  disabled={!selectedDocType || (selectedDocType === 'Custom / Other Document' && !customDocName.trim())}
-                  style={{
-                    width: '100%',
-                    padding: '11px 0',
-                    background: (selectedDocType && (selectedDocType !== 'Custom / Other Document' || customDocName.trim())) ? '#122359' : '#e2e8f0',
-                    color: (selectedDocType && (selectedDocType !== 'Custom / Other Document' || customDocName.trim())) ? '#fff' : '#94a3b8',
-                    border: 'none',
-                    borderRadius: '10px',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    cursor: (selectedDocType && (selectedDocType !== 'Custom / Other Document' || customDocName.trim())) ? 'pointer' : 'not-allowed',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '7px',
-                  }}
-                >
-                  <Send size={14} /> Send Document Request
-                </button>
-                {requestedDocs.length > 0 && (
-                  <p className="font-xs color-text-paragraph-2 mt-10 mb-0 text-center">
-                    <span style={{ color: '#1d4ed8', fontWeight: 600 }}>{requestedDocs.length}</span> request{requestedDocs.length > 1 ? 's' : ''} sent
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
 
-          {/* Checklist */}
-          <div className="section-box">
-            <div className="panel-white">
-              <div className="panel-head">
-                <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-                  <CheckCircle size={15} color="#ffa300" />
-                  <h6 className="mb-0">Document Checklist</h6>
-                </div>
-              </div>
-              <div className="panel-body">
-                {docs.map((doc) => {
-                  const s = STATUS_STYLE[doc.status] || STATUS_STYLE['Pending Review']
-                  return (
-                    <div key={doc.id} className="d-flex align-items-center justify-content-between mb-10">
-                      <span className="font-sm" style={{ color: '#334155', fontWeight: 500 }}>{doc.title}</span>
-                      <span style={{
-                        fontSize: '10px', fontWeight: 700, padding: '2px 8px',
-                        borderRadius: '20px', background: s.bg, color: s.color, border: `1px solid ${s.border}`,
-                        whiteSpace: 'nowrap', marginLeft: '8px', flexShrink: 0,
-                      }}>{doc.status}</span>
-                    </div>
-                  )
-                })}
-                <hr style={{ borderColor: '#f1f5f9', margin: '12px 0' }} />
-                <div className="d-flex align-items-center justify-content-between mb-5">
-                  <span className="font-xs color-text-paragraph-2">Verification Progress</span>
-                  <strong className="font-xs" style={{ color: '#122359' }}>{pct}%</strong>
-                </div>
-                <div
-                  style={{
-                    width: '100%',
-                    height: '8px',
-                    background: '#e5e7eb',
-                    borderRadius: '999px',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <div
+                <div className="form-group mb-15">
+                  <label className="form-label font-xs" style={{ fontWeight: 700, color: '#122359', marginBottom: '6px', display: 'block' }}>
+                    Request Notes (Optional)
+                  </label>
+                  <textarea
+                    value={requestNote}
+                    onChange={(e) => setRequestNote(e.target.value)}
+                    placeholder="Provide specific details or instructions..."
                     style={{
-                      width: `${pct}%`,
-                      height: '100%',
-                      background: allVerified ? '#16a34a' : '#ffa300',
-                      borderRadius: '999px',
-                      transition: 'width 0.4s ease',
+                      width: '100%', height: '80px', padding: '10px 12px', borderRadius: '8px',
+                      border: '1px solid #cbd5e1', fontSize: '12px', resize: 'none', color: '#122359'
                     }}
                   />
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* BOTTOM ACTION BAR */}
-        <div className="section-box">
-          <div className="panel-white" style={{ padding: '16px 20px' }}>
-            <div className="d-flex align-items-center justify-content-between" style={{ flexWrap: 'wrap', gap: '12px' }}>
-              <div>
-                <p className="font-sm mb-0" style={{ fontWeight: 600, color: '#122359' }}>
-                  Review Actions — Stellar Logistics Pvt. Ltd.
-                </p>
-                <p className="font-xs color-text-paragraph-2 mb-0">
-                  {verified} of {docs.length} documents verified
-                  {allVerified && <span style={{ color: '#16a34a', fontWeight: 700, marginLeft: '8px' }}>✓ Verification Complete</span>}
-                </p>
-              </div>
-              <div className="d-flex gap-2 flex-wrap">
-                <a href="/admin/recruiters" className="btn hover-up font-sm" style={{
-                  height: '44px', padding: '0 18px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: '#f8fafc', border: '1px solid #e2e8f0',
-                  color: '#475569', borderRadius: '10px', fontWeight: 600,
+                <button onClick={handleSendRequest} style={{
+                  width: '100%', padding: '10px 0', background: '#ffa300', border: 'none',
+                  borderRadius: '8px', fontSize: '12px', fontWeight: 700, color: '#fff', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                 }}>
-                  Back to Recruiters
-                </a>
+                  <Send size={12} /> Send Request
+                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes slideIn {
-          from { transform: translateX(30px); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-      `}</style>
-
       <Footer />
     </>
-  )
+  );
 }
