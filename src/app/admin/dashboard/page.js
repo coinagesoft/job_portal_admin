@@ -532,13 +532,10 @@ export default function DashboardPage() {
                           <td style={{ padding: '10px 8px', borderBottom: '1px solid #f5f5f5' }}>
                             <span style={{
                               fontSize: '10px', fontWeight: 700, letterSpacing: '0.4px', padding: '3px 7px', borderRadius: '4px', whiteSpace: 'nowrap',
-<<<<<<< HEAD
-                              background: u.type === 'candidate' ? '#fff3df' : '#e8f5e9',
+
+                            background: u.type === 'candidate' ? '#fff3df' : '#e8f5e9',
                               color: u.type === 'candidate' ? '#c76b00' : '#2e7d32'
-=======
-                              background: u.type === 'candidate' ? '#ffc151' : '#e8f5e9',
-                              color: u.type === 'candidate' ? '#ffa300' : '#2e7d32'
->>>>>>> 34fa0bc6ae165c30dd4c86fa90cefb093def936d
+
                             }}>{u.type}</span>
                           </td>
                           <td style={{ padding: '10px 0', borderBottom: '1px solid #f5f5f5' }}>
