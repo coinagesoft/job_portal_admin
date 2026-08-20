@@ -795,16 +795,22 @@ export default function RecruiterPage() {
 
                 <thead>
                   <tr>
-                    <th style={{ minWidth: "240px" }}>
+                    <th style={{ minWidth: "240px" ,fontSize: "14px"}}>
                       Employer / Company
                     </th>
-                    <th style={{ minWidth: "200px" }}>
+                    <th style={{ minWidth: "200px" ,fontSize: "14px"}}>
                       Contact Person
                     </th>
-                    <th style={{ minWidth: "160px" }}>Verification</th>
-                    <th style={{ minWidth: "100px" }}>Status</th>
-                    <th style={{ minWidth: "110px" }}>Registered</th>
-                    <th style={{ minWidth: "70px" }} className="text-end">Actions</th>
+                    <th style={{ minWidth: "160px" ,fontSize: "14px"}}>
+                      Verification
+                    </th>
+                    <th style={{ minWidth: "100px" ,fontSize: "14px"}}>
+                      Status
+                    </th>
+                    <th style={{ minWidth: "110px" ,fontSize: "14px"}}>
+                      Registered
+                    </th>
+                    <th style={{ minWidth: "70px" ,fontSize: "14px"}} className="text-end">Actions</th>
                   </tr>
                 </thead>
 

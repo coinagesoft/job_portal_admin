@@ -4,8 +4,14 @@ export const subAdminService = {
   // GET /api/admin/sub-admins
   getSubAdmins: async (params = {}) => {
     const query = new URLSearchParams();
-    if (params.search) query.append('Search', params.search);
-    if (params.status) query.append('Status', params.status);
+    if (params.search) {
+      query.append('Search', params.search);
+      query.append('search', params.search);
+    }
+    if (params.status) {
+      query.append('Status', params.status);
+      query.append('status', params.status);
+    }
     if (params.page) query.append('Page', params.page);
     if (params.pageSize) query.append('PageSize', params.pageSize);
     

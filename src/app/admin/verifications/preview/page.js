@@ -49,7 +49,7 @@ function VerifyModal({ doc, onClose, onConfirm }) {
         {/* Header */}
         <div style={{
           padding: '18px 22px', borderBottom: '1px solid #f1f5f9',
-          display: 'flex', alignItems: 'center', justifycontent: 'space-between',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
             <p style={{
@@ -120,7 +120,7 @@ function RejectModal({ doc, onClose, onConfirm }) {
         {/* Header */}
         <div style={{
           padding: '18px 22px', borderBottom: '1px solid #f1f5f9',
-          display: 'flex', alignItems: 'center', justifycontent: 'space-between',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
             <p style={{
@@ -188,7 +188,7 @@ function ResubmitModal({ doc, onClose, onConfirm }) {
         {/* Header */}
         <div style={{
           padding: '18px 22px', borderBottom: '1px solid #f1f5f9',
-          display: 'flex', alignItems: 'center', justifycontent: 'space-between',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
             <p style={{

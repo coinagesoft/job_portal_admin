@@ -262,7 +262,7 @@ export default function CandidateDetailsPage({ searchParams }) {
 
   const documents = (candidateData?.documents && candidateData.documents.length > 0)
     ? candidateData.documents
-    : defaultDocuments
+    : []
 
   if (loading) {
     return (
@@ -536,7 +536,7 @@ export default function CandidateDetailsPage({ searchParams }) {
                 </div>
 
                 <div className="table-responsive">
-                  <table className="table table-hover">
+                  <table className="table table-hover align-middle doc-table">
                     <thead>
                       <tr>
                         <th>Document</th>
@@ -545,31 +545,39 @@ export default function CandidateDetailsPage({ searchParams }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {documents.map((doc, idx) => (
-                        <tr key={doc.docId || doc.id || idx}>
-                          <td>
-                            <div className="d-flex align-items-center gap-2">
-                              <FileText size={15} color="#94a3b8" />
-                              <strong>{doc.title}</strong>
-                            </div>
-                          </td>
-                          <td>{doc.subtitle}</td>
-                          <td className="text-end">
-                            <button
-                              onClick={() => setPreview(doc)}
-                              title="Preview"
-                              style={{
-                                width: '32px', height: '32px', borderRadius: '8px',
-                                background: '#fff3da', border: '1px solid #ffe0a6',
-                                cursor: 'pointer', display: 'inline-flex',
-                                alignItems: 'center', justifyContent: 'center',
-                              }}
-                            >
-                              <Eye size={15} color="#a56600" />
-                            </button>
+                      {documents.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} className="text-center py-4 color-text-paragraph-2">
+                            No documents uploaded by this candidate.
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        documents.map((doc, idx) => (
+                          <tr key={doc.docId || doc.id || idx}>
+                            <td>
+                              <div className="d-flex align-items-center gap-2">
+                                <FileText size={15} color="#94a3b8" />
+                                <strong>{doc.title}</strong>
+                              </div>
+                            </td>
+                            <td>{doc.subtitle}</td>
+                            <td className="text-end">
+                              <button
+                                onClick={() => setPreview(doc)}
+                                title="Preview"
+                                style={{
+                                  width: '32px', height: '32px', borderRadius: '8px',
+                                  background: '#fff3da', border: '1px solid #ffe0a6',
+                                  cursor: 'pointer', display: 'inline-flex',
+                                  alignItems: 'center', justifyContent: 'center',
+                                }}
+                              >
+                                <Eye size={15} color="#a56600" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -714,6 +722,22 @@ export default function CandidateDetailsPage({ searchParams }) {
             transform: translateX(0);
             opacity: 1;
           }
+        }
+
+        .doc-table thead tr {
+          border-bottom: 1px solid #edf1f6;
+        }
+        .doc-table thead th {
+          color: #172b60;
+          font-weight: 700;
+          font-size: 13px;
+          padding-bottom: 14px;
+          border: none;
+        }
+        .doc-table tbody td {
+          border-top: 1px solid #edf1f6;
+          padding-top: 16px;
+          padding-bottom: 16px;
         }
       `}</style>
       <Footer />

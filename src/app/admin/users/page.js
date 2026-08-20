@@ -310,7 +310,21 @@ export default function SubAdminPage() {
 
   const pageCount = Math.max(1, Math.ceil(totalCount / ADMINS_PER_PAGE))
   const currentPage = page
-  const visibleAdmins = admins
+  const visibleAdmins = admins.filter((admin) => {
+    const matchesSearch =
+      !search ||
+      (admin.fullName || '').toLowerCase().includes(search.toLowerCase()) ||
+      (admin.email || '').toLowerCase().includes(search.toLowerCase()) ||
+      (admin.roleName || '').toLowerCase().includes(search.toLowerCase()) ||
+      (admin.role || '').toLowerCase().includes(search.toLowerCase());
+      
+    const matchesStatus =
+      !statusFilter ||
+      (statusFilter === 'Active' && admin.status === 'Active') ||
+      (statusFilter === 'Suspended' && admin.status === 'Suspended');
+      
+    return matchesSearch && matchesStatus;
+  });
 
   // ── form helpers ──
   const openCreate = () => {
@@ -545,7 +559,7 @@ export default function SubAdminPage() {
           <div>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '750px' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #eee' }}>
+                <tr style={{ borderBottom: '1px solid #eee' , fontWeight:700}}>
                   {['User', 'Role', 'Status', 'Last Login', 'Joined', 'Access'].map((h, i) => (
                     <th key={h}
                       style={{ padding: '12px 12px', textAlign: i === 5 ? 'center' : 'left', letterSpacing: '0.4px', fontSize: '14px', whiteSpace: 'nowrap' }}>
@@ -594,7 +608,7 @@ export default function SubAdminPage() {
 
                       {/* Role */}
                       <td >
-                        <span className="role-badge">
+                        <span className="role-badge" >
                           {admin.role}
                         </span>
                       </td>

@@ -814,7 +814,7 @@ Thank you for your business.
                   className="mb-0"
                   style={{
                     textTransform: "uppercase",
-                    fontSize: "11px",
+                    fontSize: "14px",
                     letterSpacing: "0.6px",
                     color: "#66789C",
                   }}
@@ -933,7 +933,7 @@ Thank you for your business.
                   className="mb-0"
                   style={{
                     textTransform: "uppercase",
-                    fontSize: "11px",
+                    fontSize: "14px",
                     letterSpacing: "0.6px",
                     color: "#66789C",
                   }}
@@ -990,7 +990,7 @@ Thank you for your business.
                   className="mb-0"
                   style={{
                     textTransform: "uppercase",
-                    fontSize: "11px",
+                    fontSize: "14px",
                     letterSpacing: "0.6px",
                     color: "#66789C",
                   }}
@@ -1053,7 +1053,7 @@ Thank you for your business.
 
           <div className="panel-body">
             <div className="table-responsive">
-              <table className="table">
+              <table className="table table-hover align-middle txn-table">
                 <thead>
                   <tr>
                     <th>Date</th>
@@ -1532,6 +1532,22 @@ Thank you for your business.
             transform: translateX(0);
             opacity: 1;
           }
+        }
+
+        .txn-table thead tr {
+          border-bottom: 1px solid #edf1f6;
+        }
+        .txn-table thead th {
+          color: #172b60;
+          font-weight: 700;
+          font-size: 13px;
+          padding-bottom: 14px;
+          border: none;
+        }
+        .txn-table tbody td {
+          border-top: 1px solid #edf1f6;
+          padding-top: 16px;
+          padding-bottom: 16px;
         }
       `}</style>
       <Footer />

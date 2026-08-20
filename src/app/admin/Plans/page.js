@@ -473,7 +473,7 @@ export default function PlansPage() {
 
       <section className="plans-toolbar">
         <div>
-          <p className="plans-eyebrow">PRICE REGION</p>
+          <p className="plans-eyebrow" style={{ fontSize: "12px" }}>PRICE REGION</p>
           <div className="region-picker">
             <button className="country-select" onClick={() => setRegionPickerOpen((open) => !open)} aria-haspopup="listbox" aria-expanded={regionPickerOpen}>
               <span className="country-flag">{region.flag}</span><span className="country-label"><small>Pricing country</small><b>{region.name}</b></span><span className="currency-code">{region.currency}</span><ChevronDown size={17} className={regionPickerOpen ? 'open' : ''} />

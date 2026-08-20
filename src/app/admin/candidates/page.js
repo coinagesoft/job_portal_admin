@@ -378,14 +378,24 @@ export default function CandidatesPage() {
 
             {/* Desktop Table */}
             <div className="table-responsive d-none d-lg-block">
-              <table className="table table-hover align-middle">
+              <table className="table table-hover align-middle cand-table">
                 <thead>
                   <tr>
-                    <th style={{ minWidth: "240px" }}>Candidate</th>
-                    <th style={{ minWidth: "150px" }}>Trade Category</th>
-                    <th style={{ minWidth: "120px" }}>Status</th>
-                    <th style={{ minWidth: "130px" }}>Joined Date</th>
-                    <th style={{ minWidth: "230px" }}>Actions</th>
+                    <th style={{ minWidth: "240px" ,fontSize: "14px"}}>
+                      Candidate
+                    </th>
+                    <th style={{ minWidth: "150px" ,fontSize: "14px"}}>
+                      Trade Category
+                    </th>
+                    <th style={{ minWidth: "120px" ,fontSize: "14px"}}>
+                      Status
+                    </th>
+                    <th style={{ minWidth: "130px" ,fontSize: "14px"}}>
+                      Joined Date
+                    </th>
+                    <th style={{ minWidth: "230px" ,fontSize: "14px"}}>
+                      Actions
+                    </th>
                   </tr>
                 </thead>
 
@@ -688,6 +698,22 @@ export default function CandidatesPage() {
       </div>
 
       <style jsx>{`
+        .cand-table thead tr {
+          border-bottom: 1px solid #edf1f6;
+        }
+        .cand-table thead th {
+          color: #172b60;
+          font-weight: 700;
+          font-size: 13px;
+          padding-bottom: 14px;
+          border: none;
+        }
+        .cand-table tbody td {
+          border-top: 1px solid #edf1f6;
+          padding-top: 16px;
+          padding-bottom: 16px;
+        }
+
         .action-btn {
           border-radius: 8px;
           padding: 7px 14px;

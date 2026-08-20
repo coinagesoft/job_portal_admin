@@ -515,7 +515,7 @@ export default function AuditLogsPage() {
               <div className="card-image"><Monitor size={28} strokeWidth={2.2} /></div>
               <div className="card-info">
                 <h3>{loading ? '...' : totalAllLogs}</h3>
-                <p>Total Logs (24h)</p>
+                <p style={{ color: "#66789c" }}>Total Logs (24h)</p>
               </div>
             </div>
           </div>
@@ -525,7 +525,7 @@ export default function AuditLogsPage() {
               <div className="card-image"><AlertTriangle size={28} strokeWidth={2.2} /></div>
               <div className="card-info">
                 <h3>24</h3>
-                <p>Critical Actions</p>
+                <p style={{ color: "#66789c" }}>Critical Actions</p>
               </div>
             </div>
           </div>
@@ -547,7 +547,7 @@ export default function AuditLogsPage() {
               <div className="card-image"><Download size={28} strokeWidth={2.2} /></div>
               <div className="card-info">
                 <h3>2h ago</h3>
-                <p>Last Export</p>
+                <p style={{ color: "#66789c" }}>Last Export</p>
               </div>
             </div>
           </div>
@@ -926,16 +926,17 @@ export default function AuditLogsPage() {
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '620px' }}>
                   <thead>
-                    <tr style={{ borderBottom: '1px solid #eee' }}>
+                    <tr style={{ borderBottom: '1px solid #eee' , }}>
                       {[
                         'Timestamp', 'Admin', 'Actor Type', 'Action', 'Target Entity',
                         'IP Address', 'Severity', 'Session', ''
                       ].map((label, idx) => (
-                        <th key={idx} className="font-xs color-text-paragraph-2"
+                        <th key={idx} className=""
                           style={{
+                            color:"#000000",
                             padding: '10px 8px', textAlign: 'left',
                             fontWeight: 600, textTransform: 'uppercase',
-                            letterSpacing: '0.3px', fontSize: '9px', whiteSpace: 'nowrap',
+                            letterSpacing: '0.3px', fontSize: '12px', whiteSpace: 'nowrap',
                           }}>{label}</th>
                       ))}
                     </tr>

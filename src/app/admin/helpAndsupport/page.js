@@ -265,13 +265,13 @@ export default function AdminSupportPage() {
               <>
                 <table className="support-table">
                   <thead>
-                    <tr>
-                      <th>User</th>
-                      <th>Subject / Issue</th>
-                      <th>Category</th>
-                      <th>Raised on</th>
-                      <th>Status</th>
-                      <th className="action-column">Actions</th>
+                    <tr style={{fontSize:"14px"}}>
+                      <th style={{fontSize:"14px"}}>User</th>
+                      <th style={{fontSize:"14px"}}>Subject / Issue</th>
+                      <th style={{fontSize:"14px"}}>Category</th>
+                      <th style={{fontSize:"14px"}}>Raised on</th>
+                      <th style={{fontSize:"14px"}}>Status</th>
+                      <th className="action-column" style={{fontSize:"14px"}}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -283,13 +283,13 @@ export default function AdminSupportPage() {
                             <div className="ticket-user">
                               {/* <img src={getAvatarUrl(ticket.raisedByAvatarUrl, ticket.raisedByName, index)} alt="" /> */}
                               <div>
-                                <h6>{ticket.raisedByName}</h6>
+                                <h6 style={{fontSize:"14px"}}>{ticket.raisedByName}</h6>
                                 <span>{ticket.ticketId.slice(0, 8).toUpperCase()}</span>
                               </div>
                             </div>
                           </td>
                           <td>
-                            <strong>{ticket.subject}</strong>
+                            <strong style={{fontSize:"14px"}}> {ticket.subject}</strong>
                             <span className="ticket-description">{ticket.descriptionPreview}</span>
                           </td>
                           <td>

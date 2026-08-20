@@ -369,7 +369,7 @@ function RegistrationDropdownSection({
     <section ref={sectionRef} className="home-section registration-dropdown-section">
       <div className="section-heading">
         <span className="section-icon">{icon}</span>
-        <div><h5>{title}</h5><p>{description}</p></div>
+        <div><h5>{title}</h5><p style={{ color: "#66789c" }}>{description}</p></div>
         <button type="button" className="add-item" onClick={handleAdd}><Plus size={15} />{addLabel}</button>
       </div>
 
@@ -1257,9 +1257,11 @@ export default function HomePageManagement() {
         <div>
           <span>{activeTab === 'candidate' ? 'Candidate website' : 'Recruiter / Employer'}</span>
           <h4>{activeTab === 'candidate' ? 'Home Page Management' : 'Recruiter Registration Management'}</h4>
-          <p>{activeTab === 'candidate'
-            ? 'Control the content and cards shown to candidates on the public home page.'
-            : 'Control the dropdown options shown to recruiters during employer registration.'}</p>
+          <p style={{ fontSize: '12px', color: '#66789c' }}>
+            {activeTab === 'candidate'
+              ? 'Control the content and cards shown to candidates on the public home page.'
+              : 'Control the dropdown options shown to recruiters during employer registration.'}
+          </p>
         </div>
         <button type="button" className="homepage-save" onClick={save} disabled={saving}>
           {saving ? (
@@ -1288,12 +1290,12 @@ export default function HomePageManagement() {
       {activeTab === 'candidate' && (
         <>
           <section className="home-section hero-manager">
-            <div className="section-heading"><span className="section-icon"><MonitorCog size={19} /></span><div><h5>Hero section</h5><p>Set the first message, background image, and search controls.</p></div></div>
+            <div className="section-heading"><span className="section-icon"><MonitorCog size={19} /></span><div><h4 style={{fontSize:"20px"}}>Hero section</h4><p style={{color:"#66789c"}}>Set the first message, background image, and search controls.</p></div></div>
             <div className="hero-editor-grid">
               <div className="hero-fields">
                 <label>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>Hero title</span>
+                    <span >Hero title</span>
                     <span style={{ fontSize: '10px', color: (hero.title || '').length >= 100 ? '#de4343' : '#64748b', textTransform: 'none', fontWeight: '600' }}>
                       {(hero.title || '').length} / 100 characters
                     </span>
@@ -1367,7 +1369,7 @@ export default function HomePageManagement() {
           <section className="home-section">
             <div className="section-heading">
               <span className="section-icon"><BriefcaseBusiness size={19} /></span>
-              <div><h5>Browse by industry</h5><p>Choose the industries displayed on the home screen and upload an icon for each.</p></div>
+              <div><h5 style={{fontSize:"16px"}}>Browse by industry</h5><p style={{color:"#66789c"}}>Choose the industries displayed on the home screen and upload an icon for each.</p></div>
               <button type="button" className="add-item" onClick={() => { setIndustries((items) => [...items, { id: newId('industry'), name: '', jobs: 0, icon: '', enabled: true, showInDropdown: false }]); markChanged() }}><Plus size={15} />Add industry</button>
             </div>
             <div className="compact-list">
@@ -1404,7 +1406,7 @@ export default function HomePageManagement() {
           </section>
 
           <section className="home-section">
-            <div className="section-heading"><span className="section-icon"><BarChart3 size={19} /></span><div><h5>Hiring statistics</h5><p>Edit the proof points shown below the industry cards.</p></div><button type="button" className="add-item" onClick={() => { setStats((items) => [...items, { id: newId('stat'), value: '0', suffix: '', label: 'New statistic', iconSlug: '' }]); markChanged() }}><Plus size={15} />Add statistic</button></div>
+            <div className="section-heading"><span className="section-icon"><BarChart3 size={19} /></span><div><h5 style={{fontSize:"20px"}}>Hiring statistics</h5><p style={{color:"#66789c"}}>Edit the proof points shown below the industry cards.</p></div><button type="button" className="add-item" onClick={() => { setStats((items) => [...items, { id: newId('stat'), value: '0', suffix: '', label: 'New statistic', iconSlug: '' }]); markChanged() }}><Plus size={15} />Add statistic</button></div>
             <div className="stats-editor">
               {stats.map((stat) => (
                 <article className="stat-edit-card" key={stat.id}>
@@ -1467,7 +1469,7 @@ export default function HomePageManagement() {
           <section ref={suggestionsPanelRef} className="home-section suggestions-panel">
             <div className="section-heading suggestions-heading">
               <span className="section-icon"><Lightbulb size={19} /></span>
-              <div><h5>Suggestions inbox</h5><p>New department, industry, or role suggestions from recruiters. Approve one to add it straight to the matching dropdown list.</p></div>
+              <div><h5>Suggestions inbox</h5><p style={{ color: "#66789c" }}>New department, industry, or role suggestions from recruiters. Approve one to add it straight to the matching dropdown list.</p></div>
             </div>
             <div className="suggestions-list-wrapper">
               <div className="suggestions-list">
@@ -1767,7 +1769,7 @@ function ContentImageSection({ title, description, icon, items, setItems, type, 
     <section className="home-section">
       <div className="section-heading">
         <span className="section-icon">{icon}</span>
-        <div><h5>{title}</h5><p>{description}</p></div>
+        <div><h5 style={{ fontSize: "20px" }}>{title}</h5><p>{description}</p></div>
         <button type="button" className="add-item" onClick={add}><Plus size={15} />Add {type}</button>
       </div>
       <div className="image-card-grid">
