@@ -4,6 +4,7 @@ import Footer from "../../../components/Footer"
 import { useRouter } from "next/navigation"
 import { ShieldCheck, FileText, Search, MoreVertical, Ban, CheckCircle2, Info } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { recruiterService } from "../../../services/recruiterService";
 
 const initialRecruiters = [
@@ -85,6 +86,26 @@ export default function RecruiterPage() {
   const [loadingList, setLoadingList] = useState(true);
   const [requiredDocs, setRequiredDocs] = useState({});
   const [docOptions, setDocOptions] = useState([]);
+  const [isResetting, setIsResetting] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+  };
+
+  useEffect(() => {
+    if (toast.show) {
+      const timer = setTimeout(() => {
+        setToast((prev) => ({ ...prev, show: false }));
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast.show]);
 
   const fetchRecruiters = () => {
     setLoadingList(true);
@@ -205,6 +226,63 @@ export default function RecruiterPage() {
       });
   };
 
+  const handleResetDefaults = () => {
+    setIsResetting(true);
+    recruiterService.getMasterAllDocuments()
+      .then((res) => {
+        const data = res?.data || res || [];
+        if (Array.isArray(data)) {
+          const standardDocLabels = [
+            "gst",
+            "pan",
+            "brc",
+            "business reg",
+            "business registration",
+            "moa",
+            "articles of association",
+            "poe",
+            "establishment",
+            "rpsl",
+            "maritime",
+            "poe license",
+            "cancelled cheque",
+            "director kyc",
+            "trade license"
+          ];
+
+          const isStandardDoc = (name) => {
+            const normalized = name.trim().toLowerCase();
+            return standardDocLabels.some((std) => normalized.includes(std));
+          };
+
+          const updatePromises = data.map((doc) => {
+            const targetMandatory = isStandardDoc(doc.documentName);
+            return recruiterService.updateRequiredDocStatus(doc.id, targetMandatory);
+          });
+
+          Promise.all(updatePromises)
+            .then(() => {
+              fetchMasterDocuments();
+              setIsResetting(false);
+            })
+            .catch((err) => {
+              console.error("Failed to update some documents during reset:", err);
+              alert("Failed to reset document configurations on the server.");
+              fetchMasterDocuments();
+              setIsResetting(false);
+            });
+        } else {
+          alert("Invalid document data received from server.");
+          setIsResetting(false);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch master documents for reset:", err);
+        alert("Failed to fetch document configurations from the server.");
+        setIsResetting(false);
+      });
+  };
+
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -239,24 +317,41 @@ export default function RecruiterPage() {
   };
 
   const handleToggleVerification = (id) => {
+    const recruiter = recruitersList.find((r) => r.id === id);
+    const companyName = recruiter ? recruiter.company : "Recruiter";
+
     recruiterService.updateAccountStatus(id, "Active", "Verified by admin")
       .then(() => {
         fetchRecruiters();
+        showToast(
+          `Recruiter "${companyName}" has been successfully activated & verified!`,
+          "success"
+        );
       })
       .catch((err) => {
-        alert(err.message || "Failed to update verification status");
+        showToast(err.message || "Failed to update verification status", "error");
       });
   };
 
   const handleToggleSuspend = (id, currentStatus) => {
     const newStatus = currentStatus === "Suspended" ? "Active" : "Suspended";
     const reason = newStatus === "Active" ? "Activated by admin" : "Suspended by admin";
+    
+    const recruiter = recruitersList.find((r) => r.id === id);
+    const companyName = recruiter ? recruiter.company : "Recruiter";
+
     recruiterService.updateAccountStatus(id, newStatus, reason)
       .then(() => {
         fetchRecruiters();
+        showToast(
+          `Recruiter "${companyName}" has been successfully ${
+            newStatus === "Active" ? "activated" : "suspended"
+          }!`,
+          "success"
+        );
       })
       .catch((err) => {
-        alert(err.message || `Failed to update status to ${newStatus}`);
+        showToast(err.message || `Failed to update status to ${newStatus}`, "error");
       });
   };
 
@@ -569,42 +664,18 @@ export default function RecruiterPage() {
               {/* Reset to defaults button */}
               <button
                 type="button"
-                onClick={() => {
-                  setRequiredDocs({
-                    gst: true,
-                    pan: true,
-                    brc: true,
-                    moa: true,
-                    poe: true,
-                    rpsl: true,
-                    poe_license: true,
-                    cheque: true,
-                    kyc: true,
-                    trade: true,
-                  });
-                  setDocOptions([
-                    { key: "gst", label: "GST Certificate (GSTIN)" },
-                    { key: "pan", label: "Corporate PAN Card" },
-                    { key: "brc", label: "Business Reg Certificate" },
-                    { key: "moa", label: "MOA / AOA Governance" },
-                    { key: "poe", label: "Proof of Establishment" },
-                    { key: "rpsl", label: "RPSL Maritime License" },
-                    { key: "poe_license", label: "POE License Copy" },
-                    { key: "cheque", label: "Cancelled Cheque" },
-                    { key: "kyc", label: "Director KYC" },
-                    { key: "trade", label: "Trade License" },
-                  ]);
-                }}
+                disabled={isResetting}
+                onClick={handleResetDefaults}
                 style={{
                   height: "42px",
-                  background: "#f5f7fc",
+                  background: isResetting ? "#e2e8f0" : "#f5f7fc",
                   border: "1px solid #e3e8f4",
                   borderRadius: "9px",
                   padding: "0 16px",
                   fontSize: "12px",
                   fontWeight: 600,
-                  color: "#475569",
-                  cursor: "pointer",
+                  color: isResetting ? "#94a3b8" : "#475569",
+                  cursor: isResetting ? "not-allowed" : "pointer",
                   transition: "background 0.15s, border-color 0.15s"
                 }}
                 onMouseEnter={(e) => {
@@ -616,7 +687,7 @@ export default function RecruiterPage() {
                   e.currentTarget.style.borderColor = "#e3e8f4";
                 }}
               >
-                Reset Defaults
+                {isResetting ? "Resetting..." : "Reset Defaults"}
               </button>
             </div>
 
@@ -1261,6 +1332,77 @@ export default function RecruiterPage() {
         .table-pagination button:disabled {
           opacity: 0.45;
           cursor: not-allowed;
+        }
+      `}</style>
+      {mounted && toast.show && createPortal(
+        <div
+          style={{
+            position: "fixed",
+            top: "20px",
+            right: "20px",
+            zIndex: 9999999,
+            background: "#fff",
+            color: "#122359",
+            borderLeft: toast.type === "success" ? "4px solid #2e7d32" : "4px solid #c62828",
+            padding: "14px 20px",
+            borderRadius: "10px",
+            boxShadow: "0 10px 30px rgba(18, 35, 89, 0.15)",
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            fontWeight: 500,
+            fontSize: "13px",
+            borderTop: "1px solid #f1f5f9",
+            borderRight: "1px solid #f1f5f9",
+            borderBottom: "1px solid #f1f5f9",
+            animation: "slideIn 0.3s ease-out"
+          }}
+        >
+          <span style={{ 
+            color: toast.type === "success" ? "#2e7d32" : "#c62828",
+            fontSize: "16px",
+            fontWeight: "bold",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "20px",
+            height: "20px",
+            borderRadius: "50%",
+            background: toast.type === "success" ? "#e8f5e9" : "#fdecea"
+          }}>
+            {toast.type === "success" ? "✓" : "✗"}
+          </span>
+          <span style={{ flex: 1 }}>{toast.message}</span>
+          <button
+            onClick={() => setToast({ ...toast, show: false })}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#94a3b8",
+              cursor: "pointer",
+              fontWeight: "bold",
+              marginLeft: "8px",
+              padding: 0,
+              fontSize: "12px"
+            }}
+            onMouseEnter={(e) => e.target.style.color = "#122359"}
+            onMouseLeave={(e) => e.target.style.color = "#94a3b8"}
+          >
+            ✕
+          </button>
+        </div>,
+        document.body
+      )}
+      <style>{`
+        @keyframes slideIn {
+          from {
+            transform: translateX(120%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
         }
       `}</style>
       <Footer />

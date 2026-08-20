@@ -178,7 +178,7 @@ export default function PlansPage() {
         const currentRegion = regions.find(r => r.id === regionId);
         const matchesRegion = planRegion === regionId.toLowerCase() || 
                (currentRegion && planRegion === currentRegion.name.toLowerCase());
-        return matchesRegion && plan.active === true;
+        return matchesRegion;
       });
     }
     
@@ -541,9 +541,20 @@ export default function PlansPage() {
                 </div>
               ) : <ul className="plan-features">{plan.features.map((feature) => <li key={feature}><Check size={16} />{feature}</li>)}</ul>)}
               <div className="plan-footer">
-                <span className="plan-status is-active">
-                  <i /> Active
-                </span>
+                {activeTab === 'credits' ? (
+                  <button
+                    type="button"
+                    className={`plan-status ${plan.active ? 'is-active' : 'is-inactive'}`}
+                    onClick={() => updatePlan(plan.id, { active: !plan.active })}
+                    style={{ cursor: 'pointer', border: 'none', background: 'none' }}
+                  >
+                    <i /> {plan.active ? 'Active' : 'Inactive'}
+                  </button>
+                ) : (
+                  <span className="plan-status is-active">
+                    <i /> Active
+                  </span>
+                )}
                 {isEditing ? (
                   <button className="card-save" onClick={() => setEditingId(null)}><Save size={14} />Done</button>
                 ) : (

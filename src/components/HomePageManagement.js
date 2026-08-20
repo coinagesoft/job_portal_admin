@@ -1339,7 +1339,7 @@ export default function HomePageManagement() {
                 </div>
                 <div className="search-field-grid">
                   <DropdownItemsEditor label="Industry dropdown items" items={industries} onAdd={addIndustryToDropdown} onRemove={(id) => updateIndustry(id, { showInDropdown: false })} />
-                  <DropdownItemsEditor label="Location dropdown items" items={locations} onAdd={addLocationToDropdown} onRemove={(id) => updateLocation(id, { showInDropdown: false })} />
+                  <DropdownItemsEditor label="Location dropdown items" items={locations} onAdd={addLocationToDropdown} onRemove={(id) => removeLocation(id)} />
                 </div>
               </div>
               <div className="hero-preview" style={{ backgroundImage: `linear-gradient(90deg, rgba(18,35,89,.82), rgba(18,35,89,.52)), url(${hero.background})` }}>

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, use } from "react";
 import { recruiterService } from "../../../../services/recruiterService";
+import { createPortal } from "react-dom";
 import Footer from "../../../../components/Footer";
 import { useRouter } from "next/navigation";
 import {
@@ -48,6 +49,25 @@ export default function EmployerDetailsPage({ searchParams }) {
   const [selectedDocId, setSelectedDocId] = useState("");
   const [requestMessage, setRequestMessage] = useState("");
   const [submittingRequest, setSubmittingRequest] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+  const [mounted, setMounted] = useState(false);
+
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+  };
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (toast.show) {
+      const timer = setTimeout(() => {
+        setToast((prev) => ({ ...prev, show: false }));
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast.show]);
 
   const fetchRecruiterDetails = (recId) => {
     setLoading(true);
@@ -165,12 +185,20 @@ export default function EmployerDetailsPage({ searchParams }) {
   const handleUpdateStatus = (newStatus) => {
     if (!recruiterData?.id) return;
     const reason = newStatus === "Active" ? "Activated/Approved by admin" : "Suspended by admin";
+    const companyName = recruiterData ? recruiterData.company : "Recruiter";
+
     recruiterService.updateAccountStatus(recruiterData.id, newStatus, reason)
       .then(() => {
         fetchRecruiterDetails(recruiterData.id);
+        showToast(
+          `Recruiter "${companyName}" has been successfully ${
+            newStatus === "Active" ? "activated" : "suspended"
+          }!`,
+          "success"
+        );
       })
       .catch((err) => {
-        alert(err.message || `Failed to update status to ${newStatus}`);
+        showToast(err.message || `Failed to update status to ${newStatus}`, "error");
       });
   };
 
@@ -1435,6 +1463,77 @@ Thank you for your business.
           </div>
         </div>
       )}
+      {mounted && toast.show && createPortal(
+        <div
+          style={{
+            position: "fixed",
+            top: "20px",
+            right: "20px",
+            zIndex: 9999999,
+            background: "#fff",
+            color: "#122359",
+            borderLeft: toast.type === "success" ? "4px solid #2e7d32" : "4px solid #c62828",
+            padding: "14px 20px",
+            borderRadius: "10px",
+            boxShadow: "0 10px 30px rgba(18, 35, 89, 0.15)",
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            fontWeight: 500,
+            fontSize: "13px",
+            borderTop: "1px solid #f1f5f9",
+            borderRight: "1px solid #f1f5f9",
+            borderBottom: "1px solid #f1f5f9",
+            animation: "slideIn 0.3s ease-out"
+          }}
+        >
+          <span style={{ 
+            color: toast.type === "success" ? "#2e7d32" : "#c62828",
+            fontSize: "16px",
+            fontWeight: "bold",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "20px",
+            height: "20px",
+            borderRadius: "50%",
+            background: toast.type === "success" ? "#e8f5e9" : "#fdecea"
+          }}>
+            {toast.type === "success" ? "✓" : "✗"}
+          </span>
+          <span style={{ flex: 1 }}>{toast.message}</span>
+          <button
+            onClick={() => setToast({ ...toast, show: false })}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#94a3b8",
+              cursor: "pointer",
+              fontWeight: "bold",
+              marginLeft: "8px",
+              padding: 0,
+              fontSize: "12px"
+            }}
+            onMouseEnter={(e) => e.target.style.color = "#122359"}
+            onMouseLeave={(e) => e.target.style.color = "#94a3b8"}
+          >
+            ✕
+          </button>
+        </div>,
+        document.body
+      )}
+      <style>{`
+        @keyframes slideIn {
+          from {
+            transform: translateX(120%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+      `}</style>
       <Footer />
     </>
   );
