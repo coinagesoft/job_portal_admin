@@ -129,7 +129,7 @@ export default function PlansPage() {
         credits: plan.credits || 0,
         price: plan.price || 0,
         validityMonths: plan.validityMonths || 0,
-        bonus: plan.bonus || '',
+        // bonus: plan.bonus || '',
         active: plan.isActive !== false,
         region: getRegionName(plan.region)
       });
@@ -295,7 +295,7 @@ export default function PlansPage() {
       credits: 100, 
       price: 0, 
       validityMonths: 12, 
-      bonus: '', 
+      // bonus: '', 
       active: true,
       region: region.name.toLowerCase()
     };
@@ -337,7 +337,7 @@ export default function PlansPage() {
               price: Number(plan.price) || 0,
               validityMonths: Number(plan.validityMonths) || 0,
               region: getRegionName(plan.region),
-              bonus: plan.bonus,
+              // bonus: plan.bonus,
               isActive: plan.active
             };
             
@@ -352,7 +352,7 @@ export default function PlansPage() {
                 Number(original.credits) !== Number(plan.credits) ||
                 Number(original.price) !== Number(plan.price) ||
                 Number(original.validityMonths) !== Number(plan.validityMonths) ||
-                original.bonus !== plan.bonus ||
+                // original.bonus !== plan.bonus ||
                 original.active !== plan.active;
                 
               if (isModified) {
@@ -527,12 +527,12 @@ export default function PlansPage() {
                 <div className="edit-fields">
                   <label>Credit quantity<input type="number" min="1" value={plan.credits} onChange={(event) => updatePlan(plan.id, { credits: Math.max(1, Number(event.target.value)) })} /></label>
                   <label>Validity (in months)<input type="number" min="0" value={plan.validityMonths || ''} onChange={(event) => updatePlan(plan.id, { validityMonths: Math.max(0, Number(event.target.value)) })} /></label>
-                  <label>Bonus credits<input value={plan.bonus} placeholder="e.g. 50 bonus credits" onChange={(event) => updatePlan(plan.id, { bonus: event.target.value })} /></label>
+                  {/* <label>Bonus credits<input value={plan.bonus} placeholder="e.g. 50 bonus credits" onChange={(event) => updatePlan(plan.id, { bonus: event.target.value })} /></label> */}
                 </div>
               ) : <div className="credit-details">
                 <div><span>Cost per credit</span><b>{region.symbol}{(Number(plan.price) / (plan.credits || 1)).toFixed(2)}</b></div>
                 {plan.validityMonths ? <div><span>Validity</span><b>{plan.validityMonths} months</b></div> : null}
-                {plan.bonus ? <span className="credit-bonus">+ {plan.bonus}</span> : <span className="credit-bonus muted">No bonus credits</span>}
+                {/* {plan.bonus ? <span className="credit-bonus">+ {plan.bonus}</span> : <span className="credit-bonus muted">No bonus credits</span>} */}
               </div>) : (isEditing ? (
                 <div className="edit-fields">
                   <label>Billing Period<input value={plan.period} placeholder="e.g. one-time, 3 months" onChange={(event) => updatePlan(plan.id, { period: event.target.value })} /></label>
