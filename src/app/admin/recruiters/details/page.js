@@ -214,35 +214,87 @@ export default function EmployerDetailsPage({ searchParams }) {
       });
   };
 
-  const handleDownloadInvoice = (txn) => {
-    const recId = recruiterData?.id || id;
-    if (!recId) return;
-
-    recruiterService.downloadTransactionInvoice(recId, txn.transactionId || txn.id)
-      .then((res) => {
-        if (res && res.invoiceUrl) {
-          window.open(res.invoiceUrl, '_blank');
-        } else if (res && res.content) {
-          const blob = new Blob([res.content], { type: "text/plain" });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `Invoice-${txn.transactionNumber || txn.invoice || txn.transactionId}.txt`;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          URL.revokeObjectURL(url);
-        } else {
-          generateLocalInvoice(txn);
-        }
-      })
-      .catch(() => {
-        generateLocalInvoice(txn);
-      });
-  };
-
-  const generateLocalInvoice = (txn) => {
-    const content = `JOBBOX
+  const generateLocalPdf = async (txn, serverTextContent = null) => {
+    try {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF();
+      
+      const company = recruiterData?.company || "Employer";
+      const invoiceNum = txn.transactionNumber || txn.invoice || txn.transactionId;
+      const amount = typeof txn.amount === 'number' ? `INR ${txn.amount}` : txn.amount;
+      const dateVal = txn.date ? new Date(txn.date).toLocaleDateString() : "N/A";
+      const paymentMethod = txn.payment || "N/A";
+      const txnId = txn.transactionId || txn.id;
+      const statusVal = txn.paymentStatus || txn.status || "N/A";
+      const descriptionVal = txn.description || "N/A";
+      
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(22);
+      doc.setTextColor(18, 35, 89); // Navy
+      doc.text("JOBBOX", 20, 25);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139); // Gray
+      doc.setFont("helvetica", "normal");
+      doc.text("Job Portal Admin Invoice", 20, 31);
+      
+      doc.setDrawColor(226, 232, 240); // Slate Border
+      doc.line(20, 38, 190, 38);
+      
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.setTextColor(18, 35, 89);
+      doc.text(`INVOICE: ${invoiceNum}`, 20, 48);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Date: ${dateVal}`, 20, 56);
+      doc.text(`Transaction ID: ${txnId}`, 20, 62);
+      doc.text(`Payment Method: ${paymentMethod}`, 20, 68);
+      doc.text(`Payment Status: ${statusVal}`, 20, 74);
+      
+      doc.setFont("helvetica", "bold");
+      doc.text("Billed To:", 130, 48);
+      doc.setFont("helvetica", "normal");
+      doc.text(company, 130, 54);
+      if (recruiterData?.companyInformation?.address && recruiterData.companyInformation.address !== "N/A") {
+        const addressLines = doc.splitTextToSize(recruiterData.companyInformation.address, 55);
+        doc.text(addressLines, 130, 60);
+      }
+      
+      // Table Header
+      doc.setFillColor(248, 250, 252);
+      doc.rect(20, 88, 170, 8, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(71, 85, 105);
+      doc.text("Description", 24, 93);
+      doc.text("Amount", 160, 93);
+      
+      // Table Content
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(15, 23, 42);
+      doc.text(descriptionVal, 24, 103);
+      doc.text(amount, 160, 103);
+      
+      doc.line(20, 108, 190, 108);
+      
+      // Total
+      doc.setFont("helvetica", "bold");
+      doc.text("Total Paid", 120, 118);
+      doc.text(amount, 160, 118);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(148, 163, 184);
+      doc.text("Thank you for your business.", 20, 135);
+      doc.text("For any support queries, please contact support@jobbox.io", 20, 140);
+      
+      doc.save(`Invoice-${invoiceNum}.pdf`);
+    } catch (e) {
+      console.error("jspdf generation failed:", e);
+      // Text fallback if jspdf fails
+      const content = serverTextContent || `JOBBOX
 Invoice ${txn.transactionNumber || txn.invoice || txn.transactionId}
 --------------------------------
 Payment received from ${recruiterData?.company || "Employer"}
@@ -256,15 +308,74 @@ Status: ${txn.paymentStatus || txn.status}
 --------------------------------
 Thank you for your business.
 `;
-    const blob = new Blob([content], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${txn.transactionNumber || txn.invoice || txn.transactionId}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+      const blob = new Blob([content], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Invoice-${txn.transactionNumber || txn.invoice || txn.transactionId}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  const handleDownloadInvoice = (txn) => {
+    const recId = recruiterData?.id || id;
+    if (!recId) return;
+
+    const token = typeof window !== 'undefined' ? localStorage.getItem('jobbox_access_token') : null;
+    
+    let baseUrl = '';
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.')) {
+        baseUrl = 'https://jobportal.coinage.in';
+      }
+    }
+
+    const endpoint = `${baseUrl}/api/admin/recruiters/${recId}/transactions/${txn.transactionId || txn.id}/invoice/download`;
+
+    fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        Accept: '*/*',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Failed to download invoice from server");
+        }
+        
+        const contentType = response.headers.get("content-type") || "";
+        
+        if (contentType.includes("application/json")) {
+          const json = await response.json();
+          if (json && json.invoiceUrl) {
+            window.open(json.invoiceUrl, '_blank');
+          } else if (json && json.content) {
+            generateLocalPdf(txn, json.content);
+          } else {
+            generateLocalPdf(txn);
+          }
+        } else {
+          // Response is a PDF file stream
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `Invoice-${txn.transactionNumber || txn.invoice || txn.transactionId}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        }
+      })
+      .catch((err) => {
+        console.error("PDF download failed, falling back to client-side PDF:", err);
+        generateLocalPdf(txn);
+      });
   };
 
   if (loading) {

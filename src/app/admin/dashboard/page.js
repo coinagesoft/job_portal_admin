@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Footer from '../../../components/Footer'
 import { useRouter } from 'next/navigation'
 import Link from "next/link";
+import { apiRequest } from '../../../services/api'
 import {
   Wallet,
   FileText,
@@ -23,28 +24,58 @@ const GOLD = '#ffc151'
 const SLATE = '#5b6b9e'
 const GREY = '#c7ccd9'
 
-// ── Registration Growth datasets per time range ──
-const REGISTRATION_DATA = {
-  week: {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    candidates: [160, 185, 200, 220, 260, 310, 295],
-    recruiters: [20, 35, 45, 55, 60, 70, 65],
-  },
-  month: {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-    candidates: [980, 1050, 1120, 1180, 1240, 1310, 1290, 1350, 1400, 1460, 1520, 1580],
-    recruiters: [140, 150, 158, 165, 172, 180, 178, 185, 192, 198, 205, 212],
-  },
-  year: {
-    labels: ['2021', '2022', '2023', '2024', '2025', '2026'],
-    candidates: [3200, 5400, 7800, 9600, 11800, 14205],
-    recruiters: [180, 320, 480, 610, 740, 842],
-  },
-}
-
 export default function DashboardPage() {
   const router = useRouter()
   const [regRange, setRegRange] = useState('week')
+  const [dashboardData, setDashboardData] = useState({
+    stats: null,
+    registrationGrowth: null,
+    recruitersByIndustry: null,
+    revenueGrowth: null,
+    platformOverview: null,
+    recentRegistrations: [],
+    recentSupportTickets: [],
+    recentPayments: [],
+  })
+  const [dashboardError, setDashboardError] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadDashboard = async () => {
+      try {
+        setDashboardError('')
+        const [stats, registrationGrowth, recruitersByIndustry, revenueGrowth, platformOverview, recentRegistrations, recentSupportTickets, recentPayments] = await Promise.all([
+          apiRequest('/api/admin/dashboard/stats-widgets', { method: 'GET' }),
+          apiRequest(`/api/admin/dashboard/registration-growth?range=${regRange}`, { method: 'GET' }),
+          apiRequest('/api/admin/dashboard/recruiters-by-industry', { method: 'GET' }),
+          apiRequest('/api/admin/dashboard/revenue-credit-growth', { method: 'GET' }),
+          apiRequest('/api/admin/dashboard/platform-overview', { method: 'GET' }),
+          apiRequest('/api/admin/dashboard/recent-registrations?limit=5', { method: 'GET' }),
+          apiRequest('/api/admin/dashboard/recent-support-tickets?limit=5', { method: 'GET' }),
+          apiRequest('/api/admin/dashboard/recent-payments?limit=5', { method: 'GET' }),
+        ])
+
+        if (!cancelled) {
+          setDashboardData({
+            stats: stats?.data,
+            registrationGrowth: registrationGrowth?.data,
+            recruitersByIndustry: recruitersByIndustry?.data,
+            revenueGrowth: revenueGrowth?.data,
+            platformOverview: platformOverview?.data,
+            recentRegistrations: recentRegistrations?.data || [],
+            recentSupportTickets: recentSupportTickets?.data || [],
+            recentPayments: recentPayments?.data || [],
+          })
+        }
+      } catch (error) {
+        if (!cancelled) setDashboardError(error.message || 'Unable to load dashboard data.')
+      }
+    }
+
+    loadDashboard()
+    return () => { cancelled = true }
+  }, [regRange])
 
   useEffect(() => {
     const script = document.createElement('script')
@@ -56,16 +87,9 @@ export default function DashboardPage() {
     }
   }, [])
 
-  // Update the registration chart in place whenever Week/Month/Year is switched
   useEffect(() => {
-    const chart = window._chart1
-    if (!chart) return
-    const range = REGISTRATION_DATA[regRange]
-    chart.data.labels = range.labels
-    chart.data.datasets[0].data = range.candidates
-    chart.data.datasets[1].data = range.recruiters
-    chart.update()
-  }, [regRange])
+    if (window.Chart) initCharts()
+  }, [dashboardData])
 
   function initCharts() {
     if (window._chart1) { window._chart1.destroy(); window._chart1 = null }
@@ -75,7 +99,7 @@ export default function DashboardPage() {
     // Registration Growth Line Chart — Candidates vs Recruiters
     const ctx1 = document.getElementById('registrationChart')
     if (ctx1) {
-      const range = REGISTRATION_DATA[regRange]
+      const range = dashboardData.registrationGrowth || { labels: [], candidates: [], recruiters: [] }
       window._chart1 = new window.Chart(ctx1, {
         type: 'line',
         data: {
@@ -121,11 +145,11 @@ export default function DashboardPage() {
       window._chart2 = new window.Chart(ctx2, {
         type: 'bar',
         data: {
-          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+          labels: dashboardData.revenueGrowth?.labels || [],
           datasets: [
             {
               label: 'Candidate memberships',
-              data: [9200, 10400, 9800, 12100, 13600, 14800],
+              data: dashboardData.revenueGrowth?.candidateMemberships || [],
               backgroundColor: NAVY,
               borderRadius: 4,
               borderSkipped: false,
@@ -133,7 +157,7 @@ export default function DashboardPage() {
             },
             {
               label: 'Recruiter memberships',
-              data: [24000, 26500, 24800, 31200, 36400, 42000],
+              data: dashboardData.revenueGrowth?.recruiterMemberships || [],
               backgroundColor: AMBER,
               borderRadius: 4,
               borderSkipped: false,
@@ -141,7 +165,7 @@ export default function DashboardPage() {
             },
             {
               label: 'Credit plans',
-              data: [11800, 15100, 13400, 17700, 22000, 24200],
+              data: dashboardData.revenueGrowth?.creditPlans || [],
               backgroundColor: GOLD,
               borderRadius: 4,
               borderSkipped: false,
@@ -158,7 +182,7 @@ export default function DashboardPage() {
             y: {
               stacked: true,
               grid: { color: 'rgba(0,0,0,0.04)' },
-              ticks: { color: '#888', font: { size: 11 }, callback: (v) => '$' + (v / 1000) + 'k' },
+              ticks: { color: '#888', font: { size: 11 }, callback: (v) => '₹' + v },
               border: { display: false },
               beginAtZero: true,
             },
@@ -174,9 +198,9 @@ export default function DashboardPage() {
       window._chart3 = new window.Chart(ctx3, {
         type: 'doughnut',
         data: {
-          labels: ['Construction & Infrastructure', 'Oil & Gas', 'Logistics & Transportation', 'Manufacturing', 'Other'],
+          labels: dashboardData.recruitersByIndustry?.slices?.map((slice) => slice.industry) || [],
           datasets: [{
-            data: [28, 22, 18, 14, 18],
+            data: dashboardData.recruitersByIndustry?.slices?.map((slice) => slice.count) || [],
             backgroundColor: [NAVY, AMBER, GOLD, SLATE, GREY],
             borderWidth: 0,
             hoverOffset: 6,
@@ -192,8 +216,14 @@ export default function DashboardPage() {
     }
   }
 
+  const stats = dashboardData.stats || {}
+  const platformOverview = dashboardData.platformOverview || {}
+  const formatDate = (value) => value ? new Date(value).toLocaleDateString() : '-'
+  const formatTime = (value) => value ? new Date(value).toLocaleString() : '-'
+
   return (
     <>
+      {dashboardError && <div className="alert alert-danger mb-20">{dashboardError}</div>}
       {/* PAGE HEADING */}
       <div className="box-heading">
         <div className="box-title">
@@ -217,9 +247,7 @@ export default function DashboardPage() {
             <Link href="/admin/revenue" className="card-style-1 hover-up" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="card-image"><Wallet size={28} strokeWidth={2.2} color={NAVY} /></div>
               <div className="card-info">
-                <div className="card-title"><h3>$128,430
-                  {/* <span className="font-sm status up">12.5<span>%</span></span> */}
-                  </h3></div>
+                <div className="card-title"><h3>₹{stats.totalRevenue?.value ?? 0}</h3></div>
                 <p className="color-text-paragraph-2">Total Revenue</p>
               </div>
             </Link>
@@ -228,9 +256,7 @@ export default function DashboardPage() {
             <Link href="/admin/candidates" className="card-style-1 hover-up" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="card-image"><img src="/assets/imgs/page/dashboard/candidates.svg" alt="jobBox" /></div>
               <div className="card-info">
-                <div className="card-title"><h3>14,205
-                  {/* <span className="font-sm status up">4.2<span>%</span></span> */}
-                  </h3></div>
+                <div className="card-title"><h3>{stats.totalCandidates?.value ?? 0}</h3></div>
                 <p className="color-text-paragraph-2">Total Candidates</p>
               </div>
             </Link>
@@ -239,9 +265,7 @@ export default function DashboardPage() {
             <Link href="/admin/recruiters" className="card-style-1 hover-up" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="card-image"><img src="/assets/imgs/page/dashboard/recruiters.svg" alt="jobBox" /></div>
               <div className="card-info">
-                <div className="card-title"><h3>842
-                  {/* <span className="font-sm status up">1.8<span>%</span></span> */}
-                  </h3></div>
+                <div className="card-title"><h3>{stats.totalRecruiters?.value ?? 0}</h3></div>
                 <p className="color-text-paragraph-2">Total Recruiters</p>
               </div>
             </Link>
@@ -250,7 +274,7 @@ export default function DashboardPage() {
             <Link href="/admin/Plans" className="card-style-1 hover-up" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="card-image"><FileText size={28} strokeWidth={2.2} color={NAVY} /></div>
               <div className="card-info">
-                <div className="card-title"><h3>24,500</h3></div>
+                <div className="card-title"><h3>{stats.creditsSold?.value ?? 0}</h3></div>
                 <p className="color-text-paragraph-2">Credits Sold</p>
               </div>
             </Link>
@@ -265,7 +289,7 @@ export default function DashboardPage() {
             <div className="card-style-1 hover-up">
               <div className="card-image"><Briefcase size={28} strokeWidth={2.2} color={AMBER} /></div>
               <div className="card-info">
-                <div className="card-title"><h3>1,180<span className="font-sm color-text-paragraph-2" style={{ marginLeft: '10px', fontWeight: 500 }}>/ 312 Paused</span></h3></div>
+                <div className="card-title"><h3>{stats.activeJobPostings?.active ?? 0}<span className="font-sm color-text-paragraph-2" style={{ marginLeft: '10px', fontWeight: 500 }}>/ {stats.activeJobPostings?.paused ?? 0} Paused</span></h3></div>
                 <p className="color-text-paragraph-2">Active Job Postings</p>
               </div>
             </div>
@@ -274,7 +298,7 @@ export default function DashboardPage() {
             <Link href="/admin/verifications" className="card-style-1 hover-up" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="card-image"><ShieldCheck size={28} strokeWidth={2.2} color={AMBER} /></div>
               <div className="card-info">
-                <div className="card-title"><h3>42<span className="font-sm status down">8 High Priority</span></h3></div>
+                <div className="card-title"><h3>{stats.pendingVerifications?.total ?? 0}</h3></div>
                 <p className="color-text-paragraph-2">Pending Verifications</p>
               </div>
             </Link>
@@ -283,7 +307,7 @@ export default function DashboardPage() {
             <Link href="/admin/helpAndsupport" className="card-style-1 hover-up" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="card-image"><Headphones size={28} strokeWidth={2.2} color={AMBER} /></div>
               <div className="card-info">
-                <div className="card-title"><h3>18<span className="font-sm status down">5 Pending</span></h3></div>
+                <div className="card-title"><h3>{stats.openSupportTickets?.open ?? 0}<span className="font-sm status down">{stats.openSupportTickets?.pending ?? 0} Pending</span></h3></div>
                 <p className="color-text-paragraph-2">Open Support Tickets</p>
               </div>
             </Link>
@@ -363,33 +387,21 @@ export default function DashboardPage() {
                 </div>
                 <div className="panel-body text-center">
                   <div style={{ position: 'relative', width: '100%', height: '200px' }}>
-                    <canvas id="donutChart" role="img" aria-label="Donut chart: Construction & Infrastructure 28%, Oil & Gas 22%, Logistics & Transportation 18%, Manufacturing 14%, Other 18%">Recruiters by industry</canvas>
+                    <canvas id="donutChart" role="img" aria-label="Recruiters by industry">Recruiters by industry</canvas>
                   </div>
                   <div className="d-flex justify-content-center mt-10 mb-15" style={{ gap: '10px', flexWrap: 'wrap' }}>
-                    {[
-                      { label: 'Construction', color: NAVY },
-                      { label: 'Oil & Gas', color: AMBER },
-                      { label: 'Logistics', color: GOLD },
-                      { label: 'Manufacturing', color: SLATE },
-                      { label: 'Other', color: GREY },
-                    ].map(d => (
-                      <span key={d.label} className="font-xs color-text-paragraph-2" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '2px', background: d.color, flexShrink: 0 }}></span>
-                        {d.label}
+                    {(dashboardData.recruitersByIndustry?.slices || []).map((d, index) => (
+                      <span key={d.industry} className="font-xs color-text-paragraph-2" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '2px', background: [NAVY, AMBER, GOLD, SLATE, GREY][index % 5], flexShrink: 0 }}></span>
+                        {d.industry}
                       </span>
                     ))}
                   </div>
                   <div className="mt-10">
-                    {[
-                      { label: 'Construction & Infrastructure', pct: '28.0%' },
-                      { label: 'Oil & Gas', pct: '22.0%' },
-                      { label: 'Logistics & Transportation', pct: '18.0%' },
-                      { label: 'Manufacturing', pct: '14.0%' },
-                      { label: 'Other', pct: '18.0%' },
-                    ].map((item) => (
-                      <div key={item.label} className="d-flex justify-content-between mb-5">
-                        <span className="font-sm color-text-paragraph-2">{item.label}</span>
-                        <strong className="font-sm color-brand-1">{item.pct}</strong>
+                    {(dashboardData.recruitersByIndustry?.slices || []).map((item) => (
+                      <div key={item.industry} className="d-flex justify-content-between mb-5">
+                        <span className="font-sm color-text-paragraph-2">{item.industry}</span>
+                        <strong className="font-sm color-brand-1">{item.percentage}%</strong>
                       </div>
                     ))}
                   </div>
@@ -410,7 +422,7 @@ export default function DashboardPage() {
                 <h5>Revenue &amp; Credit Growth</h5>
                 <p className="font-xs color-text-paragraph-2 mt-2">Monthly split by candidate, recruiter and credit plans</p>
               </div>
-              <a className="btn btn-default icon-edit hover-up" href="#" style={{ flexShrink: 0 }}>Export Report</a>
+              {/* <a className="btn btn-default icon-edit hover-up" href="#" style={{ flexShrink: 0 }}>Export Report</a> */}
             </div>
             <div className="panel-body">
               <div style={{ position: 'relative', width: '100%', height: '280px' }}>
@@ -445,10 +457,10 @@ export default function DashboardPage() {
             <div className="panel-body">
               <div className="row">
                 {[
-                  { href: '/admin/Plans', icon: BadgeDollarSign, title: 'Plans', value: '3 active plans', detail: 'Recruiter, Candidate & Credit tiers' },
-                  { href: '/admin/users', icon: UserCog, title: 'Users', value: '6 accounts', detail: '5 active · 1 suspended' },
-                  { href: '/admin/audit', icon: Monitor, title: 'Audit Logs', value: '2 critical events', detail: 'In the last 24 hours' },
-                  { href: '/admin/managePolicies', icon: Scale, title: 'Legal Pages', value: 'Privacy & Terms', detail: 'Last published this week' },
+                  { href: '/admin/Plans', icon: BadgeDollarSign, title: 'Plans', value: `${platformOverview.plans?.activeCount ?? 0} active plans`, detail: `${platformOverview.plans?.recruiterPlanCount ?? 0} recruiter · ${platformOverview.plans?.candidatePlanCount ?? 0} candidate · ${platformOverview.plans?.creditPlanCount ?? 0} credit` },
+                  { href: '/admin/users', icon: UserCog, title: 'Users', value: `${platformOverview.users?.total ?? 0} accounts`, detail: `${platformOverview.users?.active ?? 0} active · ${platformOverview.users?.inactive ?? 0} inactive` },
+                  { href: '/admin/audit', icon: Monitor, title: 'Audit Logs', value: `${platformOverview.auditLogs?.criticalLast24Hours ?? 0} critical events`, detail: `${platformOverview.auditLogs?.totalLast24Hours ?? 0} in the last 24 hours` },
+                  { href: '/admin/managePolicies', icon: Scale, title: 'Legal Pages', value: `${platformOverview.legalPages?.publishedCount ?? 0} published`, detail: `${platformOverview.legalPages?.totalDocuments ?? 0} total · last ${formatDate(platformOverview.legalPages?.lastPublishedAt)}` },
                 ].map((m) => (
                   <div key={m.title} className="col-xxl-3 col-xl-3 col-lg-6 col-md-6 col-sm-12">
                     <Link
@@ -507,59 +519,21 @@ export default function DashboardPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {[
-                        {
-                          id: "CAND-101",
-                          name: "Alexander Wright",
-                          time: "2 mins ago",
-                          type: "candidate",
-                          img: "avata1"
-                        },
-                        {
-                          id: "REC-201",
-                          name: "Sophia Chen",
-                          time: "15 mins ago",
-                          type: "recruiter",
-                          img: "avata2"
-                        },
-                        {
-                          id: "CAND-102",
-                          name: "Marcus Miller",
-                          time: "1 hour ago",
-                          type: "candidate",
-                          img: "avata3"
-                        },
-                        {
-                          id: "REC-202",
-                          name: "Elena Rodriguez",
-                          time: "3 hours ago",
-                          type: "recruiter",
-                          img: "avata4"
-                        },
-                        {
-                          id: "CAND-103",
-                          name: "David Kim",
-                          time: "5 hours ago",
-                          type: "candidate",
-                          img: "avata5"
-                        }
-                      ].map((u) => (
-                        <tr key={u.name} className="hover-up">
+                      {dashboardData.recentRegistrations.map((u) => (
+                        <tr key={u.userId} className="hover-up">
                           <td style={{ padding: '10px 0', borderBottom: '1px solid #f5f5f5' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <img src={`/assets/imgs/page/dashboard/${u.img}.png`} alt="jobBox"
-                                style={{ width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0 }} />
                               <div style={{ minWidth: 0 }}>
                                 <p className="font-sm mb-0" style={{ fontWeight: 600, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '110px' }}>{u.name}</p>
-                                <span className="font-xs color-text-paragraph-2">{u.time}</span>
+                                <span className="font-xs color-text-paragraph-2">{formatTime(u.createdAt)}</span>
                               </div>
                             </div>
                           </td>
                           <td style={{ padding: '10px 8px', borderBottom: '1px solid #f5f5f5' }}>
                             <span style={{
                               fontSize: '10px', fontWeight: 700, letterSpacing: '0.4px', padding: '3px 7px', borderRadius: '4px', whiteSpace: 'nowrap',
-                              background: u.type === 'CANDIDATE' ? '#ffc151' : '#e8f5e9',
-                              color: u.type === 'CANDIDATE' ? '#ffa300' : '#2e7d32'
+                              background: u.type === 'candidate' ? '#fff3df' : '#e8f5e9',
+                              color: u.type === 'candidate' ? '#c76b00' : '#2e7d32'
                             }}>{u.type}</span>
                           </td>
                           <td style={{ padding: '10px 0', borderBottom: '1px solid #f5f5f5' }}>
@@ -567,9 +541,9 @@ export default function DashboardPage() {
                               className="btn btn-grey-small"
                               onClick={() => {
                                 if (u.type === "candidate") {
-                                  router.push(`/admin/candidates/candidateDetails?${u.id}`)
+                                  router.push(`/admin/candidates/candidateDetails?${u.candidateId || u.userId}`)
                                 } else {
-                                  router.push(`/admin/recruiters/details?${u.id}`)
+                                  router.push(`/admin/recruiters/details?${u.employerId || u.userId}`)
                                 }
                               }}
                             >
@@ -607,17 +581,15 @@ export default function DashboardPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {[
-                        { id: 'SUP-4201', name: 'John Carter', issue: 'Resume upload failed', category: 'Profile', status: 'Pending', color: '#c76b00', bg: '#fff3df' },
-                        { id: 'SUP-5101', name: 'TechFlow Pvt Ltd', issue: 'Job posting error', category: 'Technical', status: 'Pending', color: '#c76b00', bg: '#fff3df' },
-                        { id: 'SUP-5102', name: 'NextHire Ltd', issue: 'Invoice mismatch', category: 'Billing', status: 'In Progress', color: '#996000', bg: '#fff0c8' },
-                        { id: 'SUP-4202', name: 'Aisha Khan', issue: 'Payment issue', category: 'Billing', status: 'Resolved', color: '#21844c', bg: '#e6f7ed' },
-                        { id: 'SUP-4310', name: 'Priya Sharma', issue: 'Profile visibility', category: 'Profile', status: 'Resolved', color: '#21844c', bg: '#e6f7ed' },
-                      ].map((t) => (
-                        <tr key={t.id} className="hover-up">
+                      {dashboardData.recentSupportTickets.map((t) => {
+                        const statusStyle = t.status?.toLowerCase() === 'resolved'
+                          ? { color: '#21844c', bg: '#e6f7ed' }
+                          : { color: '#c76b00', bg: '#fff3df' }
+                        return (
+                        <tr key={t.ticketId} className="hover-up">
                           <td style={{ padding: '10px 0', borderBottom: '1px solid #f5f5f5' }}>
-                            <p className="font-sm mb-0" style={{ fontWeight: 600, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>{t.name}</p>
-                            <span className="font-xs color-text-paragraph-2" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>{t.issue}</span>
+                            <p className="font-sm mb-0" style={{ fontWeight: 600, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>{t.raisedByName}</p>
+                            <span className="font-xs color-text-paragraph-2" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>{t.subject}</span>
                           </td>
                           <td style={{ padding: '10px 8px', borderBottom: '1px solid #f5f5f5', whiteSpace: 'nowrap' }}>
                             <span className="font-xs color-text-paragraph-2">{t.category}</span>
@@ -625,12 +597,13 @@ export default function DashboardPage() {
                           <td style={{ padding: '10px 0', borderBottom: '1px solid #f5f5f5', whiteSpace: 'nowrap' }}>
                             <span style={{
                               fontSize: '11px', fontWeight: 700, padding: '3px 10px',
-                              borderRadius: '4px', color: t.color, background: t.bg,
+                              borderRadius: '4px', color: statusStyle.color, background: statusStyle.bg,
                               display: 'inline-block'
                             }}>{t.status}</span>
                           </td>
                         </tr>
-                      ))}
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -660,30 +633,29 @@ export default function DashboardPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {[
-                        { entity: 'Tech Solutions Ltd', time: '10:45 AM', amount: '$2,400', status: 'Success', color: '#2e7d32', bg: '#e8f5e9' },
-                        { entity: 'Sarah Jenkins', time: '09:30 AM', amount: '$49', status: 'Success', color: '#2e7d32', bg: '#e8f5e9' },
-                        { entity: 'Global Recruiters', time: 'Yesterday', amount: '$1,200', status: 'Pending', color: '#e65100', bg: '#fff3e0' },
-                        { entity: 'Mike Peters', time: 'Yesterday', amount: '$25', status: 'Failed', color: '#c62828', bg: '#fdecea' },
-                        { entity: 'Innovate Hub', time: '2 days ago', amount: '$5,000', status: 'Success', color: '#2e7d32', bg: '#e8f5e9' },
-                      ].map((p) => (
-                        <tr key={p.entity} className="hover-up">
+                      {dashboardData.recentPayments.map((p) => {
+                        const statusStyle = p.paymentStatus?.toLowerCase() === 'success'
+                          ? { color: '#2e7d32', bg: '#e8f5e9' }
+                          : { color: '#e65100', bg: '#fff3e0' }
+                        return (
+                        <tr key={p.transactionId} className="hover-up">
                           <td style={{ padding: '10px 0', borderBottom: '1px solid #f5f5f5' }}>
-                            <p className="font-sm mb-0" style={{ fontWeight: 600, lineHeight: 1.3 }}>{p.entity}</p>
-                            <span className="font-xs color-text-paragraph-2">{p.time}</span>
+                            <p className="font-sm mb-0" style={{ fontWeight: 600, lineHeight: 1.3 }}>{p.entityName}</p>
+                            <span className="font-xs color-text-paragraph-2">{formatTime(p.createdAt)}</span>
                           </td>
                           <td style={{ padding: '10px 8px', borderBottom: '1px solid #f5f5f5', whiteSpace: 'nowrap' }}>
-                            <strong className="font-sm">{p.amount}</strong>
+                            <strong className="font-sm">₹{p.amount}</strong>
                           </td>
                           <td style={{ padding: '10px 0', borderBottom: '1px solid #f5f5f5', whiteSpace: 'nowrap' }}>
                             <span style={{
                               fontSize: '11px', fontWeight: 700, padding: '3px 10px',
-                              borderRadius: '4px', color: p.color, background: p.bg,
+                              borderRadius: '4px', color: statusStyle.color, background: statusStyle.bg,
                               display: 'inline-block'
-                            }}>{p.status}</span>
+                            }}>{p.paymentStatus}</span>
                           </td>
                         </tr>
-                      ))}
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>

@@ -108,7 +108,7 @@ export const recruiterService = {
   requestDocument: async (employerId, documentTypeId, customDocumentName = '', message = '') => {
     return await apiRequest(`/api/admin/recruiters/${employerId}/document-requests`, {
       method: 'POST',
-      body: JSON.stringify({ documentTypeId, customDocumentName, message }),
+      body: JSON.stringify({ documentTypeId: documentTypeId || null, customDocumentName, message }),
     });
   }
 };

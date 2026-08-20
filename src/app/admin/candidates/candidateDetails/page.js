@@ -133,8 +133,9 @@ export default function CandidateDetailsPage({ searchParams }) {
     setLoading(true)
     candidateService.getCandidateById(candidateId)
       .then((res) => {
-        setCandidateData(res)
-        setAccountStatus(res?.status || "Active")
+        const data = res?.data || res
+        setCandidateData(data)
+        setAccountStatus(data?.accountStatus || data?.status || "Active")
         setLoading(false)
       })
       .catch((err) => {
@@ -326,11 +327,11 @@ export default function CandidateDetailsPage({ searchParams }) {
                 <div className="progress mt-5" style={{ height: "8px", background: "#fdf1e0" }}>
                   <div
                     className="progress-bar"
-                    style={{ width: "85%", background: "#ffa300" }}
+                    style={{ width: `${candidateData.completenessPct ?? candidateData.completeness ?? 0}%`, background: "#ffa300" }}
                   ></div>
                 </div>
 
-                <p className="font-xs mt-5">85%</p>
+                <p className="font-xs mt-5">{candidateData.completenessPct ?? candidateData.completeness ?? 0}%</p>
 
                 <h4 className="mt-20 mb-10">{candidateData.name || "N/A"}</h4>
 
@@ -343,7 +344,7 @@ export default function CandidateDetailsPage({ searchParams }) {
                 </p>
 
                 <p className="font-sm color-text-paragraph-2 d-flex align-items-center justify-content-center gap-2">
-                  <Calendar size={13} color="#66789C" /> Registered {candidateData.joined || "N/A"}
+                  <Calendar size={13} color="#66789C" /> Registered {candidateData.registeredOn || candidateData.joined || "N/A"}
                 </p>
 
               </div>
@@ -357,7 +358,7 @@ export default function CandidateDetailsPage({ searchParams }) {
                     <p className="font-xs color-text-paragraph-2 mb-5 d-flex align-items-center gap-1">
                       <HardHat size={12} color="#ffa300" /> TRADE CATEGORY
                     </p>
-                    <h6>{candidateData.trade || candidateData.tradeCategory || "N/A"}</h6>
+                    <h6>{candidateData.tradeCategory || candidateData.trade || "N/A"}</h6>
                   </div>
                 </div>
               </div>
@@ -390,7 +391,9 @@ export default function CandidateDetailsPage({ searchParams }) {
                     <p className="font-xs color-text-paragraph-2 mb-5 d-flex align-items-center gap-1">
                       <CreditCard size={12} color="#ffa300" /> PAYMENT STATUS
                     </p>
-                    <h6 className="color-success">{candidateData.paymentStatus || "Paid"}</h6>
+                    <h6 className={(candidateData.paymentStatus || "Paid") === 'Paid' ? 'color-success' : 'color-danger'}>
+                      {candidateData.paymentStatus || "Paid"}
+                    </h6>
                   </div>
                 </div>
               </div>
@@ -433,54 +436,58 @@ export default function CandidateDetailsPage({ searchParams }) {
                       </tr>
                     </thead>
 
-                    <tbody>
-                      {candidateData.transactions && candidateData.transactions.length > 0 ? (
-                        candidateData.transactions.map((txn) => (
-                          <tr key={txn.id}>
+                     <tbody>
+                      {(() => {
+                        const txns = candidateData.billing || candidateData.transactions;
+                        if (txns && txns.length > 0) {
+                          return txns.map((txn, idx) => (
+                            <tr key={txn.id || txn.txnId || idx}>
+                              <td>
+                                <span style={{ fontWeight: 600, color: '#122359' }}>{txn.id || txn.txnId || `TXN-${idx}`}</span>
+                              </td>
+                              <td>
+                                <span className="font-sm color-text-paragraph-2">{txn.date || txn.uploadedOn || '—'}</span>
+                              </td>
+                              <td>
+                                <span style={{ fontWeight: 700, color: '#122359' }}>{txn.amount || '—'}</span>
+                              </td>
+                              <td>
+                                <span style={{
+                                  fontSize: '11px', fontWeight: 700, padding: '4px 12px',
+                                  borderRadius: '20px', background: txn.status === 'Success' || txn.status === 'Paid' ? '#e8f5e9' : '#fdecea',
+                                  color: txn.status === 'Success' || txn.status === 'Paid' ? '#2e7d32' : '#c62828',
+                                  border: txn.status === 'Success' || txn.status === 'Paid' ? '1px solid #a5d6a7' : '1px solid #ef9a9a',
+                                  whiteSpace: 'nowrap',
+                                }}>
+                                  {txn.status || 'Success'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        }
+                        return (
+                          <tr>
                             <td>
-                              <span style={{ fontWeight: 600, color: '#122359' }}>{txn.id}</span>
+                              <span style={{ fontWeight: 600, color: '#122359' }}>#TXN-99210-AW</span>
                             </td>
                             <td>
-                              <span className="font-sm color-text-paragraph-2">{txn.date}</span>
+                              <span className="font-sm color-text-paragraph-2">{candidateData.registeredOn || candidateData.joined || "Oct 12, 2023"}</span>
                             </td>
                             <td>
-                              <span style={{ fontWeight: 700, color: '#122359' }}>{txn.amount}</span>
+                              <span style={{ fontWeight: 700, color: '#122359' }}>₹100.00</span>
                             </td>
                             <td>
                               <span style={{
                                 fontSize: '11px', fontWeight: 700, padding: '4px 12px',
-                                borderRadius: '20px', background: txn.status === 'Success' ? '#e8f5e9' : '#fdecea',
-                                color: txn.status === 'Success' ? '#2e7d32' : '#c62828',
-                                border: txn.status === 'Success' ? '1px solid #a5d6a7' : '1px solid #ef9a9a',
-                                whiteSpace: 'nowrap',
+                                borderRadius: '20px', background: '#e8f5e9', color: '#2e7d32',
+                                border: '1px solid #a5d6a7', whiteSpace: 'nowrap',
                               }}>
-                                {txn.status}
+                                Success
                               </span>
                             </td>
                           </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td>
-                            <span style={{ fontWeight: 600, color: '#122359' }}>#TXN-99210-AW</span>
-                          </td>
-                          <td>
-                            <span className="font-sm color-text-paragraph-2">{candidateData.joined || "Oct 12, 2023"}</span>
-                          </td>
-                          <td>
-                            <span style={{ fontWeight: 700, color: '#122359' }}>₹100.00</span>
-                          </td>
-                          <td>
-                            <span style={{
-                              fontSize: '11px', fontWeight: 700, padding: '4px 12px',
-                              borderRadius: '20px', background: '#e8f5e9', color: '#2e7d32',
-                              border: '1px solid #a5d6a7', whiteSpace: 'nowrap',
-                            }}>
-                              Success
-                            </span>
-                          </td>
-                        </tr>
-                      )}
+                        )
+                      })()}
                     </tbody>
                   </table>
                 </div>
@@ -510,8 +517,8 @@ export default function CandidateDetailsPage({ searchParams }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {documents.map((doc) => (
-                        <tr key={doc.id}>
+                      {documents.map((doc, idx) => (
+                        <tr key={doc.docId || doc.id || idx}>
                           <td>
                             <div className="d-flex align-items-center gap-2">
                               <FileText size={15} color="#94a3b8" />

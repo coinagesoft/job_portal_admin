@@ -377,7 +377,7 @@ export default function RecruiterPage() {
           </div>
 
           {/* 3 */}
-          <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6 col-sm-6 d-flex">
+          {/* <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6 col-sm-6 d-flex">
             <div className="card-style-1 hover-up w-100">
               <div className="card-image">
                 <ShieldCheck size={28} strokeWidth={2.2} />
@@ -385,14 +385,14 @@ export default function RecruiterPage() {
               <div className="card-info">
                 <div className="card-title">
                   <h3>
-                    {verificationRate}% <br />
+                    {verificationRate}% <br /> */}
                     {/* <span className="font-sm status up ms-2">GST</span> */}
-                  </h3>
+                  {/* </h3>
                 </div>
                 <p className="color-text-paragraph-2">Verification Rate</p>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* 4 */}
           <div className="col-xxl-3 col-xl-3 col-lg-6 col-md-6 col-sm-6 d-flex">
