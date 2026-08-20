@@ -698,7 +698,7 @@ Thank you for your business.
                   type="button"
                   className="btn btn-warning text-white font-xs hover-up"
                   onClick={() => setShowRequestModal(true)}
-                  style={{ padding: "8px 16px", borderRadius: "8px", fontSize: "11px", fontWeight: 700 }}
+                  style={{ padding: "8px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 600 }}
                 >
                   + Request Optional Document
                 </button>

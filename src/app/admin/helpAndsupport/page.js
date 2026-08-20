@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { CheckCircle2, Clock3, MessageSquareText, Search, Send, X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { supportTicketService } from '../../../services/supportTicketService'
+import Footer from '../../../components/Footer'
 
 const statusStyle = {
   Pending: { color: '#c76b00', background: '#fff3df' },
@@ -306,7 +307,7 @@ export default function AdminSupportPage() {
                             </span>
                           </td>
                           <td className="text-end">
-                            <button type="button" className="btn btn-default support-review" onClick={() => { setSelectedTicketId(ticket.ticketId); setReply('') }}>
+                            <button type="button" className="btn btn-default support-review" style={{ fontSize: '13px', fontWeight: 600 }} onClick={() => { setSelectedTicketId(ticket.ticketId); setReply('') }}>
                               Review <span aria-hidden="true">→</span>
                             </button>
                           </td>
@@ -490,6 +491,7 @@ export default function AdminSupportPage() {
         @media (max-width: 1120px) { .support-toolbar { align-items: stretch; flex-direction: column; } .support-tabs { min-height: 55px; } .support-filters { justify-content: flex-start; } }
         @media (max-width: 620px) { .support-filters { flex-wrap: wrap; } .support-filters .support-search { width: 100% !important; flex-basis: 100%; } .support-filters select { flex: 1 1 calc(50% - 4px); } }
       `}</style>
+      <Footer />
     </>
   )
 }

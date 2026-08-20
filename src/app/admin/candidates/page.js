@@ -368,6 +368,7 @@ export default function CandidatesPage() {
                         setStatus("");
                         setPage(1);
                       }}
+                      style={{color:"#f39b00" , fontSize:"13px"}}
                     >
                       Clear Filters
                     </button>

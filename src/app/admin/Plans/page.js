@@ -15,6 +15,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { planService } from '../../../services/planService';
+import Footer from '../../../components/Footer';
 
 const regions = [
   { id: 'us', name: 'United States', flag: '🇺🇸', currency: 'USD', symbol: '$', group: 'Global' },
@@ -441,9 +442,10 @@ export default function PlansPage() {
   };
 
   return (
-    <div className="plans-page">
-      {loading && (
-        <div className="plans-toast loading-toast">
+    <>
+      <div className="plans-page">
+        {loading && (
+          <div className="plans-toast loading-toast">
           <Loader2 size={18} className="animate-spin-icon" style={{ marginRight: 6 }} />
           Saving changes...
         </div>
@@ -645,6 +647,8 @@ export default function PlansPage() {
           animation: spin 1s linear infinite;
         }
       `}</style>
-    </div>
+      </div>
+      <Footer />
+    </>
   );
 }

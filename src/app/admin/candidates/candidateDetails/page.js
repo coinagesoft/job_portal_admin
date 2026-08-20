@@ -526,13 +526,14 @@ export default function CandidateDetailsPage({ searchParams }) {
             {/* Documents */}
             <div className="panel-white mb-20">
               <div className="box-padding">
-                <div className="d-flex align-items-start justify-content-between mb-20">
-                  <div>
-                    <h5 className="mb-5">Documents</h5>
-                    <p className="font-sm color-text-paragraph-2 mb-0">
-                      View uploaded candidate documents and preview them in a modal.
-                    </p>
+                <div className="mb-20">
+                  <div className="d-flex align-items-center gap-2 mb-5">
+                    <FileText size={16} color="#ffa300" />
+                    <h5 className="mb-0">Documents</h5>
                   </div>
+                  <p className="font-sm color-text-paragraph-2 mb-0">
+                    View uploaded candidate documents and preview them in a modal.
+                  </p>
                 </div>
 
                 <div className="table-responsive">
@@ -589,9 +590,12 @@ export default function CandidateDetailsPage({ searchParams }) {
               <div className="box-padding">
                 <div className="d-flex align-items-center justify-content-between flex-wrap" style={{ gap: '14px' }}>
                   <div>
-                    <p className="font-sm mb-5" style={{ fontWeight: 700, color: '#122359' }}>
-                      Account Status
-                    </p>
+                    <div className="d-flex align-items-center gap-2 mb-5">
+                      <ShieldAlert size={16} color="#ffa300" />
+                      <p className="mb-0" style={{ fontSize:"20px", fontWeight: 700, color: '#122359' }}>
+                        Account Status
+                      </p>
+                    </div>
                     <p className="font-xs color-text-paragraph-2 mb-0">
                       {accountStatus === 'Suspended'
                         ? 'This account is currently suspended and cannot access the platform.'

@@ -130,6 +130,7 @@ export default function SettingsPage() {
               type="button"
               onClick={saveSettings}
               disabled={!unsaved || saving || loading}
+              style={{ fontSize: '13px', fontWeight: 600 }}
             >
               <Save size={15} /> {saving ? 'Saving...' : 'Save changes'}
             </button>

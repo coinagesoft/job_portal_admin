@@ -1257,7 +1257,7 @@ export default function HomePageManagement() {
         <div>
           <span>{activeTab === 'candidate' ? 'Candidate website' : 'Recruiter / Employer'}</span>
           <h4>{activeTab === 'candidate' ? 'Home Page Management' : 'Recruiter Registration Management'}</h4>
-          <p style={{ fontSize: '12px', color: '#66789c' }}>
+          <p style={{ fontSize: '13px', color: '#66789c' }}>
             {activeTab === 'candidate'
               ? 'Control the content and cards shown to candidates on the public home page.'
               : 'Control the dropdown options shown to recruiters during employer registration.'}
