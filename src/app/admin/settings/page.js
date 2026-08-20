@@ -140,13 +140,16 @@ export default function SettingsPage() {
         <style jsx>{`
           .settings-page { min-height: calc(100dvh - 184px); display: flex; flex-direction: column; }
           .settings-heading { margin-bottom: 24px; }
-          .settings-panel { max-width: 980px; overflow: hidden; border: 1px solid #e3eaf4; border-radius: 14px; background: #fff; box-shadow: 0 8px 24px rgba(34, 59, 115, .05); }
-          .settings-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px 26px; border-bottom: 1px solid #edf1f6; }
+          .settings-panel { max-width: 980px; overflow: hidden; border: 1px solid #e3eaf4; border-radius: 14px; background: #fff; box-shadow: 0 8px 24px rgba(34, 59, 115, .05); transition: all 0.35s ease !important; }
+          .settings-panel:hover { transform: translateY(-8px) !important; border-color: rgba(255, 153, 0, 0.32) !important; box-shadow: 0 0 0 1px rgba(255, 153, 0, 0.18), 0 20px 40px rgba(255, 153, 0, 0.12) !important; }
+          .settings-panel:hover .settings-panel-header { border-bottom-color: rgba(255, 153, 0, 0.32) !important; }
+          .settings-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px 26px; border-bottom: 1px solid #edf1f6; transition: border-bottom-color 0.35s ease !important; }
           .settings-panel-header h4 { margin: 0 0 5px; color: #172b60; font-size: 18px; font-weight: 800; }
           .settings-panel-header p, .settings-actions p { margin: 0; color: #71809f; font-size: 12px; }
           .unsaved-status { padding: 6px 10px; border-radius: 20px; background: #fff3da; color: #b87600; font-size: 11px; font-weight: 700; white-space: nowrap; }
           .settings-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; padding: 25px 26px; }
-          .setting-card { display: grid; grid-template-columns: 44px 1fr; gap: 12px; padding: 20px; border: 1px solid #e2e9f3; border-radius: 11px; background: #fff; }
+          .setting-card { display: grid; grid-template-columns: 44px 1fr; gap: 12px; padding: 20px; border: 1px solid #e2e9f3; border-radius: 11px; background: #fff; transition: all 0.35s ease !important; }
+          .setting-card:hover { transform: translateY(-4px) !important; border-color: rgba(255, 153, 0, 0.32) !important; box-shadow: 0 0 0 1px rgba(255, 153, 0, 0.18), 0 12px 24px rgba(255, 153, 0, 0.08) !important; }
           .setting-icon { display: grid; width: 44px; height: 44px; place-items: center; border-radius: 10px; background: #fff3dc; color: #f09a00; }
           .setting-copy h5 { margin: 2px 0 5px; color: #172b60; font-size: 14px; font-weight: 800; }
           .setting-copy p { margin: 0 0 17px; color: #71809f; font-size: 12px; line-height: 1.5; }

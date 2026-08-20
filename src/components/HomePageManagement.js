@@ -1527,7 +1527,9 @@ export default function HomePageManagement() {
 
       <style jsx>{`
         .homepage-manager { color: #172b60; display: grid; gap: 19px; padding-bottom: 28px; }
-        .homepage-manager-bar, .home-section { border: 1px solid #e1e8f3; border-radius: 13px; background: #fff; box-shadow: 0 7px 21px rgba(27, 52, 102, .04); }
+        .homepage-manager-bar, .home-section { border: 1px solid #e1e8f3; border-radius: 13px; background: #fff; box-shadow: 0 7px 21px rgba(27, 52, 102, .04); transition: all 0.35s ease !important; }
+        .homepage-manager-bar:hover, .home-section:hover { transform: translateY(-8px) !important; border-color: rgba(255, 153, 0, 0.32) !important; box-shadow: 0 0 0 1px rgba(255, 153, 0, 0.18), 0 20px 40px rgba(255, 153, 0, 0.12) !important; }
+        .home-section:hover .section-heading { border-bottom-color: rgba(255, 153, 0, 0.32) !important; }
         .homepage-manager-bar { padding: 21px 23px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
         .homepage-manager-bar span { color: #f39b00; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
         .homepage-manager-bar h4 { margin: 4px 0; font-size: 20px; font-weight: 800; }
@@ -1540,7 +1542,7 @@ export default function HomePageManagement() {
         .tab-switch button:hover { color: #172b60; }
         .tab-switch button.is-active { background: #fff; color: #172b60; box-shadow: 0 3px 10px rgba(27, 52, 102, .08); }
         .home-section { overflow: hidden; }
-        .section-heading { min-height: 60px; padding: 17px 21px; display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; border-bottom: 1px solid #edf1f6; }
+        .section-heading { min-height: 60px; padding: 17px 21px; display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; border-bottom: 1px solid #edf1f6; transition: border-bottom-color 0.35s ease !important; }
         .section-heading > div { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
         .section-heading h5 { margin: 0; font-size: 15px; font-weight: 800; }
         .section-icon { width: 37px; height: 37px; display: grid; place-items: center; border-radius: 9px; background: #fff2dc; color: #f29a00; flex: 0 0 auto; }
@@ -1808,8 +1810,10 @@ function ContentImageSection({ title, description, icon, items, setItems, type, 
         ))}
       </div>
       <style jsx>{`
-        .home-section { overflow: hidden; border: 1px solid #e1e8f3; border-radius: 13px; background: #fff; box-shadow: 0 7px 21px rgba(27, 52, 102, .04); }
-        .section-heading { min-height: 60px; padding: 17px 21px; display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; border-bottom: 1px solid #edf1f6; }
+        .home-section { overflow: hidden; border: 1px solid #e1e8f3; border-radius: 13px; background: #fff; box-shadow: 0 7px 21px rgba(27, 52, 102, .04); transition: all 0.35s ease !important; }
+        .home-section:hover { transform: translateY(-8px) !important; border-color: rgba(255, 153, 0, 0.32) !important; box-shadow: 0 0 0 1px rgba(255, 153, 0, 0.18), 0 20px 40px rgba(255, 153, 0, 0.12) !important; }
+        .home-section:hover .section-heading { border-bottom-color: rgba(255, 153, 0, 0.32) !important; }
+        .section-heading { min-height: 60px; padding: 17px 21px; display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; border-bottom: 1px solid #edf1f6; transition: border-bottom-color 0.35s ease !important; }
         .section-heading > div { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
         .section-heading h5 { margin: 0; color: #172b60; font-size: 15px; font-weight: 800; } .section-heading p { margin: 0; color: #71809f; font-size: 12px; }
         .section-icon { width: 37px; height: 37px; display: grid; place-items: center; border-radius: 9px; background: #fff2dc; color: #f29a00; flex: 0 0 auto; }
