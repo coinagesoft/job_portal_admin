@@ -295,7 +295,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="col-xxl-4 col-xl-4 col-lg-4 col-md-6 col-sm-12">
-            <Link href="/admin/verifications" className="card-style-1 hover-up" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Link href="/admin/recruiters" className="card-style-1 hover-up" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="card-image"><ShieldCheck size={28} strokeWidth={2.2} color={AMBER} /></div>
               <div className="card-info">
                 <div className="card-title"><h3>{stats.pendingVerifications?.total ?? 0}</h3></div>
