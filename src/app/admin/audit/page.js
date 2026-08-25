@@ -982,12 +982,16 @@ export default function AuditLogsPage() {
                               <td style={{ padding: '12px 8px' }}>
                                 <Badge color={act.color} bg={act.bg} pill={false}>{row.action}</Badge>
                               </td>
-                              <td style={{ padding: '12px 8px' }}>{row.targetEntity || '—'}</td>
+                              <td style={{ padding: '12px 8px', maxWidth: '220px', wordBreak: 'break-word' }}>
+                                {row.targetEntity || '—'}
+                              </td>
                               <td style={{ padding: '12px 8px' }}>{row.ipAddress || '—'}</td>
                               <td style={{ padding: '12px 8px' }}>
                                 <Badge color={sev.color} bg={sev.bg}>{sev.label}</Badge>
                               </td>
-                              <td style={{ padding: '12px 8px' }}>{row.sessionId || '—'}</td>
+                              <td style={{ padding: '12px 8px' }}>
+                                {row.sessionId ? <CopyHash hash={row.sessionId} /> : '—'}
+                              </td>
                               <td style={{ padding: '12px 8px', textAlign: 'right' }}>
                                 <ChevronDown
                                   size={16}
@@ -1015,6 +1019,16 @@ export default function AuditLogsPage() {
                                     <div>
                                       <p className="font-xs color-text-paragraph-2 mb-5">Module</p>
                                       <span className="font-sm" style={{ fontWeight: 600 }}>{row.module || '—'}</span>
+                                    </div>
+                                    <div>
+                                      <p className="font-xs color-text-paragraph-2 mb-5">Target Entity</p>
+                                      <span className="font-sm" style={{ fontWeight: 600, wordBreak: 'break-word' }}>{row.targetEntity || '—'}</span>
+                                    </div>
+                                    <div>
+                                      <p className="font-xs color-text-paragraph-2 mb-5">Session</p>
+                                      <span className="font-sm" style={{ fontWeight: 600 }}>
+                                        {row.sessionId ? <CopyHash hash={row.sessionId} /> : '—'}
+                                      </span>
                                     </div>
                                     <div>
                                       <p className="font-xs color-text-paragraph-2 mb-5">Description / Reason</p>
