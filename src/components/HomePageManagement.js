@@ -369,7 +369,7 @@ function RegistrationDropdownSection({
     <section ref={sectionRef} className="home-section registration-dropdown-section">
       <div className="section-heading">
         <span className="section-icon">{icon}</span>
-        <div><h5>{title}</h5><p style={{ color: "#66789c" }}>{description}</p></div>
+        <div><h5 style={{ fontSize: "20px" }}>{title}</h5><p style={{ color: "#66789c", fontSize: "12px" }}>{description}</p></div>
         <button type="button" className="add-item" onClick={handleAdd}><Plus size={15} />{addLabel}</button>
       </div>
 
@@ -1510,7 +1510,7 @@ export default function HomePageManagement() {
           <section ref={suggestionsPanelRef} className="home-section suggestions-panel">
             <div className="section-heading suggestions-heading">
               <span className="section-icon"><Lightbulb size={19} /></span>
-              <div><h5>Suggestions inbox</h5><p style={{ color: "#66789c" }}>New department, industry, or role suggestions from recruiters. Approve one to add it straight to the matching dropdown list.</p></div>
+              <div><h5 style={{ fontSize: "20px" }}>Suggestions inbox</h5><p style={{ color: "#66789c", fontSize: "12px" }}>New department, industry, or role suggestions from recruiters. Approve one to add it straight to the matching dropdown list.</p></div>
             </div>
             <div className="suggestions-list-wrapper">
               <div className="suggestions-list">
