@@ -2,7 +2,7 @@
 
 import Footer from "../../../components/Footer"
 import { useRouter } from "next/navigation"
-import { ShieldCheck, FileText, Search, MoreVertical, Ban, CheckCircle2, Info } from "lucide-react";
+import { ShieldCheck, FileText, Search, MoreVertical, Ban, CheckCircle2, Info, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { recruiterService } from "../../../services/recruiterService";
@@ -79,6 +79,30 @@ const initialRecruiters = [
     registered: "2024-01-15"
   }
 ];
+
+const standardDocLabels = [
+  "gst",
+  "pan",
+  "brc",
+  "business reg",
+  "business registration",
+  "moa",
+  "articles of association",
+  "poe",
+  "establishment",
+  "rpsl",
+  "maritime",
+  "poe license",
+  "cancelled cheque",
+  "director kyc",
+  "trade license"
+];
+
+const isStandardDoc = (name) => {
+  if (!name) return false;
+  const normalized = name.trim().toLowerCase();
+  return standardDocLabels.some((std) => normalized.includes(std));
+};
 
 export default function RecruiterPage() {
   const router = useRouter();
@@ -221,8 +245,18 @@ export default function RecruiterPage() {
         };
         updateRequiredDocs(updated);
       })
+  };
+
+  const handleDeleteDocument = (docId, docLabel) => {
+    if (!window.confirm(`Are you sure you want to delete "${docLabel}"?`)) return;
+
+    recruiterService.deleteDocumentType(docId)
+      .then(() => {
+        showToast(`Document type "${docLabel}" deleted successfully.`);
+        fetchMasterDocuments();
+      })
       .catch((err) => {
-        alert(err.message || "Failed to update document configuration status on server");
+        showToast(err.message || `Failed to delete document type "${docLabel}"`, "error");
       });
   };
 
@@ -232,29 +266,6 @@ export default function RecruiterPage() {
       .then((res) => {
         const data = res?.data || res || [];
         if (Array.isArray(data)) {
-          const standardDocLabels = [
-            "gst",
-            "pan",
-            "brc",
-            "business reg",
-            "business registration",
-            "moa",
-            "articles of association",
-            "poe",
-            "establishment",
-            "rpsl",
-            "maritime",
-            "poe license",
-            "cancelled cheque",
-            "director kyc",
-            "trade license"
-          ];
-
-          const isStandardDoc = (name) => {
-            const normalized = name.trim().toLowerCase();
-            return standardDocLabels.some((std) => normalized.includes(std));
-          };
-
           const updatePromises = data.map((doc) => {
             const targetMandatory = isStandardDoc(doc.documentName);
             return recruiterService.updateRequiredDocStatus(doc.id, targetMandatory);
@@ -606,9 +617,43 @@ export default function RecruiterPage() {
                             }}
                           >
                             <span style={{ fontSize: "13px" }}>{doc.label}</span>
-                            {isSelected && (
-                              <span style={{ fontSize: "12px", fontWeight: "bold", color: "#e65100" }}>✓</span>
-                            )}
+                            <div className="d-flex align-items-center" style={{ gap: "8px" }}>
+                              {isSelected && (
+                                <span style={{ fontSize: "12px", fontWeight: "bold", color: "#e65100" }}>✓</span>
+                              )}
+                              {!isStandardDoc(doc.label) && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteDocument(doc.key, doc.label);
+                                  }}
+                                  style={{
+                                    background: "none",
+                                    border: "none",
+                                    padding: "4px",
+                                    cursor: "pointer",
+                                    color: "#ef4444",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    borderRadius: "4px",
+                                    transition: "background 0.15s, color 0.15s",
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = "#fee2e2";
+                                    e.currentTarget.style.color = "#dc2626";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = "none";
+                                    e.currentTarget.style.color = "#ef4444";
+                                  }}
+                                  title={`Delete ${doc.label}`}
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         )
                       })}

@@ -110,5 +110,12 @@ export const recruiterService = {
       method: 'POST',
       body: JSON.stringify({ documentTypeId: documentTypeId || null, customDocumentName, message }),
     });
+  },
+
+  // DELETE /api/admin/document-types/{id}
+  deleteDocumentType: async (id) => {
+    return await apiRequest(`/api/admin/document-types/${id}`, {
+      method: 'DELETE',
+    });
   }
 };
