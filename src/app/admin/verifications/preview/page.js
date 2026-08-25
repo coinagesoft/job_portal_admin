@@ -1159,17 +1159,17 @@ export default function RecruiterDocumentsPage({ searchParams }) {
                     placeholder="Provide specific details or instructions..."
                     style={{
                       width: '100%', height: '80px', padding: '10px 12px', borderRadius: '8px',
-                      border: '1px solid #cbd5e1', fontSize: '12px', resize: 'none', color: '#122359'
+                      border: '1px solid #cbd5e1', fontSize: '13px', resize: 'none', color: '#122359'
                     }}
                   />
                 </div>
 
                 <button onClick={handleSendRequest} style={{
                   width: '100%', padding: '10px 0', background: '#ffa300', border: 'none',
-                  borderRadius: '8px', fontSize: '12px', fontWeight: 700, color: '#fff', cursor: 'pointer',
+                  borderRadius: '8px', fontSize: '13px', fontWeight: 700, color: '#fff', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                 }}>
-                  <Send size={12} /> Send Request
+                  <Send size={13} /> Send Request
                 </button>
               </div>
             </div>

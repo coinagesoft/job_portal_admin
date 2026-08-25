@@ -23,6 +23,21 @@ import {
   ShieldCheck
 } from "lucide-react";
 
+const formatCompanySize = (size) => {
+  if (!size) return "N/A";
+  let formatted = size;
+  if (size.startsWith('Size_')) {
+    formatted = size.slice(5);
+  }
+  formatted = formatted.replace(/_Plus/gi, '+');
+  if (/^\d+_\d+$/.test(formatted)) {
+    formatted = formatted.replace('_', '-');
+  } else {
+    formatted = formatted.replace(/_/g, ' ');
+  }
+  return formatted;
+};
+
 export default function EmployerDetailsPage({ searchParams }) {
   const router = useRouter();
   const resolvedSearchParams = use(searchParams);
@@ -42,7 +57,7 @@ export default function EmployerDetailsPage({ searchParams }) {
   const [previewDoc, setPreviewDoc] = useState(null);
   const [invoiceTxn, setInvoiceTxn] = useState(null);
   const [documentsList, setDocumentsList] = useState([]);
-  
+
   // Document request states
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [optionalDocs, setOptionalDocs] = useState([]);
@@ -92,21 +107,21 @@ export default function EmployerDetailsPage({ searchParams }) {
     recruiterService.getRecruiterDocumentChecklist(recId)
       .then((checklistRes) => {
         const checklistData = checklistRes?.data?.documents || checklistRes?.documents || [];
-        
+
         recruiterService.getRecruiterDocuments(recId)
           .then((docsRes) => {
             const docsData = docsRes?.data?.documents || docsRes?.documents || [];
-            
+
             const mergedDocs = checklistData.map((chkDoc) => {
               const uploadedDoc = docsData.find(
-                (d) => 
+                (d) =>
                   (d.documentId && d.documentId !== "00000000-0000-0000-0000-000000000000" && d.documentId === chkDoc.documentId) ||
                   (d.documentTypeId && d.documentTypeId === chkDoc.documentTypeId)
               );
-              
+
               const status = uploadedDoc?.status || chkDoc.status || "NotUploaded";
               const docId = (uploadedDoc?.documentId && uploadedDoc.documentId !== "00000000-0000-0000-0000-000000000000") ? uploadedDoc.documentId : chkDoc.documentId;
-              
+
               return {
                 documentId: docId,
                 documentTypeId: chkDoc.documentTypeId,
@@ -121,7 +136,7 @@ export default function EmployerDetailsPage({ searchParams }) {
                 uploadedAt: (uploadedDoc?.uploadedAt || chkDoc.uploadedAt) && (uploadedDoc?.uploadedAt || chkDoc.uploadedAt) !== "0001-01-01T00:00:00" ? new Date(uploadedDoc?.uploadedAt || chkDoc.uploadedAt).toLocaleDateString() : null,
               };
             });
-            
+
             setDocumentsList(mergedDocs);
           })
           .catch((docsErr) => {
@@ -191,8 +206,7 @@ export default function EmployerDetailsPage({ searchParams }) {
       .then(() => {
         fetchRecruiterDetails(recruiterData.id);
         showToast(
-          `Recruiter "${companyName}" has been successfully ${
-            newStatus === "Active" ? "activated" : "suspended"
+          `Recruiter "${companyName}" has been successfully ${newStatus === "Active" ? "activated" : "suspended"
           }!`,
           "success"
         );
@@ -205,7 +219,7 @@ export default function EmployerDetailsPage({ searchParams }) {
   const handleUpdateDocumentStatus = (docId, newStatus) => {
     const remarks = prompt("Enter remarks/reason for this status change:", newStatus === "Approved" || newStatus === "Verified" ? "Verified by admin" : "Rejected by admin");
     if (remarks === null) return;
-    
+
     recruiterService.updateDocumentStatus(docId, newStatus, remarks)
       .then(() => {
         const recId = id || recruiterData?.id;
@@ -222,10 +236,10 @@ export default function EmployerDetailsPage({ searchParams }) {
     e.preventDefault();
     const recId = id || recruiterData?.id;
     if (!recId || !selectedDocId) return;
-    
+
     const selectedDoc = optionalDocs.find(d => d.documentTypeId === selectedDocId);
     const docName = selectedDoc ? selectedDoc.documentName : "";
-    
+
     setSubmittingRequest(true);
     recruiterService.requestDocument(recId, selectedDocId, docName, requestMessage)
       .then(() => {
@@ -246,7 +260,7 @@ export default function EmployerDetailsPage({ searchParams }) {
     try {
       const { jsPDF } = await import("jspdf");
       const doc = new jsPDF();
-      
+
       const company = recruiterData?.company || "Employer";
       const invoiceNum = txn.transactionNumber || txn.invoice || txn.transactionId;
       const amount = typeof txn.amount === 'number' ? `INR ${txn.amount}` : txn.amount;
@@ -255,25 +269,25 @@ export default function EmployerDetailsPage({ searchParams }) {
       const txnId = txn.transactionId || txn.id;
       const statusVal = txn.paymentStatus || txn.status || "N/A";
       const descriptionVal = txn.description || "N/A";
-      
+
       doc.setFont("helvetica", "bold");
       doc.setFontSize(22);
       doc.setTextColor(18, 35, 89); // Navy
       doc.text("JOBBOX", 20, 25);
-      
+
       doc.setFontSize(10);
       doc.setTextColor(100, 116, 139); // Gray
       doc.setFont("helvetica", "normal");
       doc.text("Job Portal Admin Invoice", 20, 31);
-      
+
       doc.setDrawColor(226, 232, 240); // Slate Border
       doc.line(20, 38, 190, 38);
-      
+
       doc.setFont("helvetica", "bold");
       doc.setFontSize(14);
       doc.setTextColor(18, 35, 89);
       doc.text(`INVOICE: ${invoiceNum}`, 20, 48);
-      
+
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
       doc.setTextColor(71, 85, 105);
@@ -281,7 +295,7 @@ export default function EmployerDetailsPage({ searchParams }) {
       doc.text(`Transaction ID: ${txnId}`, 20, 62);
       doc.text(`Payment Method: ${paymentMethod}`, 20, 68);
       doc.text(`Payment Status: ${statusVal}`, 20, 74);
-      
+
       doc.setFont("helvetica", "bold");
       doc.text("Billed To:", 130, 48);
       doc.setFont("helvetica", "normal");
@@ -290,7 +304,7 @@ export default function EmployerDetailsPage({ searchParams }) {
         const addressLines = doc.splitTextToSize(recruiterData.companyInformation.address, 55);
         doc.text(addressLines, 130, 60);
       }
-      
+
       // Table Header
       doc.setFillColor(248, 250, 252);
       doc.rect(20, 88, 170, 8, "F");
@@ -298,26 +312,26 @@ export default function EmployerDetailsPage({ searchParams }) {
       doc.setTextColor(71, 85, 105);
       doc.text("Description", 24, 93);
       doc.text("Amount", 160, 93);
-      
+
       // Table Content
       doc.setFont("helvetica", "normal");
       doc.setTextColor(15, 23, 42);
       doc.text(descriptionVal, 24, 103);
       doc.text(amount, 160, 103);
-      
+
       doc.line(20, 108, 190, 108);
-      
+
       // Total
       doc.setFont("helvetica", "bold");
       doc.text("Total Paid", 120, 118);
       doc.text(amount, 160, 118);
-      
+
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.setTextColor(148, 163, 184);
       doc.text("Thank you for your business.", 20, 135);
       doc.text("For any support queries, please contact support@jobbox.io", 20, 140);
-      
+
       doc.save(`Invoice-${invoiceNum}.pdf`);
     } catch (e) {
       console.error("jspdf generation failed:", e);
@@ -353,7 +367,7 @@ Thank you for your business.
     if (!recId) return;
 
     const token = typeof window !== 'undefined' ? localStorage.getItem('jobbox_access_token') : null;
-    
+
     let baseUrl = '';
     if (typeof window !== 'undefined') {
       const hostname = window.location.hostname;
@@ -375,9 +389,9 @@ Thank you for your business.
         if (!response.ok) {
           throw new Error("Failed to download invoice from server");
         }
-        
+
         const contentType = response.headers.get("content-type") || "";
-        
+
         if (contentType.includes("application/json")) {
           const json = await response.json();
           if (json && json.invoiceUrl) {
@@ -560,7 +574,7 @@ Thank you for your business.
           <div className="section-box">
             <div className="panel-white">
               <div className="panel-head">
-                <h6 className="mb-0">Recruiter Information</h6>
+                <h6 className="mb-0" style={{ fontSize: '20px'}}>Recruiter Information</h6>
               </div>
 
               <div className="panel-body">
@@ -602,7 +616,7 @@ Thank you for your business.
                         fontWeight: 600,
                       }}
                     >
-                      {recruiterData.membership?.expiresAt 
+                      {recruiterData.membership?.expiresAt
                         ? `Valid till: ${new Date(recruiterData.membership.expiresAt).toLocaleDateString()}`
                         : "No expiry"}
                     </span>
@@ -617,7 +631,7 @@ Thank you for your business.
             <div className="panel-white">
               <div className="panel-head d-flex justify-content-between" style={{ alignItems: "center" }}>
                 <div className="d-flex align-items-center" style={{ gap: "8px" }}>
-                  <h6 className="mb-0">Company Information</h6>
+                  <h6 className="mb-0" style={{ fontSize: '20px'}}>Company Information</h6>
                 </div>
               </div>
               <div className="panel-body">
@@ -653,7 +667,7 @@ Thank you for your business.
                     },
                     {
                       label: "COMPANY SIZE",
-                      value: recruiterData.companyInformation?.companySize || "N/A",
+                      value: formatCompanySize(recruiterData.companyInformation?.companySize),
                     },
                     {
                       label: "OFFICIAL WEBSITE",
@@ -688,7 +702,9 @@ Thank you for your business.
                 <div>
                   <div className="d-flex align-items-center" style={{ gap: "8px" }}>
                     <i className="fi-rr-document font-sm color-brand-2"></i>
-                    <h6 className="mb-0">Compliance Documents</h6>
+                    <h6 className="mb-0" style={{ fontSize: '20px'}}>
+                      Compliance Documents
+                    </h6>
                   </div>
                   <p className="font-xs color-text-paragraph-2 mt-5 mb-0">
                     {documentsList.length} documents in checklist
@@ -708,8 +724,8 @@ Thank you for your business.
                 <div className="row">
                   {documentsList.map((doc, idx) => (
                     <div key={doc.title + idx} className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-20">
-                      <div 
-                        className="card-grid-2 hover-up" 
+                      <div
+                        className="card-grid-2 hover-up"
                         onClick={() => router.push(`/admin/verifications/preview?id=${recruiterData?.id || id}`)}
                         style={{ marginBottom: 0, cursor: "pointer" }}
                       >
@@ -764,15 +780,15 @@ Thank you for your business.
               <div className="box-padding">
                 <div className="d-flex align-items-center justify-content-between flex-wrap" style={{ gap: '14px' }}>
                   <div>
-                    <h6 className="mb-5" style={{ fontWeight: 700, color: '#122359' }}>
+                    <h6 className="mb-5" style={{ fontWeight: 700, color: '#122359', fontSize: '20px' }}>
                       Account Status Approval Actions
                     </h6>
                     <p className="font-xs color-text-paragraph-2 mb-0">
                       {recruiterData.accountStatus === 'Suspended'
                         ? 'This employer account is currently suspended.'
                         : recruiterData.accountStatus === 'Active'
-                        ? 'This account is active and verified.'
-                        : 'Review this employer’s profile details and documents to approve or suspend.'}
+                          ? 'This account is active and verified.'
+                          : 'Review this employer’s profile details and documents to approve or suspend.'}
                     </p>
                   </div>
 
@@ -781,7 +797,7 @@ Thank you for your business.
                       <button
                         onClick={() => handleUpdateStatus('Active')}
                         className="btn btn-warning font-sm text-white"
-                        style={{ height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        style={{ height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}
                       >
                         <UserCheck size={16} />
                         Approve / Activate Account
@@ -791,7 +807,7 @@ Thank you for your business.
                       <button
                         onClick={() => handleUpdateStatus('Suspended')}
                         className="btn btn-danger font-sm"
-                        style={{ height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        style={{ height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}
                       >
                         <Ban size={16} />
                         Suspend Account
@@ -816,7 +832,7 @@ Thank you for your business.
                     textTransform: "uppercase",
                     fontSize: "14px",
                     letterSpacing: "0.6px",
-                    color: "#66789C",
+                    color: "rgb(0, 0, 0)",
                   }}
                 >
                   Quick Insights
@@ -842,7 +858,7 @@ Thank you for your business.
                     </p>
                     <div className="card-title mt-2">
                       <h5 className="mb-0">
-                        {recruiterData.quickInsights?.registeredOn 
+                        {recruiterData.quickInsights?.registeredOn
                           ? new Date(recruiterData.quickInsights.registeredOn).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
                           : "N/A"}
                       </h5>
@@ -935,7 +951,7 @@ Thank you for your business.
                     textTransform: "uppercase",
                     fontSize: "14px",
                     letterSpacing: "0.6px",
-                    color: "#66789C",
+                    color: "#000",
                   }}
                 >
                   Account Health
@@ -974,7 +990,7 @@ Thank you for your business.
                 </div>
 
                 <p className="font-xs color-text-paragraph-2 mb-0" style={{ lineHeight: "20px" }}>
-                  {recruiterData.accountHealth?.issues && recruiterData.accountHealth.issues.length > 0 
+                  {recruiterData.accountHealth?.issues && recruiterData.accountHealth.issues.length > 0
                     ? recruiterData.accountHealth.issues.join(", ")
                     : "All verification documentation and credentials are in good standing."}
                 </p>
@@ -992,7 +1008,7 @@ Thank you for your business.
                     textTransform: "uppercase",
                     fontSize: "14px",
                     letterSpacing: "0.6px",
-                    color: "#66789C",
+                    color: "#000",
                   }}
                 >
                   Primary Contact
@@ -1044,7 +1060,9 @@ Thank you for your business.
         <div className="panel-white">
           <div className="panel-head d-flex justify-content-between align-items-center">
             <div>
-              <h6 className="mb-0">Transaction History</h6>
+              <h6 className="mb-0" style={{ fontSize: '20px' }}>
+                Transaction History
+              </h6>
               <p className="font-xs color-text-paragraph-2 mt-5 mb-0">
                 All payments made by this recruiter — memberships, credit packs and fees.
               </p>
@@ -1296,8 +1314,10 @@ Thank you for your business.
                 alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0',
               }}>
                 <div>
-                  <p style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase',
-                    letterSpacing: '0.5px', fontWeight: 600, margin: 0 }}>{previewDoc.sub}</p>
+                  <p style={{
+                    fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase',
+                    letterSpacing: '0.5px', fontWeight: 600, margin: 0
+                  }}>{previewDoc.sub}</p>
                   <h6 style={{ margin: 0, color: '#122359', fontWeight: 700 }}>{previewDoc.title}</h6>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1336,7 +1356,7 @@ Thank you for your business.
           </div>
         );
       })()}
-      
+
       {/* ── REQUEST OPTIONAL DOCUMENT MODAL ── */}
       {showRequestModal && (
         <div
@@ -1365,7 +1385,7 @@ Thank you for your business.
             }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "18px" }}>
-              <h5 style={{ margin: 0, color: "#122359", fontWeight: 800 }}>
+              <h5 style={{ margin: 0, color: "#122359", fontWeight: 800 ,fontSize: "13px"}}>
                 Request Optional Document
               </h5>
               <button
@@ -1380,6 +1400,7 @@ Thank you for your business.
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  fontSize: "13px"
                 }}
               >
                 <X size={15} color="#475569" />
@@ -1487,7 +1508,7 @@ Thank you for your business.
             animation: "slideIn 0.3s ease-out"
           }}
         >
-          <span style={{ 
+          <span style={{
             color: toast.type === "success" ? "#2e7d32" : "#c62828",
             fontSize: "16px",
             fontWeight: "bold",

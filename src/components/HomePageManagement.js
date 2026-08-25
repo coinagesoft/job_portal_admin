@@ -1583,7 +1583,7 @@ export default function HomePageManagement() {
         .homepage-save:hover { background: #e08f00; }
         .homepage-save:active { transform: scale(0.97); }
         .tab-switch { display: inline-flex; gap: 6px; padding: 5px; border: 1px solid #e1e8f3; border-radius: 11px; background: #f5f7fb; width: max-content; }
-        .tab-switch button { border: 0; border-radius: 8px; padding: 9px 16px; background: transparent; color: #5a6c8f; display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 800; cursor: pointer; transition: all 0.15s ease; }
+        .tab-switch button { border: 0; border-radius: 8px; padding: 9px 16px; background: transparent; color: #5a6c8f; display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 800; cursor: pointer; transition: all 0.15s ease; }
         .tab-switch button:hover { color: #172b60; }
         .tab-switch button.is-active { background: #fff; color: #172b60; box-shadow: 0 3px 10px rgba(27, 52, 102, .08); }
         .home-section { overflow: hidden; }

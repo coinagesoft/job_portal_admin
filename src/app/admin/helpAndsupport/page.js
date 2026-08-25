@@ -284,14 +284,14 @@ export default function AdminSupportPage() {
                             <div className="ticket-user">
                               {/* <img src={getAvatarUrl(ticket.raisedByAvatarUrl, ticket.raisedByName, index)} alt="" /> */}
                               <div>
-                                <h6 style={{fontSize:"14px"}}>{ticket.raisedByName}</h6>
-                                <span>{ticket.ticketId.slice(0, 8).toUpperCase()}</span>
+                                <h6 style={{fontSize:"16px"}}>{ticket.raisedByName}</h6>
+                                <span style={{fontSize:"14px" , color :"#66789C"}}>{ticket.ticketId.slice(0, 8).toUpperCase()}</span>
                               </div>
                             </div>
                           </td>
                           <td>
-                            <strong style={{fontSize:"14px"}}> {ticket.subject}</strong>
-                            <span className="ticket-description">{ticket.descriptionPreview}</span>
+                            <strong style={{fontSize:"16px"}}> {ticket.subject}</strong>
+                            <span style={{fontSize:"14px" , color :"#66789C"}} className="ticket-description">{ticket.descriptionPreview}</span>
                           </td>
                           <td>
                             <span className="font-sm color-text-paragraph-2">

@@ -528,7 +528,9 @@ export default function RecruiterPage() {
             <div>
               <div className="d-flex align-items-center" style={{ gap: "8px" }}>
                 <Info size={18} className="color-brand-2" />
-                <h6 className="mb-0">Company Document Standards Configuration</h6>
+                <h6 className="mb-0" style={{ fontSize: "20px" }}>
+                  Company Document Standards Configuration
+                </h6>
               </div>
               <p className="font-xs color-text-paragraph-2 mt-5 mb-0">
                 Manage the mandatory and conditional document criteria required to approve and verify recruiter accounts on the platform.

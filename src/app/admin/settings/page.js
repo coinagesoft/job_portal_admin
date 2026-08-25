@@ -102,7 +102,7 @@ export default function SettingsPage() {
               <span className="setting-icon"><Clock3 size={22} /></span>
               <div className="setting-copy">
                 <h5>Session Timeout</h5>
-                <p>Choose how long an inactive admin session remains signed in.</p>
+                <p>Choose how long an inactive employer session remains signed in.</p>
               </div>
               <label className="sr-only" htmlFor="session-timeout">Session Timeout</label>
               <select
