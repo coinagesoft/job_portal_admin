@@ -510,7 +510,7 @@ export default function HomePageManagement() {
 
       if (industriesData && Array.isArray(industriesData)) {
         setIndustries(industriesData.map(item => ({
-          id: item.industryId,
+          id: String(item.industryId),
           name: item.name || '',
           jobs: item.jobCountOverride || 0,
           icon: getImageUrl(item.iconUrl),
@@ -521,7 +521,7 @@ export default function HomePageManagement() {
 
       if (statsData && statsData.items && Array.isArray(statsData.items)) {
         setStats(statsData.items.map((item, idx) => ({
-          id: item.id || `stat-${idx}-${Date.now()}`,
+          id: String(item.id || `stat-${idx}-${Date.now()}`),
           value: item.value || '',
           suffix: item.suffix || '',
           label: item.label || '',
@@ -532,7 +532,7 @@ export default function HomePageManagement() {
 
       if (locationsData && Array.isArray(locationsData)) {
         const mapped = locationsData.map(item => ({
-          id: item.locationId,
+          id: String(item.locationId),
           name: item.name || '',
           image: getImageUrl(item.imageUrl),
           enabled: item.isActive !== false,
@@ -544,7 +544,7 @@ export default function HomePageManagement() {
 
       if (rolesData && Array.isArray(rolesData)) {
         const mapped = rolesData.map(item => ({
-          id: item.roleId,
+          id: String(item.roleId),
           name: item.name || '',
           image: getImageUrl(item.iconUrl),
           enabled: item.isActive !== false
@@ -555,7 +555,7 @@ export default function HomePageManagement() {
 
       if (regIndustriesData && Array.isArray(regIndustriesData)) {
         const mapped = regIndustriesData.map(item => ({
-          id: item.id,
+          id: String(item.id),
           name: item.name || '',
           enabled: item.isActive !== false
         }))
@@ -565,7 +565,7 @@ export default function HomePageManagement() {
 
       if (departmentsData && Array.isArray(departmentsData)) {
         const mapped = departmentsData.map(item => ({
-          id: item.id,
+          id: String(item.id),
           name: item.name || '',
           enabled: item.isActive !== false
         }))
@@ -575,7 +575,7 @@ export default function HomePageManagement() {
 
       if (tradeCategoriesData && Array.isArray(tradeCategoriesData)) {
         const mapped = tradeCategoriesData.map(item => ({
-          id: item.id,
+          id: String(item.id),
           name: item.name || '',
           enabled: item.isActive !== false
         }))
@@ -588,16 +588,17 @@ export default function HomePageManagement() {
           .filter(item => !item.reviewedAt)
           .map(item => {
             let mappedType = '';
-            if (item.type === 3 || item.type === '3') mappedType = 'Role';
+            if (item.type === 3 || item.type === '3') mappedType = 'Industry';
             else if (item.type === 4 || item.type === '4') mappedType = 'Department';
-            else if (item.type === 5 || item.type === '5') mappedType = 'Industry';
+            else if (item.type === 5 || item.type === '5') mappedType = 'Role';
             else mappedType = item.type || '';
 
             return {
               id: item.suggestionId || item.id,
               name: item.suggestedName || item.name || '',
               type: mappedType,
-              submittedBy: item.submittedByName || item.submittedBy || item.submittedByCompany || item.userName || 'Recruiter',
+              submittedBy: item.submittedByName || item.submittedBy || item.submittedByCompany || item.userName || item.submittedByEmail || 'Recruiter',
+              submittedByEmail: item.submittedByEmail || '',
               date: item.date || (item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Recent')
             };
           })
@@ -619,7 +620,7 @@ export default function HomePageManagement() {
   const removeItem = (setter, id) => setter((items) => items.filter((item) => item.id !== id))
   
   const removeIndustry = (id) => {
-    if (id && !id.startsWith('industry-')) {
+    if (id && !String(id).startsWith('industry-')) {
       setDeletedIndustryIds(prev => [...prev, id])
     }
     setIndustries((items) => items.filter((item) => item.id !== id))
@@ -629,7 +630,7 @@ export default function HomePageManagement() {
   const updateIndustry = (id, changes) => {
     setIndustries((current) => current.map((item) => {
       if (item.id === id) {
-        if (id && !id.startsWith('industry-')) {
+        if (id && !String(id).startsWith('industry-')) {
           return { ...item, ...changes, isModified: true }
         }
         return { ...item, ...changes }
@@ -830,18 +831,53 @@ export default function HomePageManagement() {
       })
 
       // 2. Delete removed items (including modified old industries that will be recreated, ignoring errors like 404 or constraint issues)
-      const modifiedIndustryIds = processedIndustries.filter(ind => !ind.id.startsWith('industry-') && ind.isModified).map(ind => ind.id)
+      const modifiedIndustryIds = processedIndustries.filter(ind => !String(ind.id).startsWith('industry-') && ind.isModified).map(ind => ind.id)
       const allDeletedIndustryIds = [...deletedIndustryIds, ...modifiedIndustryIds]
+      const failedDeletions = []
+
       const deletePromises = allDeletedIndustryIds.map(id => homepageService.deleteIndustry(id).catch(err => {
-        console.warn(`Failed to delete industry ${id}:`, err)
+        const item = processedIndustries.find(o => String(o.id) === String(id))
+        const name = item ? item.name : id
+        console.warn(`Failed to delete industry ${name}:`, err)
+        failedDeletions.push(`Industry "${name}"`)
         return Promise.resolve()
       }))
       
-      const deleteLocPromises = deletedLocationIds.map(id => homepageService.deleteLocation(id).catch(() => Promise.resolve()))
-      const deleteRolePromises = deletedRoleIds.map(id => homepageService.deleteRole(id).catch(() => Promise.resolve()))
-      const deleteRegIndustryPromises = deletedRegIndustryIds.map(id => homepageService.deleteRegistrationIndustry(id).catch(() => Promise.resolve()))
-      const deleteDepartmentPromises = deletedDepartmentIds.map(id => homepageService.deleteDepartment(id).catch(() => Promise.resolve()))
-      const deleteTradeCategoryPromises = deletedTradeCategoryIds.map(id => homepageService.deleteTradeCategory(id).catch(() => Promise.resolve()))
+      const deleteLocPromises = deletedLocationIds.map(id => homepageService.deleteLocation(id).catch(err => {
+        const item = originalLocations.find(o => String(o.id) === String(id))
+        const name = item ? item.name : id
+        console.warn(`Failed to delete location ${name}:`, err)
+        failedDeletions.push(`Location "${name}"`)
+        return Promise.resolve()
+      }))
+      const deleteRolePromises = deletedRoleIds.map(id => homepageService.deleteRole(id).catch(err => {
+        const item = originalRoles.find(o => String(o.id) === String(id))
+        const name = item ? item.name : id
+        console.warn(`Failed to delete role ${name}:`, err)
+        failedDeletions.push(`Role "${name}"`)
+        return Promise.resolve()
+      }))
+      const deleteRegIndustryPromises = deletedRegIndustryIds.map(id => homepageService.deleteRegistrationIndustry(id).catch(err => {
+        const item = originalRegistrationIndustries.find(o => String(o.id) === String(id))
+        const name = item ? item.name : id
+        console.warn(`Failed to delete registration industry ${name}:`, err)
+        failedDeletions.push(`Registration Industry "${name}"`)
+        return Promise.resolve()
+      }))
+      const deleteDepartmentPromises = deletedDepartmentIds.map(id => homepageService.deleteDepartment(id).catch(err => {
+        const item = originalDepartments.find(o => String(o.id) === String(id))
+        const name = item ? item.name : id
+        console.warn(`Failed to delete department ${name}:`, err)
+        failedDeletions.push(`Department "${name}"`)
+        return Promise.resolve()
+      }))
+      const deleteTradeCategoryPromises = deletedTradeCategoryIds.map(id => homepageService.deleteTradeCategory(id).catch(err => {
+        const item = originalTradeCategories.find(o => String(o.id) === String(id))
+        const name = item ? item.name : id
+        console.warn(`Failed to delete trade category ${name}:`, err)
+        failedDeletions.push(`Trade category "${name}"`)
+        return Promise.resolve()
+      }))
 
       // 3. Save industries (only new/modified ones)
       const savePromises = processedIndustries
@@ -1125,8 +1161,13 @@ export default function HomePageManagement() {
       setDeletedDepartmentIds([])
       setDeletedTradeCategoryIds([])
       setSaved(true)
-      setSuccessMessage('Homepage settings saved successfully.')
-      setTimeout(() => setSuccessMessage(''), 5000)
+      if (failedDeletions.length > 0) {
+        setError(`Saved other changes, but failed to delete: ${failedDeletions.join(', ')}. These items might be in use by recruiters, candidates, or jobs.`)
+        setTimeout(() => setError(null), 10000)
+      } else {
+        setSuccessMessage('Homepage settings saved successfully.')
+        setTimeout(() => setSuccessMessage(''), 5000)
+      }
       
       // Reload to get any updated image URLs/timestamps
       await fetchPageData()
@@ -1479,7 +1520,11 @@ export default function HomePageManagement() {
                     <div className="suggestion-info">
                       <span className="suggestion-type">{suggestion.type}</span>
                       <h6>{suggestion.name}</h6>
-                      <p>Suggested by {suggestion.submittedBy} · {suggestion.date}</p>
+                      <p>
+                        Suggested by {suggestion.submittedBy}
+                        {suggestion.submittedByEmail && suggestion.submittedByEmail !== suggestion.submittedBy ? ` (${suggestion.submittedByEmail})` : ''}
+                        {' '}· {suggestion.date}
+                      </p>
                     </div>
                     <div className="suggestion-actions">
                       <button type="button" className="approve-btn" onClick={() => approveSuggestion(suggestion)}><Check size={13} />Approve</button>
