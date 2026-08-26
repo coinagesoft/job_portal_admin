@@ -13,8 +13,10 @@ import {
   Users,
   Loader2,
   AlertTriangle,
+  Unlock,
 } from 'lucide-react';
 import { planService } from '../../../services/planService';
+import { creditConfigService } from '../../../services/creditConfigService';
 import Footer from '../../../components/Footer';
 
 const regions = [
@@ -47,6 +49,16 @@ export default function PlansPage() {
   const [dbCreditPlans, setDbCreditPlans] = useState([]);
   const [originalDbCreditPlans, setOriginalDbCreditPlans] = useState([]);
   const [deletedCreditPlanIds, setDeletedCreditPlanIds] = useState([]);
+
+  // Unlock pricing (how many credits 1 unlock/download costs) - global, not per-region
+  const UNLOCK_CONFIG_ID = 'unlock-config';
+  const [unlockConfig, setUnlockConfig] = useState({
+    profileUnlockCredits: 0,
+    cvDownloadCredits: 0,
+    candidateAccessDays: 0,
+    isActive: true,
+  });
+  const [originalUnlockConfig, setOriginalUnlockConfig] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -162,8 +174,32 @@ export default function PlansPage() {
     }
   };
 
+  // Load unlock pricing config (global - same for every region)
+  const fetchUnlockConfig = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await creditConfigService.getConfiguration();
+      const loaded = {
+        profileUnlockCredits: data?.profileUnlockCredits ?? 0,
+        cvDownloadCredits: data?.cvDownloadCredits ?? 0,
+        candidateAccessDays: data?.candidateAccessDays ?? 0,
+        isActive: data?.isActive !== false,
+      };
+      setUnlockConfig(loaded);
+      setOriginalUnlockConfig(JSON.parse(JSON.stringify(loaded)));
+    } catch (err) {
+      console.error('Failed to fetch unlock pricing:', err);
+      setError('Failed to load unlock pricing from server.');
+      setTimeout(() => setError(null), 5000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchMembershipPlans();
+    fetchUnlockConfig();
   }, []);
 
   // Fetch credit plans whenever the active region changes
@@ -233,6 +269,7 @@ export default function PlansPage() {
     { id: 'recruiter', label: 'Recruiter membership', icon: Users },
     { id: 'candidate', label: 'Candidate membership', icon: BadgeCheck },
     { id: 'credits', label: 'Recruiter credits', icon: CreditCard },
+    { id: 'unlock', label: 'Unlock pricing', icon: Unlock },
   ];
   const regionGroups = ['Global', 'Gulf countries', 'Middle East'];
 
@@ -286,6 +323,11 @@ export default function PlansPage() {
     setSaved(false);
   };
 
+  const updateUnlockConfig = (changes) => {
+    setUnlockConfig((current) => ({ ...current, ...changes }));
+    setSaved(false);
+  };
+
   const addPlan = (type = activeTab) => {
     if (type !== 'credits') return;
 
@@ -321,7 +363,17 @@ export default function PlansPage() {
     setLoading(true);
     setError(null);
     try {
-      if (activeTab === 'credits') {
+      if (activeTab === 'unlock') {
+        await creditConfigService.updateConfiguration({
+          profileUnlockCredits: Number(unlockConfig.profileUnlockCredits) || 0,
+          cvDownloadCredits: Number(unlockConfig.cvDownloadCredits) || 0,
+          candidateAccessDays: Number(unlockConfig.candidateAccessDays) || 0,
+        });
+
+        setSaved(true);
+        setEditingId(null);
+        await fetchUnlockConfig();
+      } else if (activeTab === 'credits') {
         // 1. Delete removed credit plans
         await Promise.all(
           deletedCreditPlanIds.map((planId) => planService.deleteCreditPlan(planId).catch(err => {
@@ -474,22 +526,33 @@ export default function PlansPage() {
       </div>
 
       <section className="plans-toolbar">
-        <div>
-          <p className="plans-eyebrow" style={{ fontSize: "12px" }}>PRICE REGION</p>
-          <div className="region-picker">
-            <button className="country-select" onClick={() => setRegionPickerOpen((open) => !open)} aria-haspopup="listbox" aria-expanded={regionPickerOpen}>
-              <span className="country-flag">{region.flag}</span><span className="country-label"><small>Pricing country</small><b>{region.name}</b></span><span className="currency-code">{region.currency}</span><ChevronDown size={17} className={regionPickerOpen ? 'open' : ''} />
-            </button>
-            {regionPickerOpen && <div className="region-menu" role="listbox" aria-label="Choose price region">
-              <div className="region-menu-title">Choose pricing region</div>
-              {regionGroups.map((group) => <div className="region-group" key={group}>
-                <span>{group}</span>
-                {regions.filter((item) => item.group === group).map((item) => <button key={item.id} className={item.id === regionId ? 'selected' : ''} onClick={() => selectRegion(item.id)} role="option" aria-selected={item.id === regionId}><i>{item.flag}</i><b>{item.name}</b><em>{item.currency}</em><Check size={15} /></button>)}
-              </div>)}
-            </div>}
+        {activeTab === 'unlock' ? (
+          <div>
+            <p className="plans-eyebrow" style={{ fontSize: "12px" }}>CREDIT USAGE</p>
+            <div className="country-select" style={{ cursor: 'default' }}>
+              <span className="country-flag"><Unlock size={18} /></span>
+              <span className="country-label"><small>Applies to</small><b>All regions</b></span>
+            </div>
+            <p className="plans-helper">This is a global setting - it isn&apos;t tied to a pricing region.</p>
           </div>
-          <p className="plans-helper">Prices shown in {region.currency}. Changes only apply to {region.name}.</p>
-        </div>
+        ) : (
+          <div>
+            <p className="plans-eyebrow" style={{ fontSize: "12px" }}>PRICE REGION</p>
+            <div className="region-picker">
+              <button className="country-select" onClick={() => setRegionPickerOpen((open) => !open)} aria-haspopup="listbox" aria-expanded={regionPickerOpen}>
+                <span className="country-flag">{region.flag}</span><span className="country-label"><small>Pricing country</small><b>{region.name}</b></span><span className="currency-code">{region.currency}</span><ChevronDown size={17} className={regionPickerOpen ? 'open' : ''} />
+              </button>
+              {regionPickerOpen && <div className="region-menu" role="listbox" aria-label="Choose price region">
+                <div className="region-menu-title">Choose pricing region</div>
+                {regionGroups.map((group) => <div className="region-group" key={group}>
+                  <span>{group}</span>
+                  {regions.filter((item) => item.group === group).map((item) => <button key={item.id} className={item.id === regionId ? 'selected' : ''} onClick={() => selectRegion(item.id)} role="option" aria-selected={item.id === regionId}><i>{item.flag}</i><b>{item.name}</b><em>{item.currency}</em><Check size={15} /></button>)}
+                </div>)}
+              </div>}
+            </div>
+            <p className="plans-helper">Prices shown in {region.currency}. Changes only apply to {region.name}.</p>
+          </div>
+        )}
         <button className="plans-save" onClick={saveChanges} disabled={loading}>
           {loading ? (
             <Loader2 size={17} className="animate-spin-icon" />
@@ -507,6 +570,82 @@ export default function PlansPage() {
         })}
       </div>
 
+      {activeTab === 'unlock' ? (
+        <div className="credit-grid">
+          {(() => {
+            const isEditing = editingId === UNLOCK_CONFIG_ID;
+            return (
+              <article className="plan-card">
+                <div className="plan-card-top">
+                  <div>
+                    <h4>Unlock &amp; download pricing</h4>
+                    <p>How many credits a recruiter spends per action</p>
+                  </div>
+                  <button
+                    className="plan-edit"
+                    onClick={() => setEditingId(isEditing ? null : UNLOCK_CONFIG_ID)}
+                    aria-label="Edit unlock pricing"
+                  >
+                    <Edit3 size={16} />
+                  </button>
+                </div>
+
+                {isEditing ? (
+                  <div className="edit-fields" style={{ marginTop: 21 }}>
+                    <label>
+                      Credits per profile unlock
+                      <input
+                        type="number"
+                        min="1"
+                        value={unlockConfig.profileUnlockCredits}
+                        onChange={(event) => updateUnlockConfig({ profileUnlockCredits: event.target.value === '' ? '' : Math.max(1, Number(event.target.value)) })}
+                      />
+                    </label>
+                    <label>
+                      Credits per CV download
+                      <input
+                        type="number"
+                        min="0"
+                        value={unlockConfig.cvDownloadCredits}
+                        onChange={(event) => updateUnlockConfig({ cvDownloadCredits: event.target.value === '' ? '' : Math.max(0, Number(event.target.value)) })}
+                      />
+                    </label>
+                    <label>
+                      Candidate access validity (days)
+                      <input
+                        type="number"
+                        min="1"
+                        value={unlockConfig.candidateAccessDays}
+                        onChange={(event) => updateUnlockConfig({ candidateAccessDays: event.target.value === '' ? '' : Math.max(1, Number(event.target.value)) })}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <div className="credit-details" style={{ marginTop: 21 }}>
+                    <div><span>Profile unlock cost</span><b>{unlockConfig.profileUnlockCredits} credits</b></div>
+                    <div><span>CV download cost</span><b>{unlockConfig.cvDownloadCredits} credits</b></div>
+                    <div><span>Access validity</span><b>{unlockConfig.candidateAccessDays} days</b></div>
+                  </div>
+                )}
+
+                <div className="plan-footer">
+                  <button
+                    type="button"
+                    className={`plan-status ${unlockConfig.isActive ? 'is-active' : 'is-inactive'}`}
+                    onClick={() => updateUnlockConfig({ isActive: !unlockConfig.isActive })}
+                    style={{ cursor: 'pointer', border: 'none', background: 'none' }}
+                  >
+                    <i /> {unlockConfig.isActive ? 'Active' : 'Inactive'}
+                  </button>
+                  {isEditing && (
+                    <button className="card-save" onClick={() => setEditingId(null)}><Save size={14} />Done</button>
+                  )}
+                </div>
+              </article>
+            );
+          })()}
+        </div>
+      ) : (
       <div className={activeTab === 'credits' ? 'credit-grid' : 'membership-grid'}>
         {plans.map((plan) => {
           const isEditing = editingId === plan.id;
@@ -575,6 +714,7 @@ export default function PlansPage() {
           </button>
         )}
       </div>
+      )}
 
       <style jsx>{`
         .plans-page { padding-bottom: 34px; color: #172b60; }
