@@ -317,7 +317,7 @@ export default function CandidatesPage() {
                   <h3>
                     {suspendedCount}
                     <br />
-                    <span className="font-sm status down">Suspended</span>
+                    {/* <span className="font-sm status down">Suspended</span> */}
                   </h3>
                 </div>
                 <p className="color-text-paragraph-2">Suspended Accounts</p>
