@@ -474,7 +474,7 @@ export default function RecruiterPage() {
                 <div className="card-title">
                   <h3>
                     {pendingApprovalsCount} <br />
-                    <span className="font-sm status down ms-2">Pending</span>
+                    {/* <span className="font-sm status down ms-2">Pending</span> */}
                   </h3>
                 </div>
                 <p className="color-text-paragraph-2">Pending Approvals</p>
