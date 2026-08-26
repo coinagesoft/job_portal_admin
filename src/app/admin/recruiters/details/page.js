@@ -712,7 +712,7 @@ Thank you for your business.
                 </div>
                 <button
                   type="button"
-                  className="btn btn-warning text-white font-xs hover-up"
+                  className="btn btn-warning text-white hover-up"
                   onClick={() => setShowRequestModal(true)}
                   style={{ padding: "8px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 600 }}
                 >
@@ -796,8 +796,8 @@ Thank you for your business.
                     {recruiterData.accountStatus !== 'Active' && (
                       <button
                         onClick={() => handleUpdateStatus('Active')}
-                        className="btn btn-warning font-sm text-white"
-                        style={{ height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}
+                        className="btn btn-warning text-white"
+                        style={{ height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600 }}
                       >
                         <UserCheck size={16} />
                         Approve / Activate Account
@@ -806,8 +806,8 @@ Thank you for your business.
                     {recruiterData.accountStatus !== 'Suspended' && (
                       <button
                         onClick={() => handleUpdateStatus('Suspended')}
-                        className="btn btn-danger font-sm"
-                        style={{ height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}
+                        className="btn btn-danger"
+                        style={{ height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600 }}
                       >
                         <Ban size={16} />
                         Suspend Account
