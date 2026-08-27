@@ -539,9 +539,9 @@ Thank you for your business.
                 {recruiterData.accountStatus || "Pending"}
               </span>
 
-              <span className="font-xs color-text-paragraph-2">
+              {/* <span className="font-xs color-text-paragraph-2">
                 ID: {recruiterData.id}
-              </span>
+              </span> */}
             </div>
           </div>
         </div>
