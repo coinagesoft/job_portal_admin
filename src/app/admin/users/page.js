@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import React from 'react'; // ensure import
+import { createPortal } from 'react-dom'; // ensure import
 import Footer from '../../../components/Footer'
 import { subAdminService } from '../../../services/subAdminService'
 import {
@@ -18,6 +19,7 @@ import {
   Trash2,
   Ban,
   CheckCircle,
+  AlertCircle,
   Home,
   Briefcase,
   HelpCircle,
@@ -266,6 +268,24 @@ export default function SubAdminPage() {
   const [totalCount, setTotalCount] = useState(0)
   const [activeCount, setActiveCount] = useState(0)
   const [suspendedCount, setSuspendedCount] = useState(0)
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' })
+
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+  };
+
+  const closeDrawer = () => {
+    setDrawer(false);
+  };
+
+  useEffect(() => {
+    if (toast.show) {
+      const timer = setTimeout(() => {
+        setToast((prev) => ({ ...prev, show: false }));
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast.show]);
 
   const fetchSubAdmins = () => {
     setLoadingList(true)
@@ -333,6 +353,7 @@ export default function SubAdminPage() {
     setForm({ ...BLANK, access: [...PRESETS['Verification Officer']] })
     setFormErrors({})
     setEditId(null)
+    setToast({ show: false, message: '', type: 'success' })
     setDrawer('create')
   }
   const openEdit = (a) => {
@@ -341,6 +362,7 @@ export default function SubAdminPage() {
     setForm({ name: a.name, email: a.email, phone: a.phone, role: SUB_ADMIN_ROLE, presets: [], status: a.status, access: [...a.access] })
     setFormErrors({})
     setEditId(a.id)
+    setToast({ show: false, message: '', type: 'success' })
     setDrawer('edit')
   }
   const toggleTab = (key) => {
@@ -376,27 +398,30 @@ export default function SubAdminPage() {
       const updatedProfile = { ...superAdmin, name: form.name.trim(), email: form.email.trim(), phone: form.phone, role: 'Super Admin', status: 'Active' }
       setSuperAdmin(updatedProfile)
       window.dispatchEvent(new CustomEvent('jobbox-superadmin-updated', { detail: updatedProfile }))
-      setDrawer(false)
+      closeDrawer()
+      showToast('Super Admin profile updated successfully!', 'success')
     } else if (drawer === 'create') {
       const apiPayload = mapUiToApi(form);
       subAdminService.createSubAdmin(apiPayload)
         .then(() => {
           fetchSubAdmins();
           setPage(1);
-          setDrawer(false);
+          closeDrawer();
+          showToast('Sub Admin created successfully!', 'success');
         })
         .catch((err) => {
-          alert(err.message || "Failed to create sub admin");
+          showToast(err.message || "Failed to create sub admin", 'error');
         });
     } else {
       const apiPayload = mapUiToApi(form, true);
       subAdminService.updateSubAdmin(editId, apiPayload)
         .then(() => {
           fetchSubAdmins();
-          setDrawer(false);
+          closeDrawer();
+          showToast('Sub Admin updated successfully!', 'success');
         })
         .catch((err) => {
-          alert(err.message || "Failed to update sub admin");
+          showToast(err.message || "Failed to update sub admin", 'error');
         });
     }
   }
@@ -406,9 +431,10 @@ export default function SubAdminPage() {
       .then(() => {
         fetchSubAdmins();
         setDelId(null);
+        showToast('Sub Admin deleted successfully!', 'success');
       })
       .catch((err) => {
-        alert(err.message || "Failed to delete sub admin");
+        showToast(err.message || "Failed to delete sub admin", 'error');
         setDelId(null);
       });
   }
@@ -424,9 +450,10 @@ export default function SubAdminPage() {
     promise
       .then(() => {
         fetchSubAdmins();
+        showToast('Sub Admin status updated successfully!', 'success');
       })
       .catch((err) => {
-        alert(err.message || "Failed to toggle status");
+        showToast(err.message || "Failed to toggle status", 'error');
       });
   }
 
@@ -716,7 +743,7 @@ export default function SubAdminPage() {
       {drawer && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex' }}>
           {/* Backdrop */}
-          <div onClick={() => setDrawer(false)}
+          <div onClick={closeDrawer}
             style={{ flex: 1, background: 'rgba(0,0,0,0.45)' }} />
 
           {/* Drawer panel */}
@@ -735,7 +762,7 @@ export default function SubAdminPage() {
                   {drawer === 'create' ? 'Fill details and assign page/feature access.' : drawer === 'super' ? 'Update account details. Page and feature access is locked.' : 'Update details and permissions.'}
                 </p>
               </div>
-              <button onClick={() => setDrawer(false)}
+              <button onClick={closeDrawer}
                 style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#888', padding: '4px' }}>
                 ✕
               </button>
@@ -885,7 +912,7 @@ export default function SubAdminPage() {
                 style={{ flex: 1, padding: '11px', fontSize: '14px', fontWeight: 600 }}>
                 {drawer === 'create' ? '✓ Create Sub Admin' : '✓ Save Changes'}
               </button>
-              <button className="btn btn-grey-small hover-up" onClick={() => setDrawer(false)}
+              <button className="btn btn-grey-small hover-up" onClick={closeDrawer}
                 style={{ padding: '11px 20px', fontSize: '14px' }}>
                 Cancel
               </button>
@@ -947,6 +974,65 @@ export default function SubAdminPage() {
         .subadmin-pagination button:disabled { opacity: .45; cursor: not-allowed; }
         @media (max-width: 575px) { .subadmin-pagination { align-items: flex-start; flex-direction: column; } }
       `}</style>
+
+      {hydrated && toast.show && createPortal(
+        <div
+          style={{
+            position: "fixed",
+            top: "20px",
+            right: "20px",
+            zIndex: 9999999,
+            background: "#fff",
+            color: "#122359",
+            borderLeft: toast.type === "success" ? "4px solid #2e7d32" : "4px solid #c62828",
+            padding: "14px 20px",
+            borderRadius: "10px",
+            boxShadow: "0 10px 30px rgba(18, 35, 89, 0.15)",
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            fontWeight: 500,
+            fontSize: "13px",
+            borderTop: "1px solid #f1f5f9",
+            borderRight: "1px solid #f1f5f9",
+            borderBottom: "1px solid #f1f5f9",
+          }}
+        >
+          <span style={{ 
+            color: toast.type === "success" ? "#2e7d32" : "#c62828",
+            fontSize: "16px",
+            fontWeight: "bold",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "20px",
+            height: "20px",
+            borderRadius: "50%",
+            background: toast.type === "success" ? "#e8f5e9" : "#fdecea"
+          }}>
+            {toast.type === "success" ? "✓" : "✗"}
+          </span>
+          <span style={{ flex: 1 }}>{toast.message}</span>
+          <button
+            onClick={() => setToast({ ...toast, show: false })}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#94a3b8",
+              cursor: "pointer",
+              fontWeight: "bold",
+              marginLeft: "8px",
+              padding: 0,
+              fontSize: "12px"
+            }}
+            onMouseEnter={(e) => e.target.style.color = "#122359"}
+            onMouseLeave={(e) => e.target.style.color = "#94a3b8"}
+          >
+            ✕
+          </button>
+        </div>,
+        document.body
+      )}
 
       <Footer />
     </>

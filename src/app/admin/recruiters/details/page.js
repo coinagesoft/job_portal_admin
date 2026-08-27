@@ -539,9 +539,9 @@ Thank you for your business.
                 {recruiterData.accountStatus || "Pending"}
               </span>
 
-              {/* <span className="font-xs color-text-paragraph-2">
+              <span className="font-xs color-text-paragraph-2">
                 ID: {recruiterData.id}
-              </span> */}
+              </span>
             </div>
           </div>
         </div>
@@ -672,24 +672,6 @@ Thank you for your business.
                     {
                       label: "OFFICIAL WEBSITE",
                       value: recruiterData.companyInformation?.website || "N/A",
-                    },
-                    {
-                      label: "NATURE OF COMPANY",
-                      value:
-                        recruiterData.companyInformation?.natureOfCompany === "RecruitmentAgency"
-                          ? "Recruitment Agency"
-                          : recruiterData.companyInformation?.natureOfCompany === "Employer"
-                          ? "Employer"
-                          : "N/A",
-                    },
-                    {
-                      label: "PLACES CANDIDATES INTERNATIONALLY",
-                      value:
-                        recruiterData.companyInformation?.placesCandidatesInternationally === true
-                          ? "Yes"
-                          : recruiterData.companyInformation?.placesCandidatesInternationally === false
-                          ? "No"
-                          : "N/A",
                     },
                   ].map((item) => (
                     <div key={item.label} className="col-xl-6 col-lg-6 col-md-6 col-sm-6 mb-20">
