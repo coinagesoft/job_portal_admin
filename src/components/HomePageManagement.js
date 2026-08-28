@@ -313,7 +313,6 @@ function RegistrationDropdownSection({
   onAdd, onDelete, onUpdate, onMove
 }) {
   const enabledCount = items.filter((item) => item.enabled).length
-  const maxItems = 10 // Default to 10 items
 
   const handleAdd = () => {
     if (onAdd) {
@@ -374,8 +373,8 @@ function RegistrationDropdownSection({
       </div>
 
       <div className="registration-settings">
-        <p className={`dropdown-hint ${enabledCount > maxItems ? 'is-over' : ''}`}>
-          {enabledCount} of {maxItems} slots used — enabled items are listed top to bottom in this order in the registration dropdown
+        <p className="dropdown-hint">
+          {enabledCount} enabled — items are listed top to bottom in this order in the registration dropdown
         </p>
       </div>
 
