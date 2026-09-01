@@ -666,8 +666,8 @@ export default function PlansPage() {
               </div>
               {activeTab === 'credits' ? (isEditing ? (
                 <div className="edit-fields">
-                  <label>Credit quantity<input type="number" min="1" value={plan.credits} onChange={(event) => updatePlan(plan.id, { credits: Math.max(1, Number(event.target.value)) })} /></label>
-                  <label>Validity (in months)<input type="number" min="0" value={plan.validityMonths || ''} onChange={(event) => updatePlan(plan.id, { validityMonths: Math.max(0, Number(event.target.value)) })} /></label>
+                  <label>Credit quantity<input type="number" min="1" value={plan.credits} onChange={(event) => updatePlan(plan.id, { credits: event.target.value === '' ? '' : Math.max(1, Number(event.target.value)) })} /></label>
+                  <label>Validity (in months)<input type="number" min="0" value={plan.validityMonths === 0 ? '' : plan.validityMonths} onChange={(event) => updatePlan(plan.id, { validityMonths: event.target.value === '' ? '' : Math.max(0, Number(event.target.value)) })} /></label>
                   {/* <label>Bonus credits<input value={plan.bonus} placeholder="e.g. 50 bonus credits" onChange={(event) => updatePlan(plan.id, { bonus: event.target.value })} /></label> */}
                 </div>
               ) : <div className="credit-details">
