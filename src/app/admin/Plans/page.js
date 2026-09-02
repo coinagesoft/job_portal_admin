@@ -601,6 +601,7 @@ export default function PlansPage() {
                         onChange={(event) => updateUnlockConfig({ profileUnlockCredits: event.target.value === '' ? '' : Math.max(1, Number(event.target.value)) })}
                       />
                     </label>
+                    {/* CV download cost temporarily disabled
                     <label>
                       Credits per CV download
                       <input
@@ -610,6 +611,7 @@ export default function PlansPage() {
                         onChange={(event) => updateUnlockConfig({ cvDownloadCredits: event.target.value === '' ? '' : Math.max(0, Number(event.target.value)) })}
                       />
                     </label>
+                    */}
                     <label>
                       Candidate access validity (days)
                       <input
@@ -623,7 +625,9 @@ export default function PlansPage() {
                 ) : (
                   <div className="credit-details" style={{ marginTop: 21 }}>
                     <div><span>Profile unlock cost</span><b>{unlockConfig.profileUnlockCredits} credits</b></div>
+                    {/* CV download cost temporarily disabled
                     <div><span>CV download cost</span><b>{unlockConfig.cvDownloadCredits} credits</b></div>
+                    */}
                     <div><span>Access validity</span><b>{unlockConfig.candidateAccessDays} days</b></div>
                   </div>
                 )}
