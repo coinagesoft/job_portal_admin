@@ -307,7 +307,7 @@ export default function DashboardPage() {
             <Link href="/admin/helpAndsupport" className="card-style-1 hover-up" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="card-image"><Headphones size={28} strokeWidth={2.2} color={AMBER} /></div>
               <div className="card-info">
-                <div className="card-title"><h3>{stats.openSupportTickets?.open ?? 0}<span className="font-sm status down">{stats.openSupportTickets?.pending ?? 0} Pending</span></h3></div>
+                {/* <div className="card-title"><h3>{stats.openSupportTickets?.open ?? 0}<span className="font-sm status down">{stats.openSupportTickets?.pending ?? 0} Pending</span></h3></div> */}
                 <p className="color-text-paragraph-2">Open Support Tickets</p>
               </div>
             </Link>
