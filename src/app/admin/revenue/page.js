@@ -7,24 +7,32 @@ import Footer from '../../../components/Footer';
 
 const countries = [['United States', 'USA'], ['India', 'IND'], ['United Kingdom', 'GBR'], ['Australia', 'AUS'], ['United Arab Emirates', 'UAE'], ['Saudi Arabia', 'KSA'], ['Qatar', 'QAT'], ['Kuwait', 'KWT'], ['Bahrain', 'BHR'], ['Oman', 'OMN'], ['Egypt', 'EGY'], ['Jordan', 'JOR'], ['Lebanon', 'LBN'], ['Turkey', 'TUR']];
 const customerNames = ['Nadia Rahman', 'Horizon Talent LLC', 'Apex Recruitment', 'Arjun Mehta', 'Northstar Hiring', 'Talent Bridge Co.', 'Maya Joseph', 'Gulf Talent Partners', 'Oliver James', 'Kareem Al-Sayed'];
+
 // Sample transaction dates, generated relative to today (last 10 days) so the date-range
 // filter — which is capped at today — always has matching demo data to show.
+
+
 function formatSampleDate(d) {
   const day = String(d.getDate()).padStart(2, '0');
   const month = d.toLocaleString('en-US', { month: 'short' });
   return `${day} ${month} ${d.getFullYear()}`;
 }
+
+
 const dates = Array.from({ length: 10 }, (_, index) => {
   const d = new Date();
   d.setDate(d.getDate() - index);
   return formatSampleDate(d);
 });
+
+
 const transactions = ['candidate', 'recruiter', 'credits'].flatMap((type, typeIndex) => Array.from({ length: 10 }, (_, index) => {
   const [country, code] = countries[(index + typeIndex * 4) % countries.length];
   const number = 10482 - (typeIndex * 10 + index);
   const amount = type === 'candidate' ? 99 : type === 'recruiter' ? 499 : [25, 99, 179][index % 3];
   return { id: `REV-${number}`, date: dates[index], customer: customerNames[(index + typeIndex * 3) % customerNames.length], plan: type === 'candidate' ? 'Candidate Lifetime' : type === 'recruiter' ? 'Recruiter Lifetime' : ['Starter credits · 100', 'Growth credits · 500', 'Scale credits · 1,000'][index % 3], type, country, code, amount, method: type === 'candidate' ? (index % 2 ? 'Card' : 'UPI') : index % 3 ? 'Card' : 'Bank transfer', invoice: `INV-${number}` };
 }));
+
 
 const countryRevenue = [
   { country: 'United Arab Emirates', code: 'AED', monthly: 24680, yearly: 275940 },
@@ -48,6 +56,7 @@ function parseTxDate(value) {
 
 // Format a native <input type="date"> value ("YYYY-MM-DD") into "06 Aug 2026" for display.
 const monthShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 function formatDisplayDate(value) {
   if (!value) return '';
   const [year, month, day] = value.split('-').map(Number);
@@ -74,7 +83,7 @@ const formatTransactionDate = (value) => {
 const normalizeCountryNameAndCode = (country, countryCode) => {
   let name = country || '—';
   let code = countryCode || '—';
-  
+
   if (code.toUpperCase() === 'IN' || name.toLowerCase() === 'india' || name.toLowerCase() === 'indian') {
     name = 'India';
     code = 'IN';
@@ -108,7 +117,7 @@ const normalizeCountryData = (countriesList) => {
   for (const item of countriesList) {
     const normalized = normalizeCountryNameAndCode(item.country, item.countryCode);
     const key = normalized.code !== '—' ? normalized.code : normalized.name.toLowerCase();
-    
+
     if (merged[key]) {
       merged[key].amount = (Number(merged[key].amount) || 0) + (Number(item.amount) || 0);
     } else {
@@ -167,7 +176,7 @@ export default function RevenuePage() {
 
     loadRevenueOverview();
     return () => { active = false; };
-  }, []);
+  }, [country, dateFrom, dateTo, timePeriod]);
 
   useEffect(() => {
     let active = true;
@@ -180,7 +189,7 @@ export default function RevenuePage() {
         query.append('PageSize', 10);
         query.append('page', page);
         query.append('pageSize', 10);
-        
+
         if (search) {
           query.append('Search', search);
           query.append('search', search);
@@ -258,6 +267,15 @@ export default function RevenuePage() {
   const changeDateFrom = (value) => { setDateFrom(value > today ? today : value); setPage(1); };
   const changeDateTo = (value) => { setDateTo(value > today ? today : value); setPage(1); };
   const clearDates = () => { setDateFrom(''); setDateTo(''); setPage(1); };
+  const resetFilters = () => {
+    setTransactionType('all');
+    setCountry('All countries');
+    setTimePeriod('monthly');
+    setSearch('');
+    setDateFrom('');
+    setDateTo('');
+    setPage(1);
+  };
 
   const cards = [
     { title: 'Total revenue', amount: summary?.totalRevenue?.amount || 0, detail: summary?.totalRevenue?.changePercentVsPrevious, icon: ChartNoAxesCombined, color: 'orange' },
@@ -326,7 +344,32 @@ export default function RevenuePage() {
               </div>
               {(dateFrom || dateTo) && <button type="button" className="date-range-clear" onClick={clearDates} aria-label="Clear date range"><X size={14} /></button>}
             </div>
-            <div className="period-switch" aria-label="Revenue period"><button className={timePeriod === 'monthly' ? 'active' : ''} onClick={() => setTimePeriod('monthly')}>Monthly</button><button className={timePeriod === 'yearly' ? 'active' : ''} onClick={() => setTimePeriod('yearly')}>Yearly</button></div>
+            <div className="period-switch" aria-label="Revenue period">
+              <button
+                type="button"
+                className={timePeriod === 'monthly' ? 'active' : ''}
+                onClick={() => setTimePeriod('monthly')}
+              >
+                Monthly
+              </button>
+
+              <button
+                type="button"
+                className={timePeriod === 'yearly' ? 'active' : ''}
+                onClick={() => setTimePeriod('yearly')}
+              >
+                Yearly
+              </button>
+            </div>
+
+            <button
+              type="button"
+              className="reset-filter-button"
+              onClick={resetFilters}
+            >
+              <X size={14} />
+              Reset
+            </button>
           </div>
         </section>
 
@@ -338,7 +381,7 @@ export default function RevenuePage() {
 
         <div className="revenue-insights">
           <section className="country-panel">
-            <div className="panel-heading"><div><h4 style={{fontSize:"20px"}}>Revenue by country</h4><p>{timePeriod === 'monthly' ? 'Current month' : 'Current year'} revenue performance</p></div><strong>₹{loading ? '—' : totals.toLocaleString()}</strong></div>
+            <div className="panel-heading"><div><h4 style={{ fontSize: "20px" }}>Revenue by country</h4><p>{timePeriod === 'monthly' ? 'Current month' : 'Current year'} revenue performance</p></div><strong>₹{loading ? '—' : totals.toLocaleString()}</strong></div>
             <div className="country-list">
               {visibleCountries.map((item) => <div className="country-row" key={item.country}><div><span className="country-dot">{item.countryCode?.slice(0, 2)}</span><b>{item.country}</b></div><div className="country-progress"><i style={{ width: `${totals ? Math.round(((Number(item.amount) || 0) / totals) * 100) : 0}%` }} /></div><strong>₹{Number(item.amount || 0).toLocaleString()}</strong></div>)}
               {!loading && visibleCountries.length === 0 && <div className="empty-state">No country revenue is available.</div>}
@@ -348,9 +391,9 @@ export default function RevenuePage() {
         </div>
 
         <section className="transactions-panel">
-          <div className="transactions-top"><div><h4 style={{fontSize:"20px"}}>Plan transactions</h4><p>{dateFrom || dateTo ? `Showing transactions ${dateFrom ? `from ${dateFrom}` : 'up to'}${dateFrom && dateTo ? ' to ' : ''}${dateTo ? dateTo : dateFrom ? ' onward' : ''}.` : 'Every completed membership and credit-plan payment.'}</p></div><label className="transaction-search"><Search size={16} /><input value={search} onChange={(event) => changeSearch(event.target.value)} placeholder="Search transaction or invoice" /></label></div>
+          <div className="transactions-top"><div><h4 style={{ fontSize: "20px" }}>Plan transactions</h4><p>{dateFrom || dateTo ? `Showing transactions ${dateFrom ? `from ${dateFrom}` : 'up to'}${dateFrom && dateTo ? ' to ' : ''}${dateTo ? dateTo : dateFrom ? ' onward' : ''}.` : 'Every completed membership and credit-plan payment.'}</p></div><label className="transaction-search"><Search size={16} /><input value={search} onChange={(event) => changeSearch(event.target.value)} placeholder="Search transaction or invoice" /></label></div>
           <div className="transaction-tabs">{Object.entries(typeLabels).map(([id, label]) => <button key={id} className={transactionType === id ? 'active' : ''} onClick={() => changeType(id)}>{label}</button>)}</div>
-          <div className="table-responsive"><table className="revenue-table"><thead><tr><th>Customer</th><th>Plan</th><th>Country</th><th>Date</th><th>Amount</th><th>Transaction ID</th><th>Invoice</th></tr></thead><tbody>{visibleTransactions.map((item) => <tr key={item.id}><td style={{fontSize:"14px", color:"black"}}>{item.customer}</td><td><span className={`plan-type ${typeStyles[item.type]}`}>{item.plan}</span></td><td><span className="country-code">{item.code}</span> {item.country}</td><td>{item.date}</td><td><b>₹{item.amount.toLocaleString()}</b></td><td><b>{item.id}</b></td><td><button className="invoice-button" onClick={() => openInvoice(item)}><FileText size={15} />{item.invoice}</button></td></tr>)}</tbody></table></div>
+          <div className="table-responsive"><table className="revenue-table"><thead><tr><th>Customer</th><th>Plan</th><th>Country</th><th>Date</th><th>Amount</th><th>Transaction ID</th><th>Invoice</th></tr></thead><tbody>{visibleTransactions.map((item) => <tr key={item.id}><td style={{ fontSize: "14px", color: "black" }}>{item.customer}</td><td><span className={`plan-type ${typeStyles[item.type]}`}>{item.plan}</span></td><td><span className="country-code">{item.code}</span> {item.country}</td><td>{item.date}</td><td><b>₹{item.amount.toLocaleString()}</b></td><td><b>{item.id}</b></td><td><button className="invoice-button" onClick={() => openInvoice(item)}><FileText size={15} />{item.invoice}</button></td></tr>)}</tbody></table></div>
           {visibleTransactions.length > 0 && <div className="table-pagination"><span>Showing {(page - 1) * 10 + 1}–{(page - 1) * 10 + visibleTransactions.length} of {transactionMeta.totalCount} transactions</span><div><button disabled={page === 1} onClick={() => setPage((current) => current - 1)}>Previous</button>{Array.from({ length: pageCount }, (_, index) => <button key={index} className={page === index + 1 ? 'active' : ''} onClick={() => setPage(index + 1)}>{index + 1}</button>)}<button disabled={page === pageCount} onClick={() => setPage((current) => current + 1)}>Next</button></div></div>}
           {!transactionsLoading && visibleTransactions.length === 0 && <div className="empty-state">No transactions match the selected filters.</div>}
         </section>

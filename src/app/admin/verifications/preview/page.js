@@ -244,6 +244,7 @@ function PreviewModal({ doc, onClose, onVerifyOpen, onRejectOpen, onResubmitOpen
   if (!doc) return null;
   const s = STATUS_STYLE[doc.status] || STATUS_STYLE['Pending Review'];
   const isVerified = doc.status === 'Verified';
+  const isRejected = doc.status === 'Rejected';
   const resolvedUrl = getDocUrl(doc.img);
   const isPdf = doc.img && doc.img.toLowerCase().endsWith('.pdf');
 
@@ -375,7 +376,7 @@ function DocCard({ doc, onPreview, onVerifyOpen, onRejectOpen, onResubmitOpen, o
             borderRadius: '20px', background: '#fff1f2', color: '#be123c', border: '1px solid #fecdd3'
           }}>Missing / Required</span>
         </div>
-        
+
         {/* Body */}
         <div style={{ padding: '12px 14px 14px', flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <p style={{
@@ -384,7 +385,7 @@ function DocCard({ doc, onPreview, onVerifyOpen, onRejectOpen, onResubmitOpen, o
           }}>{doc.category}</p>
           <p style={{ fontSize: '13px', fontWeight: 700, color: '#122359', margin: 0, lineHeight: 1.3 }}>{doc.title}</p>
           <p style={{ fontSize: '11px', color: '#64748b', margin: 0 }}>Not Uploaded by Recruiter</p>
-          
+
           <div style={{ marginTop: 'auto', paddingTop: '10px' }}>
             <button onClick={() => onRequestDocument(doc)} style={{
               width: '100%', padding: '8px 0', background: '#eff6ff', border: '1px solid #bfdbfe',
@@ -401,6 +402,7 @@ function DocCard({ doc, onPreview, onVerifyOpen, onRejectOpen, onResubmitOpen, o
 
   const s = STATUS_STYLE[doc.status] || STATUS_STYLE['Pending Review'];
   const isVerified = doc.status === 'Verified';
+  const isRejected = doc.status === 'Rejected';
   const resolvedUrl = getDocUrl(doc.img);
   const isPdf = doc.img && doc.img.toLowerCase().endsWith('.pdf');
 
@@ -408,7 +410,11 @@ function DocCard({ doc, onPreview, onVerifyOpen, onRejectOpen, onResubmitOpen, o
     <div style={{
       background: '#fff', border: `1.5px solid ${s.border}`, borderRadius: '14px',
       overflow: 'hidden', display: 'flex', flexDirection: 'column',
-      boxShadow: isVerified ? '0 2px 12px rgba(22,163,74,0.1)' : '0 2px 10px rgba(0,0,0,0.05)',
+      boxShadow: isVerified
+        ? '0 2px 12px rgba(22,163,74,0.12)'
+        : isRejected
+          ? '0 2px 12px rgba(190,18,60,0.10)'
+          : '0 2px 10px rgba(0,0,0,0.05)',
     }}>
       {/* Thumbnail */}
       <div style={{ height: '148px', background: '#f1f5f9', overflow: 'hidden', position: 'relative', cursor: 'pointer' }}
@@ -434,34 +440,82 @@ function DocCard({ doc, onPreview, onVerifyOpen, onRejectOpen, onResubmitOpen, o
           borderRadius: '20px', background: s.bg, color: s.color, border: `1px solid ${s.border}`,
         }}>{doc.status}</span>
         {/* Verified overlay */}
+
+
         {isVerified && (
           <div style={{
-            position: 'absolute', inset: 0, background: 'rgba(22,163,74,0.18)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            position: 'absolute',
+            inset: 0,
+            background: 'rgba(22,163,74,0.18)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}>
             <div style={{
-              width: '50px', height: '50px', borderRadius: '50%', background: '#16a34a',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '50px',
+              height: '50px',
+              borderRadius: '50%',
+              background: '#16a34a',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               boxShadow: '0 4px 14px rgba(22,163,74,0.4)',
             }}>
               <ShieldCheck size={26} color="#fff" />
             </div>
           </div>
         )}
-        {/* Preview overlay (non-verified) */}
-        {!isVerified && (
+
+        {/* Rejected overlay */}
+        {isRejected && (
           <div style={{
-            position: 'absolute', inset: 0, background: 'rgba(18,35,89,0.32)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            position: 'absolute',
+            inset: 0,
+            background: 'rgba(190,18,60,0.20)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}>
             <div style={{
-              width: '36px', height: '36px', borderRadius: '50%', background: '#fff',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.9,
+              width: '50px',
+              height: '50px',
+              borderRadius: '50%',
+              background: '#be123c',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 14px rgba(190,18,60,0.4)',
+            }}>
+              <ShieldX size={26} color="#fff" />
+            </div>
+          </div>
+        )}
+
+        {/* Preview overlay for pending/resubmission only */}
+        {!isVerified && !isRejected && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'rgba(18,35,89,0.32)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <div style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              background: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: 0.9,
             }}>
               <Eye size={16} color="#122359" />
             </div>
           </div>
         )}
+
       </div>
 
       {/* Body */}
@@ -505,18 +559,49 @@ function DocCard({ doc, onPreview, onVerifyOpen, onRejectOpen, onResubmitOpen, o
           {!isVerified ? (
             <>
               <div style={{ display: 'flex', gap: '6px' }}>
-                <button onClick={() => onRejectOpen(doc)} style={{
-                  flex: 1, padding: '7px 0', background: '#fff1f2', border: '1px solid #fecdd3',
-                  borderRadius: '8px', fontSize: '11px', fontWeight: 600, color: '#be123c', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
-                }}>
+                <button
+                  onClick={() => !isRejected && onRejectOpen(doc)}
+                  disabled={isRejected}
+                  style={{
+                    flex: 1,
+                    padding: '7px 0',
+                    background: '#fff1f2',
+                    border: '1px solid #fecdd3',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: '#be123c',
+                    cursor: isRejected ? 'not-allowed' : 'pointer',
+                    opacity: isRejected ? 0.5 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px',
+                  }}
+                >
                   <ShieldX size={12} /> Reject
                 </button>
-                <button onClick={() => onVerifyOpen(doc)} style={{
-                  flex: 1, padding: '7px 0', background: '#16a34a', border: 'none',
-                  borderRadius: '8px', fontSize: '11px', fontWeight: 700, color: '#fff', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
-                }}>
+
+                <button
+                  onClick={() => !isRejected && onVerifyOpen(doc)}
+                  disabled={isRejected}
+                  style={{
+                    flex: 1,
+                    padding: '7px 0',
+                    background: '#16a34a',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: '#fff',
+                    cursor: isRejected ? 'not-allowed' : 'pointer',
+                    opacity: isRejected ? 0.5 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px',
+                  }}
+                >
                   <ShieldCheck size={12} /> Verify
                 </button>
               </div>
@@ -539,6 +624,8 @@ function DocCard({ doc, onPreview, onVerifyOpen, onRejectOpen, onResubmitOpen, o
           )}
         </div>
       </div>
+
+
     </div>
   );
 }
@@ -550,7 +637,7 @@ export default function RecruiterDocumentsPage({ searchParams }) {
 
   const [recruiterData, setRecruiterData] = useState(null);
   const [loading, setLoading] = useState(true);
-  
+
   const [docs, setDocs] = useState([]);
   const [previewDoc, setPreviewDoc] = useState(null);
   const [rejectTarget, setRejectTarget] = useState(null);
@@ -574,7 +661,8 @@ export default function RecruiterDocumentsPage({ searchParams }) {
       Pending: 'Pending Review',
       Verified: 'Verified',
       Approved: 'Verified',
-      Rejected: 'Action Required',
+      Rejected: 'Rejected',
+      Resubmission: 'Resubmission',
     };
 
     let merged = [];
@@ -582,15 +670,15 @@ export default function RecruiterDocumentsPage({ searchParams }) {
     if (checklistData && checklistData.length > 0) {
       merged = checklistData.map((chkDoc) => {
         const uploadedDoc = docsData.find(
-          (d) => 
+          (d) =>
             (d.documentId && d.documentId !== "00000000-0000-0000-0000-000000000000" && d.documentId === chkDoc.documentId) ||
             (d.documentTypeId && d.documentTypeId === chkDoc.documentTypeId)
         );
-        
+
         const docUrl = uploadedDoc?.fileUrl || uploadedDoc?.url || uploadedDoc?.documentUrl || chkDoc.url || chkDoc.fileUrl || null;
         const status = uploadedDoc?.status || chkDoc.status || 'NotUploaded';
         const docId = (uploadedDoc?.documentId && uploadedDoc.documentId !== "00000000-0000-0000-0000-000000000000") ? uploadedDoc.documentId : chkDoc.documentId;
-        
+
         return {
           id: docId && docId !== "00000000-0000-0000-0000-000000000000" ? docId : chkDoc.documentTypeId,
           documentId: docId,
@@ -631,11 +719,11 @@ export default function RecruiterDocumentsPage({ searchParams }) {
       masterData.forEach((masterDoc) => {
         if (masterDoc.isMandatory) {
           const exists = merged.some(
-            (d) => 
-              d.documentTypeId === masterDoc.id || 
+            (d) =>
+              d.documentTypeId === masterDoc.id ||
               (d.title && masterDoc.documentName && d.title.toLowerCase().trim() === masterDoc.documentName.toLowerCase().trim())
           );
-          
+
           if (!exists) {
             merged.push({
               id: masterDoc.id,
@@ -713,7 +801,7 @@ export default function RecruiterDocumentsPage({ searchParams }) {
     }
     if (targetId) {
       fetchData(targetId);
-      
+
       // Load optional doc names
       recruiterService.getAllOptionalNames()
         .then((res) => {
@@ -740,7 +828,7 @@ export default function RecruiterDocumentsPage({ searchParams }) {
   const handleReject = (docId, reason) => {
     recruiterService.updateDocumentStatus(docId, 'Rejected', reason)
       .then(() => {
-        showToast('Document rejected — recruiter notified', 'error');
+        showToast('Document rejected successfully — recruiter notified', 'success');
         fetchData(recruiterId || recruiterData?.id);
       })
       .catch((err) => {
@@ -763,17 +851,17 @@ export default function RecruiterDocumentsPage({ searchParams }) {
     if (!selectedDocType) return;
     let docTypeToSend = selectedDocType;
     let docTypeId = '';
-    
+
     const matchedOpt = optionalDocs.find(o => o.documentName === selectedDocType);
     if (matchedOpt) {
       docTypeId = matchedOpt.documentTypeId;
     }
-    
+
     if (selectedDocType === 'Custom / Other Document') {
       if (!customDocName.trim()) return;
       docTypeToSend = customDocName.trim();
     }
-    
+
     const recId = recruiterId || recruiterData?.id;
     if (!recId) return;
 
@@ -783,7 +871,7 @@ export default function RecruiterDocumentsPage({ searchParams }) {
           id: Date.now(), docType: docTypeToSend, note: requestNote,
           sentAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         }, ...prev]);
-        
+
         showToast(`Request sent: ${docTypeToSend}`, 'info');
         setSelectedDocType('');
         setCustomDocName('');
@@ -854,8 +942,7 @@ export default function RecruiterDocumentsPage({ searchParams }) {
 
   const verified = docs.filter((d) => d.status === 'Verified').length;
   const pending = docs.filter((d) => d.status === 'Pending Review').length;
-  const actionReq = docs.filter((d) => d.status === 'Action Required' || d.status === 'Resubmission' || d.isMissing).length;
-  const allVerified = verified === docs.length && docs.length > 0;
+  const actionReq = docs.filter((d) => d.status === 'Rejected' || d.status === 'Action Required' || d.status === 'Resubmission' || d.isMissing).length; const allVerified = verified === docs.length && docs.length > 0;
   const pct = docs.length > 0 ? Math.round((verified / docs.length) * 100) : 0;
 
   return (

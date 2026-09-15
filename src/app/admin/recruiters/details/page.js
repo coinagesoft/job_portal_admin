@@ -19,8 +19,16 @@ import {
   Info,
   UserCheck,
   Ban,
+  UserRound,
+  // Building2,
   Eye,
-  ShieldCheck
+  ShieldCheck,
+  Mail,
+  MapPin,
+  Globe,
+  Building2,
+  Users,
+  ExternalLink
 } from "lucide-react";
 
 const formatCompanySize = (size) => {
@@ -574,7 +582,12 @@ Thank you for your business.
           <div className="section-box">
             <div className="panel-white">
               <div className="panel-head">
-                <h6 className="mb-0" style={{ fontSize: '20px'}}>Recruiter Information</h6>
+                <div className="d-flex align-items-center" style={{ gap: "8px" }}>
+                  <UserRound size={18} strokeWidth={2.2} color="#ffa300" />
+                  <h6 className="mb-0" style={{ fontSize: '20px' }}>
+                    Recruiter Information
+                  </h6>
+                </div>
               </div>
 
               <div className="panel-body">
@@ -631,7 +644,10 @@ Thank you for your business.
             <div className="panel-white">
               <div className="panel-head d-flex justify-content-between" style={{ alignItems: "center" }}>
                 <div className="d-flex align-items-center" style={{ gap: "8px" }}>
-                  <h6 className="mb-0" style={{ fontSize: '20px'}}>Company Information</h6>
+                  <Building2 size={18} strokeWidth={2.2} color="#ffa300" />
+                  <h6 className="mb-0" style={{ fontSize: '20px' }}>
+                    Company Information
+                  </h6>
                 </div>
               </div>
               <div className="panel-body">
@@ -679,8 +695,8 @@ Thank you for your business.
                         recruiterData.companyInformation?.natureOfCompany === "RecruitmentAgency"
                           ? "Recruitment Agency"
                           : recruiterData.companyInformation?.natureOfCompany === "Employer"
-                          ? "Employer"
-                          : "N/A",
+                            ? "Employer"
+                            : "N/A",
                     },
                     {
                       label: "PLACES CANDIDATES INTERNATIONALLY",
@@ -688,8 +704,8 @@ Thank you for your business.
                         recruiterData.companyInformation?.placesCandidatesInternationally === true
                           ? "Yes"
                           : recruiterData.companyInformation?.placesCandidatesInternationally === false
-                          ? "No"
-                          : "N/A",
+                            ? "No"
+                            : "N/A",
                     },
                   ].map((item) => (
                     <div key={item.label} className="col-xl-6 col-lg-6 col-md-6 col-sm-6 mb-20">
@@ -720,7 +736,7 @@ Thank you for your business.
                 <div>
                   <div className="d-flex align-items-center" style={{ gap: "8px" }}>
                     <i className="fi-rr-document font-sm color-brand-2"></i>
-                    <h6 className="mb-0" style={{ fontSize: '20px'}}>
+                    <h6 className="mb-0" style={{ fontSize: '20px' }}>
                       Compliance Documents
                     </h6>
                   </div>
@@ -1403,7 +1419,7 @@ Thank you for your business.
             }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "18px" }}>
-              <h5 style={{ margin: 0, color: "#122359", fontWeight: 800 ,fontSize: "13px"}}>
+              <h5 style={{ margin: 0, color: "#122359", fontWeight: 800, fontSize: "13px" }}>
                 Request Optional Document
               </h5>
               <button

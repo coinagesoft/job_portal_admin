@@ -7,6 +7,11 @@
     border-color: #ffa300 !important;
     color: #ffffff !important;
 }
+
+.transaction-search:focus-within {
+  border-color: #ffa300 !important;
+}
+
 .btn-primary:hover,
 .btn-primary:focus,
 .btn-primary:active,
@@ -42,6 +47,32 @@ input[type=date]:before {
     width: 87% !important;
 
 }
+.reset-filter-button {
+  height: 39px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid #d6e0ee;
+  border-radius: 7px;
+  background: #fff;
+  color: #607498;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s ease;
+  white-space: nowrap;
+}
+
+.reset-filter-button:hover {
+  border-color: #ffb13b;
+  color: #ef9600;
+  background: #fffaf2;
+}
+
+
+
 .card-info {
     display: inline-block;
     padding: 0px 0px 0px 20px;
