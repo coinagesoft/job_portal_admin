@@ -143,12 +143,115 @@ export default function RevenuePage() {
   const [page, setPage] = useState(1);
   const [summary, setSummary] = useState(null);
   const [countryData, setCountryData] = useState([]);
-  const [composition, setComposition] = useState({ candidatePercent: 0, recruiterPercent: 0, creditsPercent: 0 });
+  const [composition, setComposition] = useState({
+    monthly: {
+      candidatePercent: 0,
+      recruiterPercent: 0,
+      creditsPercent: 0,
+    },
+    yearly: {
+      candidatePercent: 0,
+      recruiterPercent: 0,
+      creditsPercent: 0,
+    },
+  });
   const [apiTransactions, setApiTransactions] = useState([]);
   const [transactionMeta, setTransactionMeta] = useState({ totalCount: 0, totalPages: 1 });
   const [loading, setLoading] = useState(true);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
   const [error, setError] = useState('');
+
+useEffect(() => {
+  let active = true;
+
+  const loadRevenueSummary = async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await apiRequest(
+        '/api/admin/revenue/summary',
+        { method: 'GET' }
+      );
+
+      if (!active) return;
+
+      const data = unwrapApiData(response);
+      setSummary(data);
+
+    } catch (requestError) {
+      if (active) {
+        setError(
+          requestError.message || 'Failed to load revenue summary.'
+        );
+      }
+    } finally {
+      if (active) setLoading(false);
+    }
+  };
+
+  loadRevenueSummary();
+
+  return () => {
+    active = false;
+  };
+}, []);
+useEffect(() => {
+  let active = true;
+
+  const loadRevenueByCountry = async () => {
+    setLoading(true);
+
+    try {
+      const query = new URLSearchParams();
+
+      query.append('period', timePeriod);
+
+      const response = await apiRequest(
+        `/api/admin/revenue/by-country?${query.toString()}`,
+        { method: 'GET' }
+      );
+
+      if (!active) return;
+
+      const data = unwrapApiData(response);
+
+      console.log('Revenue By Country API:', data);
+      console.log('Selected Period:', timePeriod);
+
+      setCountryData(
+        normalizeCountryData(data.countries || [])
+      );
+
+      setComposition(
+        data.composition || {
+          candidatePercent: 0,
+          recruiterPercent: 0,
+          creditsPercent: 0,
+        }
+      );
+
+    } catch (requestError) {
+      if (active) {
+        setError(
+          requestError.message ||
+          'Failed to load revenue by country.'
+        );
+      }
+    } finally {
+      if (active) setLoading(false);
+    }
+  };
+
+  loadRevenueByCountry();
+
+  return () => {
+    active = false;
+  };
+}, [timePeriod]);
+
+
+
 
   useEffect(() => {
     let active = true;
@@ -278,14 +381,56 @@ export default function RevenuePage() {
   };
 
   const cards = [
-    { title: 'Total revenue', amount: summary?.totalRevenue?.amount || 0, detail: summary?.totalRevenue?.changePercentVsPrevious, icon: ChartNoAxesCombined, color: 'orange' },
-    { title: 'Candidate memberships', amount: summary?.candidateMemberships?.amount || 0, detail: summary?.candidateMemberships?.percentOfTotal, icon: Users, color: 'mint' },
-    { title: 'Recruiter memberships', amount: summary?.recruiterMemberships?.amount || 0, detail: summary?.recruiterMemberships?.percentOfTotal, icon: BriefcaseBusiness, color: 'blue' },
-    { title: 'Recruiter credit plans', amount: summary?.creditPlans?.amount || 0, detail: summary?.creditPlans?.percentOfTotal, icon: Coins, color: 'purple' },
+    { title: 'Total revenue', amount: summary?.totalRevenue?.amount || 0, icon: ChartNoAxesCombined, color: 'orange' },
+    { title: 'Candidate memberships', amount: summary?.candidateMemberships?.amount || 0, icon: Users, color: 'mint' },
+    { title: 'Recruiter memberships', amount: summary?.recruiterMemberships?.amount || 0, icon: BriefcaseBusiness, color: 'blue' },
+    { title: 'Recruiter credit plans', amount: summary?.creditPlans?.amount || 0, icon: Coins, color: 'purple' },
   ];
 
-  const visibleCountries = countryData.filter((item) => country === 'All countries' || item.country === country);
-  const totals = visibleCountries.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  const visibleCountries = countryData.filter(
+    (item) =>
+      country === 'All countries' ||
+      item.country === country
+  );
+
+  const getRevenueAmount = (item) => {
+    if (timePeriod === 'yearly') {
+      return Number(item.yearly ?? item.amount) || 0;
+    }
+
+    return Number(item.monthly ?? item.amount) || 0;
+  };
+
+  const totals = visibleCountries.reduce(
+    (sum, item) => sum + getRevenueAmount(item),
+    0
+  );
+
+  const currentComposition =
+    timePeriod === 'yearly'
+      ? {
+        candidatePercent: Number(
+          countryData?.yearlyComposition?.candidatePercent ?? 0
+        ),
+        recruiterPercent: Number(
+          countryData?.yearlyComposition?.recruiterPercent ?? 0
+        ),
+        creditsPercent: Number(
+          countryData?.yearlyComposition?.creditsPercent ?? 0
+        ),
+      }
+      : {
+        candidatePercent: Number(
+          countryData?.monthlyComposition?.candidatePercent ?? 0
+        ),
+        recruiterPercent: Number(
+          countryData?.monthlyComposition?.recruiterPercent ?? 0
+        ),
+        creditsPercent: Number(
+          countryData?.monthlyComposition?.creditsPercent ?? 0
+        ),
+      };
+
   const openInvoice = async (item) => {
     try {
       const response = await apiRequest(`/api/admin/revenue/transactions/${item.id}/invoice`, { method: 'GET' });
@@ -324,26 +469,7 @@ export default function RevenuePage() {
           <div className="filter-title"><span style={{ fontSize: "20px" }}>Revenue reporting</span><small>Filter totals and transactions by market</small></div>
           <div className="report-filters">
             <select value={country} onChange={(event) => changeCountry(event.target.value)} aria-label="Country filter"><option>All countries</option>{countryData.map((item) => <option key={item.country} value={item.country}>{item.country}</option>)}</select>
-            <div className="date-range" aria-label="Custom date range">
-              <div className="date-field">
-                <span className="date-field-icon"><CalendarDays size={14} /></span>
-                <div className="date-field-body">
-                  <span className="date-range-label">From</span>
-                  <span className={`date-field-value${dateFrom ? '' : ' is-placeholder'}`}>{formatDisplayDate(dateFrom) || 'Select date'}</span>
-                </div>
-                <input type="date" value={dateFrom} onChange={(event) => changeDateFrom(event.target.value)} onClick={openDatePicker} onFocus={openDatePicker} max={dateTo && dateTo < today ? dateTo : today} aria-label="From date" />
-              </div>
-              <span className="date-range-sep">→</span>
-              <div className="date-field">
-                <span className="date-field-icon"><CalendarDays size={14} /></span>
-                <div className="date-field-body">
-                  <span className="date-range-label">To</span>
-                  <span className={`date-field-value${dateTo ? '' : ' is-placeholder'}`}>{formatDisplayDate(dateTo) || 'Select date'}</span>
-                </div>
-                <input type="date" value={dateTo} onChange={(event) => changeDateTo(event.target.value)} onClick={openDatePicker} onFocus={openDatePicker} min={dateFrom || undefined} max={today} aria-label="To date" />
-              </div>
-              {(dateFrom || dateTo) && <button type="button" className="date-range-clear" onClick={clearDates} aria-label="Clear date range"><X size={14} /></button>}
-            </div>
+
             <div className="period-switch" aria-label="Revenue period">
               <button
                 type="button"
@@ -376,14 +502,44 @@ export default function RevenuePage() {
         {error && <div className="revenue-error" role="alert">{error}</div>}
 
         <div className="revenue-cards">
-          {cards.map((card) => { const Icon = card.icon; const detail = card.title === 'Total revenue' ? (card.detail == null ? 'No previous-period comparison' : `${card.detail >= 0 ? '+' : ''}${card.detail}% vs last month`) : `${Number(card.detail || 0).toFixed(1)}% of revenue`; return <article className="revenue-card" key={card.title}><span className={`revenue-icon ${card.color}`}><Icon size={21} /></span><div><p>{card.title}</p><h4>{loading ? '—' : `₹${Number(card.amount).toLocaleString()}`}</h4><small>{detail}</small></div></article>; })}
+          {cards.map((card) => { const Icon = card.icon; const detail = card.title === 'Total revenue' ? (card.detail == null ? 'No previous-period comparison' : `${card.detail >= 0 ? '+' : ''}${card.detail}% vs last month`) : `${Number(card.detail || 0).toFixed(1)}% of revenue`; return <article className="revenue-card" key={card.title}><span className={`revenue-icon ${card.color}`}><Icon size={21} /></span><div><p>{card.title}</p><h4>{loading ? '—' : `₹${Number(card.amount).toLocaleString()}`}</h4></div></article>; })}
         </div>
 
         <div className="revenue-insights">
           <section className="country-panel">
             <div className="panel-heading"><div><h4 style={{ fontSize: "20px" }}>Revenue by country</h4><p>{timePeriod === 'monthly' ? 'Current month' : 'Current year'} revenue performance</p></div><strong>₹{loading ? '—' : totals.toLocaleString()}</strong></div>
             <div className="country-list">
-              {visibleCountries.map((item) => <div className="country-row" key={item.country}><div><span className="country-dot">{item.countryCode?.slice(0, 2)}</span><b>{item.country}</b></div><div className="country-progress"><i style={{ width: `${totals ? Math.round(((Number(item.amount) || 0) / totals) * 100) : 0}%` }} /></div><strong>₹{Number(item.amount || 0).toLocaleString()}</strong></div>)}
+              {visibleCountries.map((item) => (
+                <div
+                  className="country-row"
+                  key={item.country}
+                >
+                  <div>
+                    <span className="country-dot">
+                      {item.countryCode?.slice(0, 2)}
+                    </span>
+
+                    <b>{item.country}</b>
+                  </div>
+
+                  <div className="country-progress">
+                    <i
+                      style={{
+                        width: `${totals
+                          ? Math.round(
+                            (getRevenueAmount(item) / totals) * 100
+                          )
+                          : 0
+                          }%`
+                      }}
+                    />
+                  </div>
+
+                  <strong>
+                    ₹{getRevenueAmount(item).toLocaleString()}
+                  </strong>
+                </div>
+              ))}
               {!loading && visibleCountries.length === 0 && <div className="empty-state">No country revenue is available.</div>}
             </div>
           </section>
@@ -391,11 +547,265 @@ export default function RevenuePage() {
         </div>
 
         <section className="transactions-panel">
-          <div className="transactions-top"><div><h4 style={{ fontSize: "20px" }}>Plan transactions</h4><p>{dateFrom || dateTo ? `Showing transactions ${dateFrom ? `from ${dateFrom}` : 'up to'}${dateFrom && dateTo ? ' to ' : ''}${dateTo ? dateTo : dateFrom ? ' onward' : ''}.` : 'Every completed membership and credit-plan payment.'}</p></div><label className="transaction-search"><Search size={16} /><input value={search} onChange={(event) => changeSearch(event.target.value)} placeholder="Search transaction or invoice" /></label></div>
-          <div className="transaction-tabs">{Object.entries(typeLabels).map(([id, label]) => <button key={id} className={transactionType === id ? 'active' : ''} onClick={() => changeType(id)}>{label}</button>)}</div>
-          <div className="table-responsive"><table className="revenue-table"><thead><tr><th>Customer</th><th>Plan</th><th>Country</th><th>Date</th><th>Amount</th><th>Transaction ID</th><th>Invoice</th></tr></thead><tbody>{visibleTransactions.map((item) => <tr key={item.id}><td style={{ fontSize: "14px", color: "black" }}>{item.customer}</td><td><span className={`plan-type ${typeStyles[item.type]}`}>{item.plan}</span></td><td><span className="country-code">{item.code}</span> {item.country}</td><td>{item.date}</td><td><b>₹{item.amount.toLocaleString()}</b></td><td><b>{item.id}</b></td><td><button className="invoice-button" onClick={() => openInvoice(item)}><FileText size={15} />{item.invoice}</button></td></tr>)}</tbody></table></div>
-          {visibleTransactions.length > 0 && <div className="table-pagination"><span>Showing {(page - 1) * 10 + 1}–{(page - 1) * 10 + visibleTransactions.length} of {transactionMeta.totalCount} transactions</span><div><button disabled={page === 1} onClick={() => setPage((current) => current - 1)}>Previous</button>{Array.from({ length: pageCount }, (_, index) => <button key={index} className={page === index + 1 ? 'active' : ''} onClick={() => setPage(index + 1)}>{index + 1}</button>)}<button disabled={page === pageCount} onClick={() => setPage((current) => current + 1)}>Next</button></div></div>}
-          {!transactionsLoading && visibleTransactions.length === 0 && <div className="empty-state">No transactions match the selected filters.</div>}
+          <div className="transactions-top">
+
+            {/* LEFT: TITLE */}
+            <div className="transactions-heading">
+              <h4>Plan transactions</h4>
+
+              <p>
+                {dateFrom || dateTo
+                  ? `Showing transactions ${dateFrom
+                    ? `from ${formatDisplayDate(dateFrom)}`
+                    : 'up to'
+                  }${dateFrom && dateTo ? ' to ' : ''
+                  }${dateTo
+                    ? formatDisplayDate(dateTo)
+                    : dateFrom
+                      ? ' onward'
+                      : ''
+                  }.`
+                  : 'Every completed membership and credit-plan payment.'}
+              </p>
+            </div>
+
+            {/* RIGHT: DATE + SEARCH */}
+            <div className="transaction-controls">
+
+              {/* DATE RANGE */}
+              <div
+                className="date-range"
+                aria-label="Transaction date range"
+              >
+                <div className="date-field">
+                  <span className="date-field-icon">
+                    <CalendarDays size={14} />
+                  </span>
+
+                  <div className="date-field-body">
+                    <span className="date-range-label">From</span>
+                    <span
+                      className={`date-field-value${dateFrom ? '' : ' is-placeholder'
+                        }`}
+                    >
+                      {formatDisplayDate(dateFrom) || 'Select date'}
+                    </span>
+                  </div>
+
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(event) =>
+                      changeDateFrom(event.target.value)
+                    }
+                    onClick={openDatePicker}
+                    onFocus={openDatePicker}
+                    max={
+                      dateTo && dateTo < today
+                        ? dateTo
+                        : today
+                    }
+                    aria-label="From date"
+                  />
+                </div>
+
+                <span className="date-range-sep">→</span>
+
+                <div className="date-field">
+                  <span className="date-field-icon">
+                    <CalendarDays size={14} />
+                  </span>
+
+                  <div className="date-field-body">
+                    <span className="date-range-label">To</span>
+                    <span
+                      className={`date-field-value${dateTo ? '' : ' is-placeholder'
+                        }`}
+                    >
+                      {formatDisplayDate(dateTo) || 'Select date'}
+                    </span>
+                  </div>
+
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={(event) =>
+                      changeDateTo(event.target.value)
+                    }
+                    onClick={openDatePicker}
+                    onFocus={openDatePicker}
+                    min={dateFrom || undefined}
+                    max={today}
+                    aria-label="To date"
+                  />
+                </div>
+
+                {(dateFrom || dateTo) && (
+                  <button
+                    type="button"
+                    className="date-range-clear"
+                    onClick={clearDates}
+                    aria-label="Clear date range"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              {/* SEARCH */}
+              <label className="transaction-search">
+                <Search size={16} />
+
+                <input
+                  value={search}
+                  onChange={(event) =>
+                    changeSearch(event.target.value)
+                  }
+                  placeholder="Search transaction or invoice"
+                />
+              </label>
+              <button
+                type="button"
+                className="transaction-reset-button"
+                onClick={resetFilters}
+              >
+                <X size={14} />
+                Reset
+              </button>
+
+            </div>
+          </div>
+
+          <div className="transaction-tabs">
+            {Object.entries(typeLabels).map(([id, label]) => (
+              <button
+                key={id}
+                className={
+                  transactionType === id ? 'active' : ''
+                }
+                onClick={() => changeType(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <div className="table-responsive">
+            <table className="revenue-table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Plan</th>
+                  <th>Country</th>
+                  <th>Date</th>
+                  <th>Amount</th>
+                  <th>Transaction ID</th>
+                  <th>Invoice</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {visibleTransactions.map((item) => (
+                  <tr key={item.id}>
+                    <td style={{ fontSize: "14px", color: "black" }}>
+                      {item.customer}
+                    </td>
+
+                    <td>
+                      <span
+                        className={`plan-type ${typeStyles[item.type]}`}
+                      >
+                        {item.plan}
+                      </span>
+                    </td>
+
+                    <td>
+                      <span className="country-code">
+                        {item.code}
+                      </span>{" "}
+                      {item.country}
+                    </td>
+
+                    <td>{item.date}</td>
+
+                    <td>
+                      <b>
+                        ₹{item.amount.toLocaleString()}
+                      </b>
+                    </td>
+
+                    <td>
+                      <b>{item.id}</b>
+                    </td>
+
+                    <td>
+                      <button
+                        className="invoice-button"
+                        onClick={() => openInvoice(item)}
+                      >
+                        <FileText size={15} />
+                        {item.invoice}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {visibleTransactions.length > 0 && (
+            <div className="table-pagination">
+              <span>
+                Showing {(page - 1) * 10 + 1}–
+                {(page - 1) * 10 + visibleTransactions.length} of{" "}
+                {transactionMeta.totalCount} transactions
+              </span>
+
+              <div>
+                <button
+                  disabled={page === 1}
+                  onClick={() =>
+                    setPage((current) => current - 1)
+                  }
+                >
+                  Previous
+                </button>
+
+                {Array.from(
+                  { length: pageCount },
+                  (_, index) => (
+                    <button
+                      key={index}
+                      className={
+                        page === index + 1 ? "active" : ""
+                      }
+                      onClick={() =>
+                        setPage(index + 1)
+                      }
+                    >
+                      {index + 1}
+                    </button>
+                  )
+                )}
+
+                <button
+                  disabled={page === pageCount}
+                  onClick={() =>
+                    setPage((current) => current + 1)
+                  }
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!transactionsLoading &&
+            visibleTransactions.length === 0 && (
+              <div className="empty-state">
+                No transactions match the selected filters.
+              </div>
+            )}
         </section>
 
         {invoice && <div className="invoice-overlay" role="dialog" aria-modal="true"><div className="invoice-modal"><button className="modal-close" onClick={() => setInvoice(null)}>×</button><span className="invoice-logo">JOBBOX</span><h3>Invoice {invoice.invoice}</h3><p>Payment received from <b>{invoice.customer}</b></p><div className="invoice-total"><span>{invoice.plan}</span><b>₹{invoice.amount.toLocaleString()}</b></div><div className="invoice-meta"><span>Date: {invoice.date}</span><span>Country: {invoice.country}</span><span>Payment: {invoice.method}</span></div><button className="download-invoice" onClick={downloadInvoice}><Download size={16} />Download invoice</button></div></div>}
