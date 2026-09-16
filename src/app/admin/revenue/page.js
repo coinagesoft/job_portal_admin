@@ -493,7 +493,7 @@ useEffect(() => {
               className="reset-filter-button"
               onClick={resetFilters}
             >
-              <X size={14} />
+              {/* <X size={14} /> */}
               Reset
             </button>
           </div>
@@ -669,7 +669,7 @@ useEffect(() => {
                 className="transaction-reset-button"
                 onClick={resetFilters}
               >
-                <X size={14} />
+                {/* <X size={14} /> */}
                 Reset
               </button>
 

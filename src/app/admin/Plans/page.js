@@ -39,12 +39,12 @@ const regions = [
 export default function PlansPage() {
   const [activeTab, setActiveTab] = useState('recruiter');
   const [regionId, setRegionId] = useState('us');
-  
+
   // Database membership plans state
   const [dbPlans, setDbPlans] = useState([]);
   const [originalDbPlans, setOriginalDbPlans] = useState([]);
   const [deletedPlanIds, setDeletedPlanIds] = useState([]);
-  
+
   // Database credit plans state
   const [dbCreditPlans, setDbCreditPlans] = useState([]);
   const [originalDbCreditPlans, setOriginalDbCreditPlans] = useState([]);
@@ -62,7 +62,7 @@ export default function PlansPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
+
   const [editingId, setEditingId] = useState(null);
   const [featureDraft, setFeatureDraft] = useState('');
   const [saved, setSaved] = useState(false);
@@ -87,7 +87,7 @@ export default function PlansPage() {
         planService.getMembershipPlans('Recruiter').catch(() => []),
         planService.getMembershipPlans('Candidate').catch(() => [])
       ]);
-      
+
       const loaded = [];
       const mapPlan = (plan) => ({
         id: plan.planId,
@@ -108,7 +108,7 @@ export default function PlansPage() {
       if (Array.isArray(candidateData)) {
         loaded.push(...candidateData.map(mapPlan));
       }
-      
+
       setDbPlans(loaded);
       setOriginalDbPlans(JSON.parse(JSON.stringify(loaded)));
       setDeletedPlanIds([]);
@@ -125,7 +125,7 @@ export default function PlansPage() {
   const fetchCreditPlans = async (rId) => {
     const curRegion = regions.find(item => item.id === rId);
     if (!curRegion) return;
-    
+
     setLoading(true);
     setError(null);
     try {
@@ -134,7 +134,7 @@ export default function PlansPage() {
         planService.getCreditPlans(rId).catch(() => []),
         planService.getCreditPlans(curRegion.name.toLowerCase()).catch(() => [])
       ]);
-      
+
       const loadedCredits = [];
       const mapCreditPlan = (plan) => ({
         id: plan.planId,
@@ -146,7 +146,7 @@ export default function PlansPage() {
         active: plan.isActive !== false,
         region: getRegionName(plan.region)
       });
-      
+
       const seenIds = new Set();
       const addUniquePlans = (list) => {
         if (Array.isArray(list)) {
@@ -158,10 +158,10 @@ export default function PlansPage() {
           });
         }
       };
-      
+
       addUniquePlans(creditsById);
       addUniquePlans(creditsByName);
-      
+
       setDbCreditPlans(loadedCredits);
       setOriginalDbCreditPlans(JSON.parse(JSON.stringify(loadedCredits)));
       setDeletedCreditPlanIds([]);
@@ -213,20 +213,20 @@ export default function PlansPage() {
       return dbCreditPlans.filter(plan => {
         const planRegion = (plan.region || '').toLowerCase();
         const currentRegion = regions.find(r => r.id === regionId);
-        const matchesRegion = planRegion === regionId.toLowerCase() || 
-               (currentRegion && planRegion === currentRegion.name.toLowerCase());
+        const matchesRegion = planRegion === regionId.toLowerCase() ||
+          (currentRegion && planRegion === currentRegion.name.toLowerCase());
         return matchesRegion;
       });
     }
-    
+
     const filtered = dbPlans.filter(plan => {
       const matchesType = plan.planType?.toLowerCase() === activeTab;
       if (!matchesType) return false;
-      
+
       const planRegion = (plan.region || '').toLowerCase();
       const currentRegion = regions.find(r => r.id === regionId);
-      return planRegion === regionId.toLowerCase() || 
-             (currentRegion && planRegion === currentRegion.name.toLowerCase());
+      return planRegion === regionId.toLowerCase() ||
+        (currentRegion && planRegion === currentRegion.name.toLowerCase());
     });
 
     const activePlans = filtered.filter(plan => plan.active === true);
@@ -234,34 +234,34 @@ export default function PlansPage() {
     // Enforce single plan requirement for Recruiter and Candidate membership if no plans exist in DB
     if (filtered.length === 0) {
       const defaultId = `${activeTab}-default-${regionId}`;
-      const defaultPlan = activeTab === 'recruiter' 
+      const defaultPlan = activeTab === 'recruiter'
         ? {
-            id: defaultId,
-            name: 'New Recruiter Plan',
-            description: 'One payment for full, permanent recruiter access',
-            price: 0,
-            period: 'one-time',
-            badge: 'Full lifetime access',
-            features: ['Unlimited job posts', 'Unlimited candidate profile views', 'Unlimited recruiter seats', 'Priority support and account manager'],
-            active: true,
-            planType: 'Recruiter',
-            region: region.name.toLowerCase()
-          }
+          id: defaultId,
+          name: 'New Recruiter Plan',
+          description: 'One payment for full, permanent recruiter access',
+          price: 0,
+          period: 'one-time',
+          badge: 'Full lifetime access',
+          features: ['Unlimited job posts', 'Unlimited candidate profile views', 'Unlimited recruiter seats', 'Priority support and account manager'],
+          active: true,
+          planType: 'Recruiter',
+          region: region.name.toLowerCase()
+        }
         : {
-            id: defaultId,
-            name: 'New Candidate Plan',
-            description: 'One payment for full, permanent candidate access',
-            price: 0,
-            period: 'one-time',
-            badge: 'Full lifetime access',
-            features: ['Professional candidate profile', 'Unlimited job applications', 'Priority applications', 'Featured profile placement'],
-            active: true,
-            planType: 'Candidate',
-            region: region.name.toLowerCase()
-          };
+          id: defaultId,
+          name: 'New Candidate Plan',
+          description: 'One payment for full, permanent candidate access',
+          price: 0,
+          period: 'one-time',
+          badge: 'Full lifetime access',
+          features: ['Professional candidate profile', 'Unlimited job applications', 'Priority applications', 'Featured profile placement'],
+          active: true,
+          planType: 'Candidate',
+          region: region.name.toLowerCase()
+        };
       return [defaultPlan];
     }
-    
+
     return activePlans;
   }, [dbPlans, dbCreditPlans, activeTab, regionId]);
 
@@ -290,31 +290,31 @@ export default function PlansPage() {
         const exists = current.some(p => p.id === id);
         if (!exists) {
           const defaultId = `${activeTab}-default-${regionId}`;
-          const defaultPlan = activeTab === 'recruiter' 
+          const defaultPlan = activeTab === 'recruiter'
             ? {
-                id: defaultId,
-                name: 'New Recruiter Plan',
-                description: 'One payment for full, permanent recruiter access',
-                price: 0,
-                period: 'one-time',
-                badge: 'Full lifetime access',
-                features: ['Unlimited job posts', 'Unlimited candidate profile views', 'Unlimited recruiter seats', 'Priority support and account manager'],
-                active: true,
-                planType: 'Recruiter',
-                region: region.name.toLowerCase()
-              }
+              id: defaultId,
+              name: 'New Recruiter Plan',
+              description: 'One payment for full, permanent recruiter access',
+              price: 0,
+              period: 'one-time',
+              badge: 'Full lifetime access',
+              features: ['Unlimited job posts', 'Unlimited candidate profile views', 'Unlimited recruiter seats', 'Priority support and account manager'],
+              active: true,
+              planType: 'Recruiter',
+              region: region.name.toLowerCase()
+            }
             : {
-                id: defaultId,
-                name: 'New Candidate Plan',
-                description: 'One payment for full, permanent candidate access',
-                price: 0,
-                period: 'one-time',
-                badge: 'Full lifetime access',
-                features: ['Professional candidate profile', 'Unlimited job applications', 'Priority applications', 'Featured profile placement'],
-                active: true,
-                planType: 'Candidate',
-                region: region.name.toLowerCase()
-              };
+              id: defaultId,
+              name: 'New Candidate Plan',
+              description: 'One payment for full, permanent candidate access',
+              price: 0,
+              period: 'one-time',
+              badge: 'Full lifetime access',
+              features: ['Professional candidate profile', 'Unlimited job applications', 'Priority applications', 'Featured profile placement'],
+              active: true,
+              planType: 'Candidate',
+              region: region.name.toLowerCase()
+            };
           return [...current, { ...defaultPlan, ...changes }];
         }
         return current.map((plan) => (plan.id === id ? { ...plan, ...changes } : plan));
@@ -329,32 +329,90 @@ export default function PlansPage() {
   };
 
   const addPlan = (type = activeTab) => {
-    if (type !== 'credits') return;
+    const id = `${type}-${Date.now()}`;
 
-    const id = `credits-${Date.now()}`;
-    const newPlan = { 
-      id, 
-      name: 'New credit pack', 
-      credits: 100, 
-      price: 0, 
-      validityMonths: 12, 
-      // bonus: '', 
-      active: true,
-      region: region.name.toLowerCase()
-    };
-    
-    setDbCreditPlans((current) => [...current, newPlan]);
+    if (type === 'credits') {
+      const newPlan = {
+        id,
+        name: 'New credit pack',
+        credits: 100,
+        price: 0,
+        validityMonths: 12,
+        active: true,
+        region: region.name.toLowerCase()
+      };
+
+      setDbCreditPlans((current) => [...current, newPlan]);
+    } else {
+      const newPlan = {
+        id,
+        name: type === 'recruiter'
+          ? 'New Recruiter Plan'
+          : 'New Candidate Plan',
+
+        description: type === 'recruiter'
+          ? 'One payment for full recruiter access'
+          : 'One payment for full candidate access',
+
+        price: 0,
+        period: 'one-time',
+        badge: '',
+        features: type === 'recruiter'
+          ? [
+            'Unlimited job posts',
+            'Unlimited candidate profile views',
+            'Unlimited recruiter seats'
+          ]
+          : [
+            'Professional candidate profile',
+            'Unlimited job applications',
+            'Priority applications'
+          ],
+
+        active: true,
+        planType: type === 'recruiter'
+          ? 'Recruiter'
+          : 'Candidate',
+
+        region: region.name.toLowerCase()
+      };
+
+      setDbPlans((current) => [...current, newPlan]);
+    }
+
     setEditingId(id);
+    setFeatureDraft('');
     setSaved(false);
   };
 
   const deletePlan = (id, type = activeTab) => {
     if (type === 'credits') {
+      // Existing DB credit plan
       if (!id.startsWith('credits-')) {
         setDeletedCreditPlanIds((prev) => [...prev, id]);
       }
-      setDbCreditPlans((current) => current.filter((plan) => plan.id !== id));
+
+      // Remove from UI immediately
+      setDbCreditPlans((current) =>
+        current.filter((plan) => plan.id !== id)
+      );
+    } else {
+      // Recruiter / Candidate membership
+
+      // Existing DB plan
+      if (
+        !id.startsWith('recruiter-') &&
+        !id.startsWith('candidate-')
+      ) {
+        setDeletedPlanIds((prev) => [...prev, id]);
+      }
+
+      // Remove from UI immediately
+      setDbPlans((current) =>
+        current.filter((plan) => plan.id !== id)
+      );
     }
+
     setEditingId(null);
     setSaved(false);
   };
@@ -380,7 +438,7 @@ export default function PlansPage() {
             console.warn(`Failed to delete credit plan ${planId}:`, err);
           }))
         );
-        
+
         // 2. Save new and modified credit plans
         await Promise.all(
           dbCreditPlans.map(async (plan) => {
@@ -393,21 +451,21 @@ export default function PlansPage() {
               // bonus: plan.bonus,
               isActive: plan.active
             };
-            
+
             const isNew = plan.id.startsWith('credits-');
             if (isNew) {
               await planService.createCreditPlan(payload);
             } else {
               // Check if modified
               const original = originalDbCreditPlans.find(o => o.id === plan.id);
-              const isModified = !original || 
+              const isModified = !original ||
                 original.name !== plan.name ||
                 Number(original.credits) !== Number(plan.credits) ||
                 Number(original.price) !== Number(plan.price) ||
                 Number(original.validityMonths) !== Number(plan.validityMonths) ||
                 // original.bonus !== plan.bonus ||
                 original.active !== plan.active;
-                
+
               if (isModified) {
                 await planService.updateCreditPlan({
                   planId: plan.id,
@@ -417,7 +475,7 @@ export default function PlansPage() {
             }
           })
         );
-        
+
         setSaved(true);
         setEditingId(null);
         await fetchCreditPlans(regionId);
@@ -428,7 +486,7 @@ export default function PlansPage() {
             console.warn(`Failed to delete membership plan ${planId}:`, err);
           }))
         );
-        
+
         // 2. Save new and modified membership plans
         await Promise.all(
           dbPlans.map(async (plan) => {
@@ -443,14 +501,14 @@ export default function PlansPage() {
               features: plan.features,
               isActive: plan.active
             };
-            
+
             const isNew = plan.id.startsWith('recruiter-') || plan.id.startsWith('candidate-');
             if (isNew) {
               await planService.createMembershipPlan(payload);
             } else {
               // Check if modified
               const original = originalDbPlans.find(o => o.id === plan.id);
-              const isModified = !original || 
+              const isModified = !original ||
                 original.name !== plan.name ||
                 original.description !== plan.description ||
                 Number(original.price) !== Number(plan.price) ||
@@ -458,7 +516,7 @@ export default function PlansPage() {
                 original.badge !== plan.badge ||
                 original.active !== plan.active ||
                 JSON.stringify(original.features) !== JSON.stringify(plan.features);
-                
+
               if (isModified) {
                 await planService.updateMembershipPlan({
                   planId: plan.id,
@@ -468,7 +526,7 @@ export default function PlansPage() {
             }
           })
         );
-        
+
         setSaved(true);
         setEditingId(null);
         await fetchMembershipPlans();
@@ -498,110 +556,110 @@ export default function PlansPage() {
       <div className="plans-page">
         {loading && (
           <div className="plans-toast loading-toast">
-          <Loader2 size={18} className="animate-spin-icon" style={{ marginRight: 6 }} />
-          Saving changes...
-        </div>
-      )}
-
-      {error && (
-        <div className="plans-toast error-toast">
-          <AlertTriangle size={18} />
-          {error}
-        </div>
-      )}
-
-      <div className="box-heading plans-heading">
-        <div className="box-title">
-          <h3 className="mb-5">Plans &amp; Pricing</h3>
-          <p className="font-sm color-text-paragraph-2 mb-0">Manage full-access lifetime memberships and recruiter credit packs by country.</p>
-        </div>
-        <div className="box-breadcrumb">
-          <div className="breadcrumbs" style={{ border: 'none', backgroundColor: 'revert' }}>
-            <ul>
-              <li><a className="icon-home" href="/admin/dashboard">Admin</a></li>
-              <li><span>Plans</span></li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <section className="plans-toolbar">
-        {activeTab === 'unlock' ? (
-          <div>
-            <p className="plans-eyebrow" style={{ fontSize: "12px" }}>CREDIT USAGE</p>
-            <div className="country-select" style={{ cursor: 'default' }}>
-              <span className="country-flag"><Unlock size={18} /></span>
-              <span className="country-label"><small>Applies to</small><b>All regions</b></span>
-            </div>
-            <p className="plans-helper">This is a global setting - it isn&apos;t tied to a pricing region.</p>
-          </div>
-        ) : (
-          <div>
-            <p className="plans-eyebrow" style={{ fontSize: "12px" }}>PRICE REGION</p>
-            <div className="region-picker">
-              <button className="country-select" onClick={() => setRegionPickerOpen((open) => !open)} aria-haspopup="listbox" aria-expanded={regionPickerOpen}>
-                <span className="country-flag">{region.flag}</span><span className="country-label"><small>Pricing country</small><b>{region.name}</b></span><span className="currency-code">{region.currency}</span><ChevronDown size={17} className={regionPickerOpen ? 'open' : ''} />
-              </button>
-              {regionPickerOpen && <div className="region-menu" role="listbox" aria-label="Choose price region">
-                <div className="region-menu-title">Choose pricing region</div>
-                {regionGroups.map((group) => <div className="region-group" key={group}>
-                  <span>{group}</span>
-                  {regions.filter((item) => item.group === group).map((item) => <button key={item.id} className={item.id === regionId ? 'selected' : ''} onClick={() => selectRegion(item.id)} role="option" aria-selected={item.id === regionId}><i>{item.flag}</i><b>{item.name}</b><em>{item.currency}</em><Check size={15} /></button>)}
-                </div>)}
-              </div>}
-            </div>
-            <p className="plans-helper">Prices shown in {region.currency}. Changes only apply to {region.name}.</p>
+            <Loader2 size={18} className="animate-spin-icon" style={{ marginRight: 6 }} />
+            Saving changes...
           </div>
         )}
-        <button className="plans-save" onClick={saveChanges} disabled={loading}>
-          {loading ? (
-            <Loader2 size={17} className="animate-spin-icon" />
+
+        {error && (
+          <div className="plans-toast error-toast">
+            <AlertTriangle size={18} />
+            {error}
+          </div>
+        )}
+
+        <div className="box-heading plans-heading">
+          <div className="box-title">
+            <h3 className="mb-5">Plans &amp; Pricing</h3>
+            <p className="font-sm color-text-paragraph-2 mb-0">Manage full-access lifetime memberships and recruiter credit packs by country.</p>
+          </div>
+          <div className="box-breadcrumb">
+            <div className="breadcrumbs" style={{ border: 'none', backgroundColor: 'revert' }}>
+              <ul>
+                <li><a className="icon-home" href="/admin/dashboard">Admin</a></li>
+                <li><span>Plans</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <section className="plans-toolbar">
+          {activeTab === 'unlock' ? (
+            <div>
+              <p className="plans-eyebrow" style={{ fontSize: "12px" }}>CREDIT USAGE</p>
+              <div className="country-select" style={{ cursor: 'default' }}>
+                <span className="country-flag"><Unlock size={18} /></span>
+                <span className="country-label"><small>Applies to</small><b>All regions</b></span>
+              </div>
+              <p className="plans-helper">This is a global setting - it isn&apos;t tied to a pricing region.</p>
+            </div>
           ) : (
-            <Save size={17} />
+            <div>
+              <p className="plans-eyebrow" style={{ fontSize: "12px" }}>PRICE REGION</p>
+              <div className="region-picker">
+                <button className="country-select" onClick={() => setRegionPickerOpen((open) => !open)} aria-haspopup="listbox" aria-expanded={regionPickerOpen}>
+                  <span className="country-flag">{region.flag}</span><span className="country-label"><small>Pricing country</small><b>{region.name}</b></span><span className="currency-code">{region.currency}</span><ChevronDown size={17} className={regionPickerOpen ? 'open' : ''} />
+                </button>
+                {regionPickerOpen && <div className="region-menu" role="listbox" aria-label="Choose price region">
+                  <div className="region-menu-title">Choose pricing region</div>
+                  {regionGroups.map((group) => <div className="region-group" key={group}>
+                    <span>{group}</span>
+                    {regions.filter((item) => item.group === group).map((item) => <button key={item.id} className={item.id === regionId ? 'selected' : ''} onClick={() => selectRegion(item.id)} role="option" aria-selected={item.id === regionId}><i>{item.flag}</i><b>{item.name}</b><em>{item.currency}</em><Check size={15} /></button>)}
+                  </div>)}
+                </div>}
+              </div>
+              <p className="plans-helper">Prices shown in {region.currency}. Changes only apply to {region.name}.</p>
+            </div>
           )}
-          &nbsp; {saved ? 'Changes saved' : 'Save changes'}
-        </button>
-      </section>
+          <button className="plans-save" onClick={saveChanges} disabled={loading}>
+            {loading ? (
+              <Loader2 size={17} className="animate-spin-icon" />
+            ) : (
+              <Save size={17} />
+            )}
+            &nbsp; {saved ? 'Changes saved' : 'Save changes'}
+          </button>
+        </section>
 
-      <div className="plans-tabs" role="tablist" aria-label="Plan type">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return <button key={tab.id} role="tab" aria-selected={activeTab === tab.id} className={activeTab === tab.id ? 'active' : ''} onClick={() => { setActiveTab(tab.id); setEditingId(null); }}><Icon size={18} />{tab.label}</button>;
-        })}
-      </div>
+        <div className="plans-tabs" role="tablist" aria-label="Plan type">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            return <button key={tab.id} role="tab" aria-selected={activeTab === tab.id} className={activeTab === tab.id ? 'active' : ''} onClick={() => { setActiveTab(tab.id); setEditingId(null); }}><Icon size={18} />{tab.label}</button>;
+          })}
+        </div>
 
-      {activeTab === 'unlock' ? (
-        <div className="credit-grid">
-          {(() => {
-            const isEditing = editingId === UNLOCK_CONFIG_ID;
-            return (
-              <article className="plan-card">
-                <div className="plan-card-top">
-                  <div>
-                    <h4>Unlock &amp; download pricing</h4>
-                    <p>How many credits a recruiter spends per action</p>
+        {activeTab === 'unlock' ? (
+          <div className="credit-grid">
+            {(() => {
+              const isEditing = editingId === UNLOCK_CONFIG_ID;
+              return (
+                <article className="plan-card">
+                  <div className="plan-card-top">
+                    <div>
+                      <h4>Unlock &amp; download pricing</h4>
+                      <p>How many credits a recruiter spends per action</p>
+                    </div>
+                    <button
+                      className="plan-edit"
+                      onClick={() => setEditingId(isEditing ? null : UNLOCK_CONFIG_ID)}
+                      aria-label="Edit unlock pricing"
+                    >
+                      <Edit3 size={16} />
+                    </button>
                   </div>
-                  <button
-                    className="plan-edit"
-                    onClick={() => setEditingId(isEditing ? null : UNLOCK_CONFIG_ID)}
-                    aria-label="Edit unlock pricing"
-                  >
-                    <Edit3 size={16} />
-                  </button>
-                </div>
 
-                {isEditing ? (
-                  <div className="edit-fields" style={{ marginTop: 21 }}>
-                    <label>
-                      Credits per profile unlock
-                      <input
-                        type="number"
-                        min="1"
-                        value={unlockConfig.profileUnlockCredits}
-                        onChange={(event) => updateUnlockConfig({ profileUnlockCredits: event.target.value === '' ? '' : Math.max(1, Number(event.target.value)) })}
-                      />
-                    </label>
-                    {/* CV download cost temporarily disabled
+                  {isEditing ? (
+                    <div className="edit-fields" style={{ marginTop: 21 }}>
+                      <label>
+                        Credits per profile unlock
+                        <input
+                          type="number"
+                          min="1"
+                          value={unlockConfig.profileUnlockCredits}
+                          onChange={(event) => updateUnlockConfig({ profileUnlockCredits: event.target.value === '' ? '' : Math.max(1, Number(event.target.value)) })}
+                        />
+                      </label>
+                      {/* CV download cost temporarily disabled
                     <label>
                       Credits per CV download
                       <input
@@ -612,115 +670,151 @@ export default function PlansPage() {
                       />
                     </label>
                     */}
-                    <label>
-                      Candidate access validity (days)
-                      <input
-                        type="number"
-                        min="1"
-                        value={unlockConfig.candidateAccessDays}
-                        onChange={(event) => updateUnlockConfig({ candidateAccessDays: event.target.value === '' ? '' : Math.max(1, Number(event.target.value)) })}
-                      />
-                    </label>
-                  </div>
-                ) : (
-                  <div className="credit-details" style={{ marginTop: 21 }}>
-                    <div><span>Profile unlock cost</span><b>{unlockConfig.profileUnlockCredits} credits</b></div>
-                    {/* CV download cost temporarily disabled
+                      <label>
+                        Candidate access validity (days)
+                        <input
+                          type="number"
+                          min="1"
+                          value={unlockConfig.candidateAccessDays}
+                          onChange={(event) => updateUnlockConfig({ candidateAccessDays: event.target.value === '' ? '' : Math.max(1, Number(event.target.value)) })}
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="credit-details" style={{ marginTop: 21 }}>
+                      <div><span>Profile unlock cost</span><b>{unlockConfig.profileUnlockCredits} credits</b></div>
+                      {/* CV download cost temporarily disabled
                     <div><span>CV download cost</span><b>{unlockConfig.cvDownloadCredits} credits</b></div>
                     */}
-                    <div><span>Access validity</span><b>{unlockConfig.candidateAccessDays} days</b></div>
-                  </div>
-                )}
-
-                <div className="plan-footer">
-                  <button
-                    type="button"
-                    className={`plan-status ${unlockConfig.isActive ? 'is-active' : 'is-inactive'}`}
-                    onClick={() => updateUnlockConfig({ isActive: !unlockConfig.isActive })}
-                    style={{ cursor: 'pointer', border: 'none', background: 'none' }}
-                  >
-                    <i /> {unlockConfig.isActive ? 'Active' : 'Inactive'}
-                  </button>
-                  {isEditing && (
-                    <button className="card-save" onClick={() => setEditingId(null)}><Save size={14} />Done</button>
+                      <div><span>Access validity</span><b>{unlockConfig.candidateAccessDays} days</b></div>
+                    </div>
                   )}
-                </div>
-              </article>
-            );
-          })()}
-        </div>
-      ) : (
-      <div className={activeTab === 'credits' ? 'credit-grid' : 'membership-grid'}>
-        {plans.map((plan) => {
-          const isEditing = editingId === plan.id;
-          return (
-            <article className={`plan-card ${plan.badge ? 'featured' : ''}`} key={plan.id}>
-              {plan.badge && <span className="plan-badge">{plan.badge}</span>}
-              <div className="plan-card-top">
-                <div>
-                  {isEditing ? <input className="edit-name" autoFocus value={plan.name} onChange={(event) => updatePlan(plan.id, { name: event.target.value })} aria-label="Plan name" /> : <h4>{plan.name}</h4>}
-                  {isEditing && activeTab !== 'credits' ? <input className="edit-description" value={plan.description} onChange={(event) => updatePlan(plan.id, { description: event.target.value })} aria-label="Plan description" /> : <p>{activeTab === 'credits' ? `${plan.credits.toLocaleString()} credits for recruiters` : plan.description}</p>}
-                </div>
-                <button className="plan-edit" onClick={() => togglePlanEditor(plan)} aria-label={`Edit ${plan.name}`}><Edit3 size={16} /></button>
-              </div>
-              <div className="plan-price">
-                <span className="currency">{region.symbol}</span>
-                {isEditing ? <input type="number" min="0" step="0.01" value={plan.price} onChange={(event) => updatePlan(plan.id, { price: event.target.value === '' ? '' : Number(event.target.value) })} aria-label={`${plan.name} price`} /> : <strong>{Number(plan.price).toLocaleString(undefined, { minimumFractionDigits: Number(plan.price) % 1 ? 2 : 0, maximumFractionDigits: 2 })}</strong>}
-                <span className="price-period">{activeTab === 'credits' ? 'one-time' : plan.period}</span>
-              </div>
-              {activeTab === 'credits' ? (isEditing ? (
-                <div className="edit-fields">
-                  <label>Credit quantity<input type="number" min="1" value={plan.credits} onChange={(event) => updatePlan(plan.id, { credits: event.target.value === '' ? '' : Math.max(1, Number(event.target.value)) })} /></label>
-                  <label>Validity (in months)<input type="number" min="0" value={plan.validityMonths === 0 ? '' : plan.validityMonths} onChange={(event) => updatePlan(plan.id, { validityMonths: event.target.value === '' ? '' : Math.max(0, Number(event.target.value)) })} /></label>
-                  {/* <label>Bonus credits<input value={plan.bonus} placeholder="e.g. 50 bonus credits" onChange={(event) => updatePlan(plan.id, { bonus: event.target.value })} /></label> */}
-                </div>
-              ) : <div className="credit-details">
-                <div><span>Cost per credit</span><b>{region.symbol}{(Number(plan.price) / (plan.credits || 1)).toFixed(2)}</b></div>
-                {plan.validityMonths ? <div><span>Validity</span><b>{plan.validityMonths} months</b></div> : null}
-                {/* {plan.bonus ? <span className="credit-bonus">+ {plan.bonus}</span> : <span className="credit-bonus muted">No bonus credits</span>} */}
-              </div>) : (isEditing ? (
-                <div className="edit-fields">
-                  <label>Billing Period<input value={plan.period} placeholder="e.g. one-time, 3 months" onChange={(event) => updatePlan(plan.id, { period: event.target.value })} /></label>
-                  <label>Badge / Ribbon text<input value={plan.badge} placeholder="e.g. Popular, Best value" onChange={(event) => updatePlan(plan.id, { badge: event.target.value })} /></label>
-                  <label className="feature-editor">Full-access features<textarea value={featureDraft} onChange={(event) => { setFeatureDraft(event.target.value); updatePlan(plan.id, { features: event.target.value.split('\n').map((feature) => feature.trim()).filter(Boolean) }); }} /></label>
-                </div>
-              ) : <ul className="plan-features">{plan.features.map((feature) => <li key={feature}><Check size={16} />{feature}</li>)}</ul>)}
-              <div className="plan-footer">
-                {activeTab === 'credits' ? (
-                  <button
-                    type="button"
-                    className={`plan-status ${plan.active ? 'is-active' : 'is-inactive'}`}
-                    onClick={() => updatePlan(plan.id, { active: !plan.active })}
-                    style={{ cursor: 'pointer', border: 'none', background: 'none' }}
-                  >
-                    <i /> {plan.active ? 'Active' : 'Inactive'}
-                  </button>
-                ) : (
-                  <span className="plan-status is-active">
-                    <i /> Active
-                  </span>
-                )}
-                {isEditing ? (
-                  <button className="card-save" onClick={() => setEditingId(null)}><Save size={14} />Done</button>
-                ) : (
-                  activeTab === 'credits' && (
-                    <button className="remove-plan" onClick={() => deletePlan(plan.id)} aria-label={`Remove ${plan.name}`}><Trash2 size={15} /></button>
-                  )
-                )}
-              </div>
-            </article>
-          );
-        })}
-        {activeTab === 'credits' && (
-          <button className="add-plan" onClick={() => addPlan()}>
-            <Plus size={22} />
-            <span>Add credit pack</span>
-          </button>
-        )}
-      </div>
-      )}
 
-      <style jsx>{`
+                  <div className="plan-footer">
+                    <button
+                      type="button"
+                      className={`plan-status ${unlockConfig.isActive ? 'is-active' : 'is-inactive'}`}
+                      onClick={() => updateUnlockConfig({ isActive: !unlockConfig.isActive })}
+                      style={{ cursor: 'pointer', border: 'none', background: 'none' }}
+                    >
+                      <i /> {unlockConfig.isActive ? 'Active' : 'Inactive'}
+                    </button>
+                    {isEditing && (
+                      <button className="card-save" onClick={() => setEditingId(null)}><Save size={14} />Done</button>
+                    )}
+                  </div>
+                </article>
+              );
+            })()}
+          </div>
+        ) : (
+          <div className={activeTab === 'credits' ? 'credit-grid' : 'membership-grid'}>
+            {plans.map((plan) => {
+              const isEditing = editingId === plan.id;
+              return (
+                <article className={`plan-card ${plan.badge ? 'featured' : ''}`} key={plan.id}>
+                  {plan.badge && <span className="plan-badge">{plan.badge}</span>}
+                  <div className="plan-card-top">
+                    <div>
+                      {isEditing ? <input className="edit-name" autoFocus value={plan.name} onChange={(event) => updatePlan(plan.id, { name: event.target.value })} aria-label="Plan name" /> : <h4>{plan.name}</h4>}
+                      {isEditing && activeTab !== 'credits' ? <input className="edit-description" value={plan.description} onChange={(event) => updatePlan(plan.id, { description: event.target.value })} aria-label="Plan description" /> : <p>{activeTab === 'credits' ? `${plan.credits.toLocaleString()} credits for recruiters` : plan.description}</p>}
+                    </div>
+                    <button className="plan-edit" onClick={() => togglePlanEditor(plan)} aria-label={`Edit ${plan.name}`}><Edit3 size={16} /></button>
+                  </div>
+                  <div className="plan-price">
+                    <span className="currency">{region.symbol}</span>
+                    {isEditing ? <input type="number" min="0" step="0.01" value={plan.price} onChange={(event) => updatePlan(plan.id, { price: event.target.value === '' ? '' : Number(event.target.value) })} aria-label={`${plan.name} price`} /> : <strong>{Number(plan.price).toLocaleString(undefined, { minimumFractionDigits: Number(plan.price) % 1 ? 2 : 0, maximumFractionDigits: 2 })}</strong>}
+                    <span className="price-period">{activeTab === 'credits' ? 'one-time' : plan.period}</span>
+                  </div>
+                  {activeTab === 'credits' ? (isEditing ? (
+                    <div className="edit-fields">
+                      <label>Credit quantity<input type="number" min="1" value={plan.credits} onChange={(event) => updatePlan(plan.id, { credits: event.target.value === '' ? '' : Math.max(1, Number(event.target.value)) })} /></label>
+                      <label>Validity (in months)<input type="number" min="0" value={plan.validityMonths === 0 ? '' : plan.validityMonths} onChange={(event) => updatePlan(plan.id, { validityMonths: event.target.value === '' ? '' : Math.max(0, Number(event.target.value)) })} /></label>
+                      {/* <label>Bonus credits<input value={plan.bonus} placeholder="e.g. 50 bonus credits" onChange={(event) => updatePlan(plan.id, { bonus: event.target.value })} /></label> */}
+                    </div>
+                  ) : <div className="credit-details">
+                    <div><span>Cost per credit</span><b>{region.symbol}{(Number(plan.price) / (plan.credits || 1)).toFixed(2)}</b></div>
+                    {plan.validityMonths ? <div><span>Validity</span><b>{plan.validityMonths} months</b></div> : null}
+                    {/* {plan.bonus ? <span className="credit-bonus">+ {plan.bonus}</span> : <span className="credit-bonus muted">No bonus credits</span>} */}
+                  </div>) : (isEditing ? (
+                    <div className="edit-fields">
+                      <label>Billing Period<input value={plan.period} placeholder="e.g. one-time, 3 months" onChange={(event) => updatePlan(plan.id, { period: event.target.value })} /></label>
+                      <label>Badge / Ribbon text<input value={plan.badge} placeholder="e.g. Popular, Best value" onChange={(event) => updatePlan(plan.id, { badge: event.target.value })} /></label>
+                      <label className="feature-editor">Full-access features<textarea value={featureDraft} onChange={(event) => { setFeatureDraft(event.target.value); updatePlan(plan.id, { features: event.target.value.split('\n').map((feature) => feature.trim()).filter(Boolean) }); }} /></label>
+                    </div>
+                  ) : <ul className="plan-features">{plan.features.map((feature) => <li key={feature}><Check size={16} />{feature}</li>)}</ul>)}
+                  <div className="plan-footer">
+                    {activeTab === 'credits' ? (
+                      <button
+                        type="button"
+                        className={`plan-status ${plan.active ? 'is-active' : 'is-inactive'}`}
+                        onClick={() => updatePlan(plan.id, { active: !plan.active })}
+                        style={{ cursor: 'pointer', border: 'none', background: 'none' }}
+                      >
+                        <i /> {plan.active ? 'Active' : 'Inactive'}
+                      </button>
+                    ) : (
+                      <span className="plan-status is-active">
+                        <i /> Active
+                      </span>
+                    )}
+                    {isEditing ? (
+                      <button
+                        className="card-save"
+                        onClick={() => setEditingId(null)}
+                      >
+                        <Save size={14} />
+                        Done
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="remove-plan"
+                        onClick={() => deletePlan(plan.id, activeTab)}
+                        aria-label={`Remove ${plan.name}`}
+                        title={`Delete ${plan.name}`}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+            {(activeTab === 'recruiter' || activeTab === 'candidate') && (
+              <button
+                type="button"
+                className="add-plan"
+                onClick={() => addPlan(activeTab)}
+              >
+                <Plus size={22} />
+
+                <span>
+                  Add {activeTab === 'recruiter'
+                    ? 'Recruiter Membership'
+                    : 'Candidate Membership'}
+                </span>
+
+                <small>
+                  Create a new membership plan
+                </small>
+              </button>
+            )}
+
+            {activeTab === 'credits' && (
+              <button
+                type="button"
+                className="add-plan"
+                onClick={() => addPlan('credits')}
+              >
+                <Plus size={22} />
+                <span>Add credit pack</span>
+              </button>
+            )}
+          </div>
+        )}
+
+        <style jsx>{`
         .plans-page { padding-bottom: 34px; color: #172b60; }
         .plans-heading { margin-bottom: 24px; }
         .plans-toolbar { background: #fff; padding: 20px 24px; border-radius: 12px; border: 1px solid #e8edf7; display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 20px; box-shadow: 0 7px 22px rgba(34, 59, 115, .04); }
