@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Footer from '../../../components/Footer'
 import { useRouter } from 'next/navigation'
 import Link from "next/link";
@@ -27,6 +27,11 @@ const GREY = '#c7ccd9'
 export default function DashboardPage() {
   const router = useRouter()
   const [regRange, setRegRange] = useState('week')
+const registrationChartRef = useRef(null)
+const revenueChartRef = useRef(null)
+const industryChartRef = useRef(null)
+const chartScriptLoadedRef = useRef(false)
+
   const [dashboardData, setDashboardData] = useState({
     stats: null,
     registrationGrowth: null,
@@ -45,9 +50,25 @@ export default function DashboardPage() {
     const loadDashboard = async () => {
       try {
         setDashboardError('')
-        const [stats, registrationGrowth, recruitersByIndustry, revenueGrowth, platformOverview, recentRegistrations, recentSupportTickets, recentPayments] = await Promise.all([
+        const [
+          stats,
+          registrationGrowth,
+          recruitersByIndustry,
+          revenueGrowth,
+          platformOverview,
+          recentRegistrations,
+          recentSupportTickets,
+          recentPayments
+        ] = await Promise.all([
           apiRequest('/api/admin/dashboard/stats-widgets', { method: 'GET' }),
-          apiRequest(`/api/admin/dashboard/registration-growth?range=${regRange}`, { method: 'GET' }),
+
+          apiRequest(`/api/admin/dashboard/registration-growth?range=week`, {
+            method: 'GET'
+          }).then((response) => {
+            console.log('REGISTRATION GROWTH RESPONSE:', response);
+            return response;
+          }),
+
           apiRequest('/api/admin/dashboard/recruiters-by-industry', { method: 'GET' }),
           apiRequest('/api/admin/dashboard/revenue-credit-growth', { method: 'GET' }),
           apiRequest('/api/admin/dashboard/platform-overview', { method: 'GET' }),
@@ -55,7 +76,6 @@ export default function DashboardPage() {
           apiRequest('/api/admin/dashboard/recent-support-tickets?limit=5', { method: 'GET' }),
           apiRequest('/api/admin/dashboard/recent-payments?limit=5', { method: 'GET' }),
         ])
-
         if (!cancelled) {
           setDashboardData({
             stats: stats?.data,
@@ -75,7 +95,43 @@ export default function DashboardPage() {
 
     loadDashboard()
     return () => { cancelled = true }
-  }, [regRange])
+  }, [])
+
+useEffect(() => {
+  let cancelled = false
+
+  const loadRegistrationGrowth = async () => {
+    try {
+      const response = await apiRequest(
+        `/api/admin/dashboard/registration-growth?range=${regRange}`,
+        {
+          method: 'GET'
+        }
+      )
+
+      console.log('REGISTRATION GROWTH RESPONSE:', response)
+
+      if (!cancelled) {
+        setDashboardData(prev => ({
+          ...prev,
+          registrationGrowth: response?.data
+        }))
+      }
+    } catch (error) {
+      if (!cancelled) {
+        setDashboardError(
+          error.message || 'Unable to load registration growth.'
+        )
+      }
+    }
+  }
+
+  loadRegistrationGrowth()
+
+  return () => {
+    cancelled = true
+  }
+}, [regRange])
 
   useEffect(() => {
     const script = document.createElement('script')
@@ -98,45 +154,75 @@ export default function DashboardPage() {
 
     // Registration Growth Line Chart — Candidates vs Recruiters
     const ctx1 = document.getElementById('registrationChart')
+
     if (ctx1) {
-      const range = dashboardData.registrationGrowth || { labels: [], candidates: [], recruiters: [] }
-      window._chart1 = new window.Chart(ctx1, {
-        type: 'line',
-        data: {
-          labels: range.labels,
-          datasets: [
-            {
-              label: 'Candidates',
-              data: range.candidates,
-              borderColor: NAVY,
-              backgroundColor: 'rgba(18,35,89,0.08)',
-              borderWidth: 2,
-              pointRadius: 3,
-              tension: 0.4,
-              fill: true,
-            },
-            {
-              label: 'Recruiters',
-              data: range.recruiters,
-              borderColor: AMBER,
-              backgroundColor: 'rgba(255,163,0,0.10)',
-              borderWidth: 2,
-              pointRadius: 3,
-              tension: 0.4,
-              fill: true,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#888', font: { size: 11 } }, border: { display: false } },
-            y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#888', font: { size: 11 } }, border: { display: false }, beginAtZero: true },
+      const range = dashboardData.registrationGrowth || {
+        labels: [],
+        candidates: [],
+        recruiters: []
+      }
+
+      if (window._chart1) {
+        window._chart1.data.labels = range.labels
+        window._chart1.data.datasets[0].data = range.candidates
+        window._chart1.data.datasets[1].data = range.recruiters
+        window._chart1.update()
+      } else {
+        window._chart1 = new window.Chart(ctx1, {
+          type: 'line',
+          data: {
+            labels: range.labels,
+            datasets: [
+              {
+                label: 'Candidates',
+                data: range.candidates,
+                borderColor: NAVY,
+                backgroundColor: 'rgba(18,35,89,0.08)',
+                borderWidth: 2,
+                pointRadius: 3,
+                tension: 0.4,
+                fill: true,
+              },
+              {
+                label: 'Recruiters',
+                data: range.recruiters,
+                borderColor: AMBER,
+                backgroundColor: 'rgba(255,163,0,0.10)',
+                borderWidth: 2,
+                pointRadius: 3,
+                tension: 0.4,
+                fill: true,
+              },
+            ],
           },
-        },
-      })
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false }
+            },
+            scales: {
+              x: {
+                grid: { color: 'rgba(0,0,0,0.04)' },
+                ticks: {
+                  color: '#888',
+                  font: { size: 11 }
+                },
+                border: { display: false }
+              },
+              y: {
+                grid: { color: 'rgba(0,0,0,0.04)' },
+                ticks: {
+                  color: '#888',
+                  font: { size: 11 }
+                },
+                border: { display: false },
+                beginAtZero: true
+              },
+            },
+          }
+        })
+      }
     }
 
     // Revenue & Credit Growth — stacked bar matching the Revenue page's breakdown
@@ -193,26 +279,52 @@ export default function DashboardPage() {
 
     // Recruiters by Industry Donut — segments match the real Industry Type
     // options offered on employer registration / company profile / post-job
+    // Recruiters by Industry Donut
     const ctx3 = document.getElementById('donutChart')
+
     if (ctx3) {
-      window._chart3 = new window.Chart(ctx3, {
-        type: 'doughnut',
-        data: {
-          labels: dashboardData.recruitersByIndustry?.slices?.map((slice) => slice.industry) || [],
-          datasets: [{
-            data: dashboardData.recruitersByIndustry?.slices?.map((slice) => slice.count) || [],
-            backgroundColor: [NAVY, AMBER, GOLD, SLATE, GREY],
-            borderWidth: 0,
-            hoverOffset: 6,
-          }],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          cutout: '68%',
-          plugins: { legend: { display: false } },
-        },
-      })
+      const slices = dashboardData.recruitersByIndustry?.slices || []
+
+      const labels = slices.map((slice) => slice.industry)
+      const data = slices.map((slice) => slice.count)
+
+      if (window._chart3) {
+        window._chart3.data.labels = labels
+        window._chart3.data.datasets[0].data = data
+
+        // No animation when dashboard range changes
+        window._chart3.update('none')
+      } else {
+        window._chart3 = new window.Chart(ctx3, {
+          type: 'doughnut',
+          data: {
+            labels,
+            datasets: [{
+              data,
+              backgroundColor: [
+                NAVY,
+                AMBER,
+                GOLD,
+                SLATE,
+                GREY
+              ],
+              borderWidth: 0,
+              hoverOffset: 6,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '68%',
+            animation: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            }
+          }
+        })
+      }
     }
   }
 
@@ -533,7 +645,7 @@ export default function DashboardPage() {
                             <span style={{
                               fontSize: '10px', fontWeight: 700, letterSpacing: '0.4px', padding: '3px 7px', borderRadius: '4px', whiteSpace: 'nowrap',
 
-                            background: u.type === 'candidate' ? '#fff3df' : '#e8f5e9',
+                              background: u.type === 'candidate' ? '#fff3df' : '#e8f5e9',
                               color: u.type === 'candidate' ? '#c76b00' : '#2e7d32'
 
                             }}>{u.type}</span>
@@ -588,22 +700,22 @@ export default function DashboardPage() {
                           ? { color: '#21844c', bg: '#e6f7ed' }
                           : { color: '#c76b00', bg: '#fff3df' }
                         return (
-                        <tr key={t.ticketId} className="hover-up">
-                          <td style={{ padding: '10px 0', borderBottom: '1px solid #f5f5f5' }}>
-                            <p className="font-sm mb-0" style={{ fontWeight: 600, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>{t.raisedByName}</p>
-                            <span className="font-xs color-text-paragraph-2" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>{t.subject}</span>
-                          </td>
-                          <td style={{ padding: '10px 8px', borderBottom: '1px solid #f5f5f5', whiteSpace: 'nowrap' }}>
-                            <span className="font-xs color-text-paragraph-2">{t.category}</span>
-                          </td>
-                          <td style={{ padding: '10px 0', borderBottom: '1px solid #f5f5f5', whiteSpace: 'nowrap' }}>
-                            <span style={{
-                              fontSize: '11px', fontWeight: 700, padding: '3px 10px',
-                              borderRadius: '4px', color: statusStyle.color, background: statusStyle.bg,
-                              display: 'inline-block'
-                            }}>{t.status}</span>
-                          </td>
-                        </tr>
+                          <tr key={t.ticketId} className="hover-up">
+                            <td style={{ padding: '10px 0', borderBottom: '1px solid #f5f5f5' }}>
+                              <p className="font-sm mb-0" style={{ fontWeight: 600, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>{t.raisedByName}</p>
+                              <span className="font-xs color-text-paragraph-2" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>{t.subject}</span>
+                            </td>
+                            <td style={{ padding: '10px 8px', borderBottom: '1px solid #f5f5f5', whiteSpace: 'nowrap' }}>
+                              <span className="font-xs color-text-paragraph-2">{t.category}</span>
+                            </td>
+                            <td style={{ padding: '10px 0', borderBottom: '1px solid #f5f5f5', whiteSpace: 'nowrap' }}>
+                              <span style={{
+                                fontSize: '11px', fontWeight: 700, padding: '3px 10px',
+                                borderRadius: '4px', color: statusStyle.color, background: statusStyle.bg,
+                                display: 'inline-block'
+                              }}>{t.status}</span>
+                            </td>
+                          </tr>
                         )
                       })}
                     </tbody>
@@ -640,22 +752,22 @@ export default function DashboardPage() {
                           ? { color: '#2e7d32', bg: '#e8f5e9' }
                           : { color: '#e65100', bg: '#fff3e0' }
                         return (
-                        <tr key={p.transactionId} className="hover-up">
-                          <td style={{ padding: '10px 0', borderBottom: '1px solid #f5f5f5' }}>
-                            <p className="font-sm mb-0" style={{ fontWeight: 600, lineHeight: 1.3 }}>{p.entityName}</p>
-                            <span className="font-xs color-text-paragraph-2">{formatTime(p.createdAt)}</span>
-                          </td>
-                          <td style={{ padding: '10px 8px', borderBottom: '1px solid #f5f5f5', whiteSpace: 'nowrap' }}>
-                            <strong className="font-sm">₹{p.amount}</strong>
-                          </td>
-                          <td style={{ padding: '10px 0', borderBottom: '1px solid #f5f5f5', whiteSpace: 'nowrap' }}>
-                            <span style={{
-                              fontSize: '11px', fontWeight: 700, padding: '3px 10px',
-                              borderRadius: '4px', color: statusStyle.color, background: statusStyle.bg,
-                              display: 'inline-block'
-                            }}>{p.paymentStatus}</span>
-                          </td>
-                        </tr>
+                          <tr key={p.transactionId} className="hover-up">
+                            <td style={{ padding: '10px 0', borderBottom: '1px solid #f5f5f5' }}>
+                              <p className="font-sm mb-0" style={{ fontWeight: 600, lineHeight: 1.3 }}>{p.entityName}</p>
+                              <span className="font-xs color-text-paragraph-2">{formatTime(p.createdAt)}</span>
+                            </td>
+                            <td style={{ padding: '10px 8px', borderBottom: '1px solid #f5f5f5', whiteSpace: 'nowrap' }}>
+                              <strong className="font-sm">₹{p.amount}</strong>
+                            </td>
+                            <td style={{ padding: '10px 0', borderBottom: '1px solid #f5f5f5', whiteSpace: 'nowrap' }}>
+                              <span style={{
+                                fontSize: '11px', fontWeight: 700, padding: '3px 10px',
+                                borderRadius: '4px', color: statusStyle.color, background: statusStyle.bg,
+                                display: 'inline-block'
+                              }}>{p.paymentStatus}</span>
+                            </td>
+                          </tr>
                         )
                       })}
                     </tbody>

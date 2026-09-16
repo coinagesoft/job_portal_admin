@@ -3,7 +3,7 @@ const getBaseUrl = () => {
     const hostname = window.location.hostname;
     // If running locally, hit the API directly (localhost is typically permitted or bypasses browser origin restrictions)
     if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.')) {
-      return 'https://jobportal.coinage.in';
+      return 'https://localhost:7011';
     }
   }
   // In production (Vercel), use relative pathing to proxy requests through Vercel's rewrite rule, bypassing CORS

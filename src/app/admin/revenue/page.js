@@ -176,7 +176,7 @@ export default function RevenuePage() {
 
     loadRevenueOverview();
     return () => { active = false; };
-  }, [country, dateFrom, dateTo, timePeriod]);
+  }, []);
 
   useEffect(() => {
     let active = true;
