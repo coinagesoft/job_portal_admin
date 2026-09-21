@@ -334,10 +334,10 @@ export default function PlansPage() {
     if (type === 'credits') {
       const newPlan = {
         id,
-        name: 'New credit pack',
-        credits: 100,
-        price: 0,
-        validityMonths: 12,
+        name: '',
+        credits: '',
+        price: '',
+        validityMonths: '',
         active: true,
         region: region.name.toLowerCase()
       };
@@ -350,26 +350,18 @@ export default function PlansPage() {
           ? 'New Recruiter Plan'
           : 'New Candidate Plan',
 
-        description: type === 'recruiter'
-          ? 'One payment for full recruiter access'
-          : 'One payment for full candidate access',
+        description: '',
 
-        price: 0,
+        price: '',
+
         period: 'one-time',
+
         badge: '',
-        features: type === 'recruiter'
-          ? [
-            'Unlimited job posts',
-            'Unlimited candidate profile views',
-            'Unlimited recruiter seats'
-          ]
-          : [
-            'Professional candidate profile',
-            'Unlimited job applications',
-            'Priority applications'
-          ],
+
+        features: [],
 
         active: true,
+
         planType: type === 'recruiter'
           ? 'Recruiter'
           : 'Candidate',
