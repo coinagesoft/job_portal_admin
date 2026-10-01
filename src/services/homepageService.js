@@ -271,6 +271,69 @@ export const homepageService = {
     });
   },
 
+  // GET /api/admin/homepage/trade-categories/{tradeCategoryId}/sub-trades
+  getSubTrades: async (tradeCategoryId) => {
+    return await apiRequest(
+      `/api/admin/homepage/trade-categories/${tradeCategoryId}/sub-trades`,
+      {
+        method: 'GET',
+      }
+    );
+  },
+
+  // POST /api/admin/homepage/trade-categories/{tradeCategoryId}/sub-trades
+  createSubTrade: async (tradeCategoryId, data) => {
+    return await apiRequest(
+      `/api/admin/homepage/trade-categories/${tradeCategoryId}/sub-trades`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+  },
+
+  // PUT /api/admin/homepage/sub-trades/{id}
+  updateSubTrade: async (id, data) => {
+    return await apiRequest(
+      `/api/admin/homepage/sub-trades/${id}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }
+    );
+  },
+
+  // PATCH /api/admin/homepage/sub-trades/{id}/toggle
+  toggleSubTrade: async (id) => {
+    return await apiRequest(
+      `/api/admin/homepage/sub-trades/${id}/toggle`,
+      {
+        method: 'PATCH',
+      }
+    );
+  },
+
+  // DELETE /api/admin/homepage/sub-trades/{id}
+  deleteSubTrade: async (id) => {
+    return await apiRequest(
+      `/api/admin/homepage/sub-trades/${id}`,
+      {
+        method: 'DELETE',
+      }
+    );
+  },
+
+  // GET /api/admin/homepage/industries/{industryId}/trade-sub-trades
+  getIndustryTradeSubTrades: async (industryId) => {
+    return await apiRequest(
+      `/api/admin/homepage/industries/${industryId}/trade-sub-trades`,
+      {
+        method: 'GET',
+      }
+    );
+  },
+
+
   // GET /api/admin/homepage/suggestions
   getSuggestions: async () => {
     return await apiRequest('/api/admin/homepage/suggestions', {

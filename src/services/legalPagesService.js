@@ -23,6 +23,7 @@ export const legalPagesService = {
     });
   },
 
+
   // POST /api/admin/legal-pages/{type}/publish
   publishDraft: async (type, content, effectiveDate) => {
     return await apiRequest(`/api/admin/legal-pages/${type}/publish`, {
@@ -31,6 +32,7 @@ export const legalPagesService = {
     });
   },
 
+  
   // POST /api/admin/legal-pages/{type}/discard
   discardDraft: async (type) => {
     return await apiRequest(`/api/admin/legal-pages/${type}/discard`, {

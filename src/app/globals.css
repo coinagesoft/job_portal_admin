@@ -170,6 +170,7 @@
   color: #a2a7af;
 }
 
+
 .transaction-reset-button {
   height: 38px;
   padding: 0 13px;
@@ -652,4 +653,147 @@ textarea:focus,
   border-color: #ffa300 !important;
   box-shadow: 0 0 0 3px rgba(255, 163, 0, 0.15) !important;
   outline: 0 !important;
+}
+
+.registration-row {
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 5px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+
+  border: 1px solid #e4eaf3;
+  border-radius: 7px;
+  background: #fff;
+
+  color: #263c70;
+  transition: all .15s ease;
+}
+
+.registration-row:last-child {
+  margin-bottom: 0;
+}
+
+.registration-row:hover {
+  border-color: #ffd28a;
+  background: #fffaf2;
+}
+
+.registration-row-selected {
+  border-color: #ffa300 !important;
+  background: #fff7e8 !important;
+  box-shadow: 0 0 0 2px rgba(255, 163, 0, .08);
+}
+
+.registration-row-selected:hover {
+  border-color: #ffa300 !important;
+  background: #fff7e8 !important;
+}
+
+
+
+.hierarchy-name-input {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  padding: 0 6px;
+  background: transparent;
+  color: #263c70;
+  font-size: 12px;
+  font-weight: 700;
+  outline: none;
+}
+
+
+.hierarchy-name-input:hover {
+  border-color: #d6e0ee;
+  background: #fff;
+}
+
+.hierarchy-name-input:focus {
+  border-color: #ffa300;
+  background: #fff;
+  box-shadow: 0 0 0 2px rgba(255, 163, 0, .08);
+}
+
+.hierarchy-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+}
+
+.hierarchy-row-actions > span {
+  color: #6e809e;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.hierarchy-delete-btn {
+  border: 0;
+  color: #c84b4b;
+  background: #fff1f1;
+  border-radius: 5px;
+  padding: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.hierarchy-delete-btn:hover {
+  background: #ffe3e3;
+}
+
+.hierarchy-reorder-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 0 0 auto;
+}
+
+.hierarchy-reorder-controls button {
+  width: 20px;
+  height: 17px;
+  padding: 1px;
+  border: 1px solid #e3eaf4;
+  border-radius: 4px;
+  background: #f8faff;
+  color: #5270aa;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.hierarchy-reorder-controls button:hover:not(:disabled) {
+  background: #eef3ff;
+  border-color: #cbd8ec;
+}
+
+.hierarchy-reorder-controls button:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+.hierarchy-name-input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  box-sizing: border-box;
+  border: 1px solid #d6e0ee;
+  border-radius: 6px;
+  padding: 0 10px;
+  outline: none;
+  color: #263c70;
+  background: #fff;
+  font: 12px inherit;
+}
+
+.hierarchy-name-input:focus {
+  border-color: #ffa300;
+  box-shadow: 0 0 0 3px rgba(255, 163, 0, .09);
 }

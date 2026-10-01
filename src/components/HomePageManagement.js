@@ -310,7 +310,7 @@ function DropdownItemsEditor({ label, items, onAdd, onRemove }) {
 /** Reordered, capped-list editor for a registration-time dropdown (e.g. Industry Type, Business Category). Reused across the recruiter tab. */
 function RegistrationDropdownSection({
   title, description, icon, items, setItems, markChanged, idPrefix, addLabel, itemLabel, sectionRef,
-  onAdd, onDelete, onUpdate, onMove
+  onAdd, onDelete, onUpdate, onMove, onSelect , selectedId
 }) {
   const enabledCount = items.filter((item) => item.enabled).length
 
@@ -330,7 +330,7 @@ function RegistrationDropdownSection({
       setItems((current) => {
         const next = [...current]
         const swapWith = index + dir
-        ;[next[index], next[swapWith]] = [next[swapWith], next[index]]
+          ;[next[index], next[swapWith]] = [next[swapWith], next[index]]
         return next
       })
       markChanged()
@@ -380,14 +380,36 @@ function RegistrationDropdownSection({
 
       <div className="registration-list">
         {items.map((item, index) => (
-          <div className="registration-row" key={item.id}>
-            <div className="reorder-controls">
+          <div
+           className={`registration-row ${
+  onSelect ? 'registration-row-selectable' : ''
+} ${
+  selectedId === item.id ? 'registration-row-selected' : ''
+}`}
+            key={item.id}
+            onClick={() => onSelect?.(item.id)}
+          >
+            <div
+              className="reorder-controls"
+              onClick={(event) => event.stopPropagation()}
+            >
               <button type="button" disabled={index === 0} onClick={() => handleMove(index, -1)} aria-label="Move up"><ChevronUp size={13} /></button>
               <button type="button" disabled={index === items.length - 1} onClick={() => handleMove(index, 1)} aria-label="Move down"><ChevronDown size={13} /></button>
             </div>
             <span className="reg-index">{index + 1}</span>
-            <input className="reg-name-input" aria-label={`${itemLabel} name`} value={item.name} onChange={(event) => handleUpdateName(item.id, event.target.value)} />
-            <div className="row-actions">
+            <input
+              className="reg-name-input"
+              aria-label={`${itemLabel} name`}
+              value={item.name}
+              onClick={(event) => {
+                event.stopPropagation()
+                onSelect?.(item.id)
+              }}
+              onChange={(event) => handleUpdateName(item.id, event.target.value)}
+            />            <div
+              className="row-actions"
+              onClick={(event) => event.stopPropagation()}
+            >
               <span>{item.enabled ? 'Shown' : 'Hidden'}</span><Toggle enabled={item.enabled} onChange={(enabled) => handleToggle(item.id, enabled)} />
               <button type="button" className="delete-item" onClick={() => handleDelete(item.id)} aria-label={`Remove ${item.name}`}><Trash2 size={14} /></button>
             </div>
@@ -471,6 +493,12 @@ export default function HomePageManagement() {
   const [tradeCategories, setTradeCategories] = useState([])
   const [originalTradeCategories, setOriginalTradeCategories] = useState([])
   const [deletedTradeCategoryIds, setDeletedTradeCategoryIds] = useState([])
+  const [deletedSubTradeIds, setDeletedSubTradeIds] = useState([])
+  const [tradeHierarchy, setTradeHierarchy] = useState(null)
+  const [originalTradeHierarchy, setOriginalTradeHierarchy] = useState(null)
+  const [selectedIndustryId, setSelectedIndustryId] = useState(null)
+  const [selectedTradeId, setSelectedTradeId] = useState(null)
+  const [industryHierarchyCache, setIndustryHierarchyCache] = useState({})
   const [suggestions, setSuggestions] = useState([])
 
   const leftSectionRef = useRef(null)
@@ -554,12 +582,23 @@ export default function HomePageManagement() {
 
       if (regIndustriesData && Array.isArray(regIndustriesData)) {
         const mapped = regIndustriesData.map(item => ({
-          id: String(item.id),
+          id: String(item.registrationIndustryId || item.id),
           name: item.name || '',
           enabled: item.isActive !== false
         }))
         setRegistrationIndustries(mapped)
         setOriginalRegistrationIndustries(JSON.parse(JSON.stringify(mapped)))
+
+        const firstIndustry = mapped[0]
+
+        if (firstIndustry) {
+          setSelectedIndustryId(firstIndustry.id)
+          await loadIndustryHierarchy(firstIndustry.id)
+        } else {
+          setSelectedIndustryId(null)
+          setTradeHierarchy(null)
+          setSelectedTradeId(null)
+        }
       }
 
       if (departmentsData && Array.isArray(departmentsData)) {
@@ -581,21 +620,47 @@ export default function HomePageManagement() {
         setTradeCategories(mapped)
         setOriginalTradeCategories(JSON.parse(JSON.stringify(mapped)))
       }
-
+      console.log('SUGGESTIONS FROM API:', suggestionsData);
       if (suggestionsData && Array.isArray(suggestionsData)) {
         setSuggestions(suggestionsData
           .filter(item => !item.reviewedAt)
           .map(item => {
+
             let mappedType = '';
-            if (item.type === 3 || item.type === '3') mappedType = 'Industry';
-            else if (item.type === 4 || item.type === '4') mappedType = 'Department';
-            else if (item.type === 5 || item.type === '5') mappedType = 'Role';
-            else mappedType = item.type || '';
+
+            if (item.type === 0 || item.type === '0') {
+              mappedType = 'Industry';
+            }
+            else if (item.type === 1 || item.type === '1') {
+              mappedType = 'Location';
+            }
+            else if (item.type === 2 || item.type === '2') {
+              mappedType = 'Role';
+            }
+            else if (item.type === 3 || item.type === '3') {
+              mappedType = 'Registration Industry';
+            }
+            else if (item.type === 4 || item.type === '4') {
+              mappedType = 'Department';
+            }
+            else if (item.type === 5 || item.type === '5') {
+              mappedType = 'Trade Category';
+            }
+            else if (item.type === 6 || item.type === '6') {
+              mappedType = 'Sub Trade';
+            }
+            else {
+              mappedType = item.type || '';
+            }
 
             return {
               id: item.suggestionId || item.id,
               name: item.suggestedName || item.name || '',
               type: mappedType,
+              // Preserve hierarchy information for approval
+              registrationIndustryId: item.registrationIndustryId || null,
+              tradeCategoryId: item.tradeCategoryId || null,
+              parentSuggestionId: item.parentSuggestionId || null,
               submittedBy: item.submittedByName || item.submittedBy || item.submittedByCompany || item.userName || item.submittedByEmail || 'Recruiter',
               submittedByEmail: item.submittedByEmail || '',
               date: item.date || (item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Recent')
@@ -615,9 +680,86 @@ export default function HomePageManagement() {
     fetchPageData()
   }, [])
 
+  const loadIndustryHierarchy = async (industryId) => {
+    if (!industryId) {
+      setTradeHierarchy(null)
+      setSelectedTradeId(null)
+      return
+    }
+
+    try {
+      const response = await homepageService.getIndustryTradeSubTrades(industryId)
+
+      const hierarchy = response?.data || response
+
+      setTradeHierarchy(hierarchy)
+      setOriginalTradeHierarchy(
+        JSON.parse(JSON.stringify(hierarchy))
+      )
+      const firstTrade = hierarchy?.trades?.[0]
+
+      setSelectedTradeId(firstTrade?.tradeCategoryId || null)
+    } catch (err) {
+      console.error('Failed to load industry hierarchy:', err)
+      setTradeHierarchy(null)
+      setSelectedTradeId(null)
+    }
+  }
+
+  const handleIndustrySelect = async (industryId) => {
+    if (industryId === selectedIndustryId) return
+
+    // Save current hierarchy in local cache before switching
+    if (selectedIndustryId && tradeHierarchy) {
+      setIndustryHierarchyCache(prev => ({
+        ...prev,
+        [selectedIndustryId]: {
+          hierarchy: JSON.parse(JSON.stringify(tradeHierarchy)),
+          original: JSON.parse(JSON.stringify(originalTradeHierarchy))
+        }
+      }))
+    }
+
+    setSelectedIndustryId(industryId)
+
+    // New Industry does not exist in DB yet,
+    // so do not call the hierarchy API.
+    if (String(industryId).startsWith('reg-')) {
+      const newHierarchy = {
+        industryId,
+        industryName:
+          registrationIndustries.find(item => item.id === industryId)?.name || '',
+        trades: []
+      }
+
+      setTradeHierarchy(newHierarchy)
+      setOriginalTradeHierarchy(
+        JSON.parse(JSON.stringify(newHierarchy))
+      )
+      setSelectedTradeId(null)
+
+      return
+    }
+
+    // Restore cached hierarchy if this Industry was already edited
+    const cached = industryHierarchyCache[industryId]
+
+    if (cached) {
+      setTradeHierarchy(JSON.parse(JSON.stringify(cached.hierarchy)))
+      setOriginalTradeHierarchy(JSON.parse(JSON.stringify(cached.original)))
+
+      const firstTrade = cached.hierarchy?.trades?.[0]
+      setSelectedTradeId(firstTrade?.tradeCategoryId || null)
+
+      return
+    }
+
+    await loadIndustryHierarchy(industryId)
+  }
+
   const updateCollection = (setter, id, changes) => setter((items) => items.map((item) => item.id === id ? { ...item, ...changes } : item))
   const removeItem = (setter, id) => setter((items) => items.filter((item) => item.id !== id))
-  
+
   const removeIndustry = (id) => {
     if (id && !String(id).startsWith('industry-')) {
       setDeletedIndustryIds(prev => [...prev, id])
@@ -692,7 +834,7 @@ export default function HomePageManagement() {
     setRegistrationIndustries((current) => {
       const next = [...current]
       const swapWith = index + dir
-      ;[next[index], next[swapWith]] = [next[swapWith], next[index]]
+        ;[next[index], next[swapWith]] = [next[swapWith], next[index]]
       return next
     })
     markChanged()
@@ -715,7 +857,7 @@ export default function HomePageManagement() {
     setDepartments((current) => {
       const next = [...current]
       const swapWith = index + dir
-      ;[next[index], next[swapWith]] = [next[swapWith], next[index]]
+        ;[next[index], next[swapWith]] = [next[swapWith], next[index]]
       return next
     })
     markChanged()
@@ -738,15 +880,312 @@ export default function HomePageManagement() {
     setTradeCategories((current) => {
       const next = [...current]
       const swapWith = index + dir
-      ;[next[index], next[swapWith]] = [next[swapWith], next[index]]
+        ;[next[index], next[swapWith]] = [next[swapWith], next[index]]
       return next
     })
     markChanged()
   }
 
+  const addHierarchyTrade = () => {
+    if (!selectedIndustryId) {
+      alert("Please select an Industry first.");
+      return;
+    }
+
+    const newTrade = {
+      tradeCategoryId: `trade-${Date.now()}`,
+      name: "New Trade",
+      displayOrder: (tradeHierarchy?.trades?.length || 0) + 1,
+      isActive: true,
+      subTrades: [],
+      isNew: true,
+      isEditing: true,
+    };
+
+    setTradeHierarchy((prev) => ({
+      ...prev,
+      trades: [...(prev?.trades || []), newTrade],
+    }));
+    setSelectedTradeId(newTrade.tradeCategoryId);
+  };
+
+  const updateHierarchyTrade = (tradeId, changes) => {
+    setTradeHierarchy((current) => {
+      if (!current) return current
+
+      return {
+        ...current,
+        trades: current.trades.map((trade) =>
+          trade.tradeCategoryId === tradeId
+            ? { ...trade, ...changes }
+            : trade
+        ),
+      }
+    })
+
+    markChanged()
+  }
+
+  const toggleHierarchyTrade = (tradeId) => {
+    setTradeHierarchy((current) => {
+      if (!current) return current
+
+      return {
+        ...current,
+        trades: current.trades.map((trade) =>
+          trade.tradeCategoryId === tradeId
+            ? { ...trade, isActive: !trade.isActive }
+            : trade
+        ),
+      }
+    })
+
+    markChanged()
+  }
+
+  const addHierarchySubTrade = () => {
+    if (!selectedTradeId) {
+      return
+    }
+
+    const newSubTrade = {
+      subTradeId: `subtrade-${Date.now()}`,
+      tradeCategoryId: selectedTradeId,
+      name: 'New SubTrade',
+      displayOrder:
+        (tradeHierarchy?.trades
+          ?.find((trade) => trade.tradeCategoryId === selectedTradeId)
+          ?.subTrades?.length || 0) + 1,
+      isActive: true,
+    }
+
+    setTradeHierarchy((prev) => {
+      if (!prev) return prev
+
+      return {
+        ...prev,
+        trades: prev.trades.map((trade) =>
+          trade.tradeCategoryId === selectedTradeId
+            ? {
+              ...trade,
+              subTrades: [
+                ...(trade.subTrades || []),
+                newSubTrade,
+              ],
+            }
+            : trade
+        ),
+      }
+    })
+
+    markChanged()
+  }
+  const updateHierarchySubTrade = (subTradeId, changes) => {
+    setTradeHierarchy((current) => {
+      if (!current) return current
+
+      return {
+        ...current,
+        trades: current.trades.map((trade) =>
+          trade.tradeCategoryId === selectedTradeId
+            ? {
+              ...trade,
+              subTrades: (trade.subTrades || []).map((subTrade) =>
+                subTrade.subTradeId === subTradeId
+                  ? { ...subTrade, ...changes }
+                  : subTrade
+              ),
+            }
+            : trade
+        ),
+      }
+    })
+
+    markChanged()
+  }
+
+  const removeHierarchySubTrade = (subTradeId) => {
+    if (
+      subTradeId &&
+      !String(subTradeId).startsWith('subtrade-')
+    ) {
+      setDeletedSubTradeIds((prev) =>
+        prev.includes(subTradeId)
+          ? prev
+          : [...prev, subTradeId]
+      )
+    }
+
+    setTradeHierarchy((current) => {
+      if (!current) return current
+
+      return {
+        ...current,
+        trades: current.trades.map((trade) =>
+          trade.tradeCategoryId === selectedTradeId
+            ? {
+              ...trade,
+              subTrades: (trade.subTrades || [])
+                .filter(
+                  (subTrade) =>
+                    subTrade.subTradeId !== subTradeId
+                )
+                .map((subTrade, index) => ({
+                  ...subTrade,
+                  displayOrder: index + 1,
+                })),
+            }
+            : trade
+        ),
+      }
+    })
+
+    markChanged()
+  }
+
+  const moveHierarchySubTrade = (index, direction) => {
+    setTradeHierarchy((current) => {
+      if (!current?.trades) return current
+
+      const trade = current.trades.find(
+        (item) => item.tradeCategoryId === selectedTradeId
+      )
+
+      if (!trade?.subTrades) return current
+
+      const nextIndex = index + direction
+
+      if (
+        nextIndex < 0 ||
+        nextIndex >= trade.subTrades.length
+      ) {
+        return current
+      }
+
+      const nextSubTrades = [...trade.subTrades]
+
+        ;[nextSubTrades[index], nextSubTrades[nextIndex]] = [
+          nextSubTrades[nextIndex],
+          nextSubTrades[index],
+        ]
+
+      const reorderedSubTrades = nextSubTrades.map(
+        (subTrade, orderIndex) => ({
+          ...subTrade,
+          displayOrder: orderIndex + 1,
+        })
+      )
+
+      return {
+        ...current,
+        trades: current.trades.map((item) =>
+          item.tradeCategoryId === selectedTradeId
+            ? {
+              ...item,
+              subTrades: reorderedSubTrades,
+            }
+            : item
+        ),
+      }
+    })
+
+    markChanged()
+  }
+
+  const toggleHierarchySubTrade = (subTradeId) => {
+    setTradeHierarchy((current) => {
+      if (!current) return current
+
+      return {
+        ...current,
+        trades: current.trades.map((trade) =>
+          trade.tradeCategoryId === selectedTradeId
+            ? {
+              ...trade,
+              subTrades: (trade.subTrades || []).map((subTrade) =>
+                subTrade.subTradeId === subTradeId
+                  ? {
+                    ...subTrade,
+                    isActive: !subTrade.isActive,
+                  }
+                  : subTrade
+              ),
+            }
+            : trade
+        ),
+      }
+    })
+
+    markChanged()
+  }
+
+  const removeHierarchyTrade = (tradeId) => {
+    if (
+      tradeId &&
+      !String(tradeId).startsWith('trade-')
+    ) {
+      setDeletedTradeCategoryIds(prev =>
+        prev.includes(tradeId) ? prev : [...prev, tradeId]
+      )
+    }
+
+    setTradeHierarchy((current) => {
+      if (!current) return current
+
+      const remainingTrades = current.trades
+        .filter((trade) => trade.tradeCategoryId !== tradeId)
+        .map((trade, index) => ({
+          ...trade,
+          displayOrder: index + 1,
+        }))
+
+      return {
+        ...current,
+        trades: remainingTrades,
+      }
+    })
+
+    if (selectedTradeId === tradeId) {
+      setSelectedTradeId(null)
+    }
+
+    markChanged()
+  }
+
+
+  const moveHierarchyTrade = (index, direction) => {
+    setTradeHierarchy((current) => {
+      if (!current?.trades) return current
+
+      const nextIndex = index + direction
+
+      if (nextIndex < 0 || nextIndex >= current.trades.length) {
+        return current
+      }
+
+      const nextTrades = [...current.trades]
+
+        ;[nextTrades[index], nextTrades[nextIndex]] = [
+          nextTrades[nextIndex],
+          nextTrades[index],
+        ]
+
+      const reorderedTrades = nextTrades.map((trade, orderIndex) => ({
+        ...trade,
+        displayOrder: orderIndex + 1,
+      }))
+
+      return {
+        ...current,
+        trades: reorderedTrades,
+      }
+    })
+
+    markChanged()
+  }
   const newId = (prefix) => `${prefix}-${Date.now()}`
   const markChanged = () => setSaved(false)
-  
+
   const save = async () => {
     if ((hero.title || '').length > 100) {
       setError('Hero title cannot exceed 100 characters.')
@@ -841,7 +1280,7 @@ export default function HomePageManagement() {
         failedDeletions.push(`Industry "${name}"`)
         return Promise.resolve()
       }))
-      
+
       const deleteLocPromises = deletedLocationIds.map(id => homepageService.deleteLocation(id).catch(err => {
         const item = originalLocations.find(o => String(o.id) === String(id))
         const name = item ? item.name : id
@@ -849,6 +1288,8 @@ export default function HomePageManagement() {
         failedDeletions.push(`Location "${name}"`)
         return Promise.resolve()
       }))
+
+      
       const deleteRolePromises = deletedRoleIds.map(id => homepageService.deleteRole(id).catch(err => {
         const item = originalRoles.find(o => String(o.id) === String(id))
         const name = item ? item.name : id
@@ -856,6 +1297,8 @@ export default function HomePageManagement() {
         failedDeletions.push(`Role "${name}"`)
         return Promise.resolve()
       }))
+
+
       const deleteRegIndustryPromises = deletedRegIndustryIds.map(id => homepageService.deleteRegistrationIndustry(id).catch(err => {
         const item = originalRegistrationIndustries.find(o => String(o.id) === String(id))
         const name = item ? item.name : id
@@ -863,6 +1306,8 @@ export default function HomePageManagement() {
         failedDeletions.push(`Registration Industry "${name}"`)
         return Promise.resolve()
       }))
+
+
       const deleteDepartmentPromises = deletedDepartmentIds.map(id => homepageService.deleteDepartment(id).catch(err => {
         const item = originalDepartments.find(o => String(o.id) === String(id))
         const name = item ? item.name : id
@@ -870,6 +1315,8 @@ export default function HomePageManagement() {
         failedDeletions.push(`Department "${name}"`)
         return Promise.resolve()
       }))
+
+
       const deleteTradeCategoryPromises = deletedTradeCategoryIds.map(id => homepageService.deleteTradeCategory(id).catch(err => {
         const item = originalTradeCategories.find(o => String(o.id) === String(id))
         const name = item ? item.name : id
@@ -877,6 +1324,22 @@ export default function HomePageManagement() {
         failedDeletions.push(`Trade category "${name}"`)
         return Promise.resolve()
       }))
+
+      // Delete removed SubTrades
+      const deleteSubTradePromises = deletedSubTradeIds.map(id =>
+        homepageService.deleteSubTrade(id).catch(err => {
+          const item = originalTradeHierarchy?.trades
+            ?.flatMap(trade => trade.subTrades || [])
+            ?.find(subTrade => subTrade.subTradeId === id)
+
+          const name = item ? item.name : id
+
+          console.warn(`Failed to delete SubTrade "${name}":`, err)
+          failedDeletions.push(`SubTrade "${name}"`)
+
+          return Promise.resolve()
+        })
+      )
 
       // 3. Save industries (only new/modified ones)
       const savePromises = processedIndustries
@@ -940,16 +1403,132 @@ export default function HomePageManagement() {
           return homepageService.updateDepartment(item.id, payload)
         })
 
-      // 8. Save existing trade categories (PUT updates)
-      const updateTradeCategoryPromises = tradeCategories
-        .filter(item => item.id && !item.id.startsWith('trade-'))
-        .map((item, index) => {
-          const payload = {
-            name: item.name,
-            displayOrder: index
+      // Build all edited Industry hierarchies
+      const allIndustryHierarchies = {
+        ...industryHierarchyCache,
+        ...(selectedIndustryId && tradeHierarchy
+          ? {
+            [selectedIndustryId]: {
+              hierarchy: tradeHierarchy,
+              original: originalTradeHierarchy
+            }
           }
-          return homepageService.updateTradeCategory(item.id, payload)
-        })
+          : {})
+      }
+
+      const hierarchyEntries = Object.values(allIndustryHierarchies)
+
+
+      // 8. Save existing Trades from ALL edited Industry hierarchies
+      const updateHierarchyTradePromises =
+        hierarchyEntries.flatMap(({ hierarchy }) =>
+          (hierarchy?.trades || [])
+            .filter(
+              trade =>
+                trade.tradeCategoryId &&
+                !String(trade.tradeCategoryId).startsWith('trade-')
+            )
+            .map((trade, index) => {
+              const payload = {
+                name: trade.name,
+                displayOrder: index + 1
+              }
+
+              return homepageService.updateTradeCategory(
+                trade.tradeCategoryId,
+                payload
+              )
+            })
+        )
+
+      // 9. Save existing SubTrades from ALL edited Industry hierarchies
+      const updateHierarchySubTradePromises =
+        hierarchyEntries.flatMap(({ hierarchy }) =>
+          (hierarchy?.trades || []).flatMap(trade =>
+            (trade.subTrades || [])
+              .filter(
+                subTrade =>
+                  subTrade.subTradeId &&
+                  !String(subTrade.subTradeId).startsWith('subtrade-')
+              )
+              .map((subTrade, index) => {
+                const payload = {
+                  name: subTrade.name,
+                  displayOrder: index + 1
+                }
+
+                return homepageService.updateSubTrade(
+                  subTrade.subTradeId,
+                  payload
+                )
+              })
+          )
+        )
+
+      // 10. Create new SubTrades under their correct Trade
+
+
+      // 9.1 Save changed SubTrade active/hidden status
+      // across ALL edited Industry hierarchies
+      const toggleHierarchySubTradePromises =
+        hierarchyEntries.flatMap(({ hierarchy, original }) =>
+          (hierarchy?.trades || []).flatMap(trade =>
+            (trade.subTrades || [])
+              .filter(
+                subTrade =>
+                  subTrade.subTradeId &&
+                  !String(subTrade.subTradeId).startsWith('subtrade-')
+              )
+              .filter(subTrade => {
+                const originalTrade = original?.trades?.find(
+                  item => item.tradeCategoryId === trade.tradeCategoryId
+                )
+
+                const originalSubTrade =
+                  originalTrade?.subTrades?.find(
+                    item => item.subTradeId === subTrade.subTradeId
+                  )
+
+                return (
+                  originalSubTrade &&
+                  subTrade.isActive !== originalSubTrade.isActive
+                )
+              })
+              .map(subTrade =>
+                homepageService.toggleSubTrade(
+                  subTrade.subTradeId
+                )
+              )
+          )
+        )
+
+      // 8.1 Save changed Trade active/hidden status
+      // 8.1 Save changed Trade active/hidden status
+      // across ALL edited Industry hierarchies
+      const toggleHierarchyTradePromises =
+        hierarchyEntries.flatMap(({ hierarchy, original }) =>
+          (hierarchy?.trades || [])
+            .filter(
+              trade =>
+                trade.tradeCategoryId &&
+                !String(trade.tradeCategoryId).startsWith('trade-')
+            )
+            .filter(trade => {
+              const originalTrade = original?.trades?.find(
+                item => item.tradeCategoryId === trade.tradeCategoryId
+              )
+
+              return (
+                originalTrade &&
+                trade.isActive !== originalTrade.isActive
+              )
+            })
+            .map(trade =>
+              homepageService.toggleTradeCategory(
+                trade.tradeCategoryId
+              )
+            )
+        )
 
       // 9. Save stats
       const statsPayload = {
@@ -970,12 +1549,17 @@ export default function HomePageManagement() {
         ...deleteRegIndustryPromises,
         ...deleteDepartmentPromises,
         ...deleteTradeCategoryPromises,
+        ...deleteSubTradePromises,
         ...savePromises,
         ...saveLocPromises,
         ...updateRolePromises,
         ...updateRegIndustryPromises,
         ...updateDepartmentPromises,
-        ...updateTradeCategoryPromises,
+        ...updateHierarchyTradePromises,
+        ...toggleHierarchyTradePromises,
+        ...updateHierarchySubTradePromises,
+        ...toggleHierarchySubTradePromises,
+        // ...updateTradeCategoryPromises,
         homepageService.updateStats(statsPayload)
       ])
 
@@ -1042,30 +1626,133 @@ export default function HomePageManagement() {
         }
       })
 
-      // 13. Save new trade categories (POST create)
-      const newTradeCategories = tradeCategories.filter(item => item.id && item.id.startsWith('trade-'))
-      const createNewTradeCategoryPromises = newTradeCategories.map(async (item) => {
-        const payload = {
-          name: item.name
-        }
-        const response = await homepageService.createTradeCategory(payload)
-        const realId = response.id
-        if (!item.enabled) {
-          await homepageService.toggleTradeCategory(realId)
-        }
-      })
 
+      // 13. Save new Trades from ALL edited Industry hierarchies
+      const newHierarchyTradeEntries = hierarchyEntries.flatMap(
+        ({ hierarchy }) =>
+          (hierarchy?.trades || [])
+            .filter(
+              trade =>
+                trade.tradeCategoryId &&
+                String(trade.tradeCategoryId).startsWith('trade-')
+            )
+            .map(trade => ({
+              industryId: hierarchy.industryId,
+              trade
+            }))
+      )
+
+      const createNewHierarchyTradePromises =
+        newHierarchyTradeEntries.map(async ({ industryId, trade }) => {
+          if (!industryId) {
+            throw new Error(
+              `Cannot create Trade "${trade.name}" because its Industry is missing.`
+            )
+          }
+
+          // 1. Create Trade under the correct Industry
+          const payload = {
+            registrationIndustryId: industryId,
+            name: trade.name
+          }
+
+          const response =
+            await homepageService.createTradeCategory(payload)
+
+          const realTradeId = response.id
+
+          // 2. Save Trade active/hidden state
+          if (!trade.isActive) {
+            await homepageService.toggleTradeCategory(realTradeId)
+          }
+
+          // 3. Create new SubTrades under the newly-created Trade
+          const newSubTrades =
+            (trade.subTrades || []).filter(
+              subTrade =>
+                subTrade.subTradeId &&
+                String(subTrade.subTradeId).startsWith('subtrade-')
+            )
+
+          await Promise.all(
+            newSubTrades.map(async subTrade => {
+              const subTradePayload = {
+                name: subTrade.name
+              }
+
+              const subTradeResponse =
+                await homepageService.createSubTrade(
+                  realTradeId,
+                  subTradePayload
+                )
+
+              const realSubTradeId = subTradeResponse.id
+
+              // Save SubTrade active/hidden state
+              if (!subTrade.isActive) {
+                await homepageService.toggleSubTrade(realSubTradeId)
+              }
+            })
+          )
+        })
+
+      // 13.1 Create new SubTrades under EXISTING Trades
+      const newSubTradeEntries = hierarchyEntries.flatMap(
+        ({ hierarchy }) =>
+          (hierarchy?.trades || []).flatMap(trade => {
+            // New Trade SubTrades are already created in Section 13
+            if (
+              !trade.tradeCategoryId ||
+              String(trade.tradeCategoryId).startsWith('trade-')
+            ) {
+              return []
+            }
+
+            return (trade.subTrades || [])
+              .filter(
+                subTrade =>
+                  subTrade.subTradeId &&
+                  String(subTrade.subTradeId).startsWith('subtrade-')
+              )
+              .map(subTrade => ({
+                tradeId: trade.tradeCategoryId,
+                subTrade
+              }))
+          })
+      )
+
+      const createNewHierarchySubTradePromises =
+        newSubTradeEntries.map(async ({ tradeId, subTrade }) => {
+          const payload = {
+            name: subTrade.name
+          }
+
+          const response =
+            await homepageService.createSubTrade(
+              tradeId,
+              payload
+            )
+
+          const realSubTradeId = response.id
+
+          // Save SubTrade active/hidden state
+          if (!subTrade.isActive) {
+            await homepageService.toggleSubTrade(realSubTradeId)
+          }
+        })
+
+      // Execute new hierarchy creations
       await Promise.all([
         ...createNewLocsPromises,
         ...createNewRolesPromises,
         ...createNewRegIndustryPromises,
         ...createNewDepartmentPromises,
-        ...createNewTradeCategoryPromises
+        ...createNewHierarchyTradePromises,
       ])
 
       // 14. Secondary operations (banner upload, location image uploads, existing role uploads/toggles)
       const uploadBannerPromise = bannerFile ? homepageService.uploadHeroBanner(bannerFile) : Promise.resolve()
-      
+
       const uploadExistingLocImagePromises = Object.entries(locationFiles)
         .filter(([id]) => !id.startsWith('location-'))
         .map(([id, file]) => {
@@ -1128,16 +1815,16 @@ export default function HomePageManagement() {
         })
         .map(item => homepageService.toggleDepartment(item.id))
 
-      const toggleTradeCategoryPromises = tradeCategories
-        .filter(item => {
-          if (item.id.startsWith('trade-')) return false
-          const original = originalTradeCategories.find(o => o.id === item.id)
-          if (original) {
-            return item.enabled !== original.enabled
-          }
-          return !item.enabled
-        })
-        .map(item => homepageService.toggleTradeCategory(item.id))
+      // const toggleTradeCategoryPromises = tradeCategories
+      //   .filter(item => {
+      //     if (item.id.startsWith('trade-')) return false
+      //     const original = originalTradeCategories.find(o => o.id === item.id)
+      //     if (original) {
+      //       return item.enabled !== original.enabled
+      //     }
+      //     return !item.enabled
+      //   })
+      //   .map(item => homepageService.toggleTradeCategory(item.id))
 
       await Promise.all([
         uploadBannerPromise,
@@ -1147,7 +1834,7 @@ export default function HomePageManagement() {
         ...toggleRolePromises,
         ...toggleRegIndustryPromises,
         ...toggleDepartmentPromises,
-        ...toggleTradeCategoryPromises
+        // ...toggleTradeCategoryPromises
       ])
 
       setBannerFile(null)
@@ -1167,7 +1854,7 @@ export default function HomePageManagement() {
         setSuccessMessage('Homepage settings saved successfully.')
         setTimeout(() => setSuccessMessage(''), 5000)
       }
-      
+
       // Reload to get any updated image URLs/timestamps
       await fetchPageData()
     } catch (err) {
@@ -1183,31 +1870,47 @@ export default function HomePageManagement() {
     setIndustries((items) => [...items, { id: newId('industry'), name, jobs: 0, icon: '', enabled: true, showInDropdown: true }])
     markChanged()
   }
+
   const addLocationToDropdown = (name) => {
     setLocations((items) => [...items, { id: newId('location'), name, image: '', enabled: true, showInDropdown: true }])
     markChanged()
   }
 
-  const approveSuggestion = async (suggestion) => {
-    try {
-      await homepageService.approveSuggestion(suggestion.id, {
-        adminNote: 'Approved via Admin Panel',
-        addToList: true
-      })
-      // map suggestion types to the correct recruiter dropdown (Department / Industry / Role)
-      if (suggestion.type === 'Department') {
-        setDepartments((items) => [...items, { id: newId('dep'), name: suggestion.name, enabled: true }])
-      } else if (suggestion.type === 'Role' || suggestion.type === 'Trade' || suggestion.type === 'Trade category' || suggestion.type === 'Role category') {
-        setTradeCategories((items) => [...items, { id: newId('trade'), name: suggestion.name, enabled: true }])
-      } else if (suggestion.type === 'Industry') {
-        setRegistrationIndustries((items) => [...items, { id: newId('reg'), name: suggestion.name, enabled: true }])
-      }
-      setSuggestions((items) => items.filter((item) => item.id !== suggestion.id))
-    } catch (err) {
-      console.error('Failed to approve suggestion:', err)
-      setError('Failed to approve suggestion on the server.')
-    }
+const approveSuggestion = async (suggestion) => {
+  try {
+    setError(null);
+
+    await homepageService.approveSuggestion(suggestion.id, {
+      adminNote: 'Approved via Admin Panel',
+      addToList: true,
+      registrationIndustryId: suggestion.registrationIndustryId || null,
+      tradeCategoryId: suggestion.tradeCategoryId || null,
+      parentSuggestionId: suggestion.parentSuggestionId || null
+    });
+
+    setSuggestions((items) =>
+      items.filter((item) => item.id !== suggestion.id)
+    );
+
+    setSuccessMessage(
+      `"${suggestion.name}" approved successfully.`
+    );
+
+    setTimeout(() => setSuccessMessage(''), 5000);
+
+  } catch (err) {
+    console.error('Failed to approve suggestion:', err);
+
+    const message =
+      err?.data?.message ||
+      'Failed to approve suggestion on the server.';
+
+    setError(message);
   }
+};
+
+
+
   const rejectSuggestion = async (id) => {
     try {
       await homepageService.rejectSuggestion(id, {
@@ -1227,20 +1930,20 @@ export default function HomePageManagement() {
       const left = leftSectionRef.current
       const right = suggestionsPanelRef.current
       if (!left || !right) return
-      
+
       // Get the actual height of the left section
       const leftHeight = left.offsetHeight
-      
+
       // Set the right section to match
       right.style.height = `${leftHeight}px`
     }
-    
+
     // Run after render with a small delay to ensure DOM is painted
     const timeoutId = setTimeout(syncHeights, 100)
-    
+
     // Also sync on resize
     window.addEventListener('resize', syncHeights)
-    
+
     return () => {
       clearTimeout(timeoutId)
       window.removeEventListener('resize', syncHeights)
@@ -1330,7 +2033,7 @@ export default function HomePageManagement() {
       {activeTab === 'candidate' && (
         <>
           <section className="home-section hero-manager">
-            <div className="section-heading"><span className="section-icon"><MonitorCog size={19} /></span><div><h4 style={{fontSize:"20px"}}>Hero section</h4><p style={{color:"#66789c"}}>Set the first message, background image, and search controls.</p></div></div>
+            <div className="section-heading"><span className="section-icon"><MonitorCog size={19} /></span><div><h4 style={{ fontSize: "20px" }}>Hero section</h4><p style={{ color: "#66789c" }}>Set the first message, background image, and search controls.</p></div></div>
             <div className="hero-editor-grid">
               <div className="hero-fields">
                 <label>
@@ -1340,12 +2043,12 @@ export default function HomePageManagement() {
                       {(hero.title || '').length} / 100 characters
                     </span>
                   </div>
-                  <textarea 
-                    value={hero.title} 
-                    rows={3} 
-                    maxLength={100} 
-                    disabled={saving} 
-                    onChange={(event) => { setHero({ ...hero, title: event.target.value.slice(0, 100) }); markChanged() }} 
+                  <textarea
+                    value={hero.title}
+                    rows={3}
+                    maxLength={100}
+                    disabled={saving}
+                    onChange={(event) => { setHero({ ...hero, title: event.target.value.slice(0, 100) }); markChanged() }}
                   />
                 </label>
                 <label>
@@ -1355,12 +2058,12 @@ export default function HomePageManagement() {
                       {(hero.subtitle || '').length} / 250 characters
                     </span>
                   </div>
-                  <textarea 
-                    value={hero.subtitle} 
-                    rows={3} 
-                    maxLength={250} 
-                    disabled={saving} 
-                    onChange={(event) => { setHero({ ...hero, subtitle: event.target.value.slice(0, 250) }); markChanged() }} 
+                  <textarea
+                    value={hero.subtitle}
+                    rows={3}
+                    maxLength={250}
+                    disabled={saving}
+                    onChange={(event) => { setHero({ ...hero, subtitle: event.target.value.slice(0, 250) }); markChanged() }}
                   />
                 </label>
                 <ImageField
@@ -1409,7 +2112,7 @@ export default function HomePageManagement() {
           <section className="home-section">
             <div className="section-heading">
               <span className="section-icon"><BriefcaseBusiness size={19} /></span>
-              <div><h5 style={{fontSize:"16px"}}>Browse by industry</h5><p style={{color:"#66789c"}}>Choose the industries displayed on the home screen and upload an icon for each.</p></div>
+              <div><h5 style={{ fontSize: "16px" }}>Browse by industry</h5><p style={{ color: "#66789c" }}>Choose the industries displayed on the home screen and upload an icon for each.</p></div>
               <button type="button" className="add-item" onClick={() => { setIndustries((items) => [...items, { id: newId('industry'), name: '', jobs: 0, icon: '', enabled: true, showInDropdown: false }]); markChanged() }}><Plus size={15} />Add industry</button>
             </div>
             <div className="compact-list">
@@ -1446,7 +2149,7 @@ export default function HomePageManagement() {
           </section>
 
           <section className="home-section">
-            <div className="section-heading"><span className="section-icon"><BarChart3 size={19} /></span><div><h5 style={{fontSize:"20px"}}>Hiring statistics</h5><p style={{color:"#66789c"}}>Edit the proof points shown below the industry cards.</p></div><button type="button" className="add-item" onClick={() => { setStats((items) => [...items, { id: newId('stat'), value: '0', suffix: '', label: 'New statistic', iconSlug: '' }]); markChanged() }}><Plus size={15} />Add statistic</button></div>
+            <div className="section-heading"><span className="section-icon"><BarChart3 size={19} /></span><div><h5 style={{ fontSize: "20px" }}>Hiring statistics</h5><p style={{ color: "#66789c" }}>Edit the proof points shown below the industry cards.</p></div><button type="button" className="add-item" onClick={() => { setStats((items) => [...items, { id: newId('stat'), value: '0', suffix: '', label: 'New statistic', iconSlug: '' }]); markChanged() }}><Plus size={15} />Add statistic</button></div>
             <div className="stats-editor">
               {stats.map((stat) => (
                 <article className="stat-edit-card" key={stat.id}>
@@ -1503,6 +2206,9 @@ export default function HomePageManagement() {
             onDelete={removeRegIndustry}
             onUpdate={updateRegIndustry}
             onMove={moveRegIndustry}
+            onSelect={handleIndustrySelect}
+            selectedId={selectedIndustryId}
+
           />
 
           {/* Right column - Suggestions inbox with scroll */}
@@ -1535,7 +2241,301 @@ export default function HomePageManagement() {
             </div>
           </section>
 
-          {/* Bottom left - Department dropdown */}
+          {/* Trade + SubTrade hierarchy */}
+          <section className="home-section hierarchy-section">
+            <div className="section-heading">
+              <span className="section-icon">
+                <BriefcaseBusiness size={19} />
+              </span>
+
+              <div>
+                <h5 style={{ fontSize: "20px" }}>Trade Categories</h5>
+                <p style={{ color: "#66789c", fontSize: "12px" }}>
+                  Select an industry to manage its trade categories.
+                </p>
+              </div>
+            </div>
+
+            <div className="hierarchy-layout">
+
+              {/* Trade */}
+              <div className="hierarchy-column">
+                <div className="hierarchy-column-header">
+                  <div>
+                    <strong>Trade</strong>
+                    <span>
+                      {tradeHierarchy?.trades?.length || 0} trades
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="hierarchy-add-btn"
+                    onClick={addHierarchyTrade}
+                  >
+                    <Plus size={13} />
+                    Add Trade
+                  </button>
+                </div>
+
+                <div className="hierarchy-list">
+                  {!tradeHierarchy?.trades?.length ? (
+                    <div className="hierarchy-empty">
+                      No trades available for this industry.
+                    </div>
+                  ) : (
+                    tradeHierarchy.trades.map((trade, index) => (
+                      <div
+                        key={trade.tradeCategoryId}
+                        className={`hierarchy-item ${selectedTradeId === trade.tradeCategoryId ? "is-selected" : ""
+                          }`}
+                        onClick={() => setSelectedTradeId(trade.tradeCategoryId)}
+                      >
+                        {/* Trade reorder */}
+                        <div
+                          className="hierarchy-reorder-controls"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            disabled={index === 0}
+                            onClick={() => moveHierarchyTrade(index, -1)}
+                            aria-label={`Move ${trade.name} up`}
+                          >
+                            <ChevronUp size={12} />
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={
+                              index === tradeHierarchy.trades.length - 1
+                            }
+                            onClick={() => moveHierarchyTrade(index, 1)}
+                            aria-label={`Move ${trade.name} down`}
+                          >
+                            <ChevronDown size={12} />
+                          </button>
+                        </div>
+
+                        {/* Trade number */}
+                        <span className="hierarchy-index">
+                          {index + 1}
+                        </span>
+
+                        {/* Trade name */}
+                        <input
+                          type="text"
+                          className="hierarchy-name-input"
+                          value={trade.name}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            setSelectedTradeId(trade.tradeCategoryId)
+                          }}
+                          onChange={(event) =>
+                            updateHierarchyTrade(
+                              trade.tradeCategoryId,
+                              { name: event.target.value }
+                            )
+                          }
+                        />
+
+                        {/* SubTrade count */}
+                        <span className="hierarchy-count">
+                          {trade.subTrades?.length || 0}
+                        </span>
+
+                        {/* Trade actions */}
+                        <div
+                          className="hierarchy-row-actions"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <span>
+                            {trade.isActive ? "Shown" : "Hidden"}
+                          </span>
+
+                          <Toggle
+                            enabled={trade.isActive}
+                            onChange={() =>
+                              toggleHierarchyTrade(
+                                trade.tradeCategoryId
+                              )
+                            }
+                          />
+
+                          <button
+                            type="button"
+                            className="hierarchy-delete-btn"
+                            onClick={() =>
+                              removeHierarchyTrade(
+                                trade.tradeCategoryId
+                              )
+                            }
+                            aria-label={`Delete ${trade.name}`}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* SubTrade */}
+              <div className="hierarchy-column">
+                <div className="hierarchy-column-header">
+                  <div>
+                    <strong>SubTrade</strong>
+                    <span>
+                      {
+                        tradeHierarchy?.trades
+                          ?.find(
+                            (trade) =>
+                              trade.tradeCategoryId === selectedTradeId
+                          )
+                          ?.subTrades?.length || 0
+                      }{" "}
+                      sub trades
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="hierarchy-add-btn"
+                    onClick={addHierarchySubTrade}
+                    disabled={!selectedTradeId}
+                  >
+                    <Plus size={13} />
+                    Add SubTrade
+                  </button>
+                </div>
+
+                <div className="hierarchy-list">
+                  {!selectedTradeId ? (
+                    <div className="hierarchy-empty">
+                      Select a trade to view sub trades.
+                    </div>
+                  ) : (
+                    (() => {
+                      const selectedTrade =
+                        tradeHierarchy?.trades?.find(
+                          (trade) =>
+                            trade.tradeCategoryId === selectedTradeId
+                        )
+
+                      const subTrades =
+                        selectedTrade?.subTrades || []
+
+                      if (!subTrades.length) {
+                        return (
+                          <div className="hierarchy-empty">
+                            No sub trades available.
+                          </div>
+                        )
+                      }
+
+                      return subTrades.map((subTrade, index) => (
+                        <div
+                          className="hierarchy-item hierarchy-item-static"
+                          key={subTrade.subTradeId}
+                        >
+                          {/* Reorder */}
+                          <div
+                            className="hierarchy-reorder-controls"
+                            onClick={(event) =>
+                              event.stopPropagation()
+                            }
+                          >
+                            <button
+                              type="button"
+                              disabled={index === 0}
+                              onClick={() =>
+                                moveHierarchySubTrade(index, -1)
+                              }
+                              aria-label="Move sub trade up"
+                            >
+                              <ChevronUp size={12} />
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={
+                                index === subTrades.length - 1
+                              }
+                              onClick={() =>
+                                moveHierarchySubTrade(index, 1)
+                              }
+                              aria-label="Move sub trade down"
+                            >
+                              <ChevronDown size={12} />
+                            </button>
+                          </div>
+
+                          {/* Number */}
+                          <span className="hierarchy-index">
+                            {index + 1}
+                          </span>
+
+                          {/* Name */}
+                          <input
+                            className="hierarchy-name-input"
+                            value={subTrade.name}
+                            onChange={(event) =>
+                              updateHierarchySubTrade(
+                                subTrade.subTradeId,
+                                {
+                                  name: event.target.value,
+                                }
+                              )
+                            }
+                          />
+
+                          {/* Show / Hide + Delete */}
+                          <div
+                            className="hierarchy-row-actions"
+                            onClick={(event) =>
+                              event.stopPropagation()
+                            }
+                          >
+                            <span>
+                              {subTrade.isActive
+                                ? "Shown"
+                                : "Hidden"}
+                            </span>
+
+                            <Toggle
+                              enabled={subTrade.isActive}
+                              onChange={() =>
+                                toggleHierarchySubTrade(
+                                  subTrade.subTradeId
+                                )
+                              }
+                            />
+
+                            <button
+                              type="button"
+                              className="hierarchy-delete-btn"
+                              onClick={() =>
+                                removeHierarchySubTrade(
+                                  subTrade.subTradeId
+                                )
+                              }
+                              aria-label={`Delete ${subTrade.name}`}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    })()
+                  )}
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+        {/* Bottom left - Department dropdown */}
           <RegistrationDropdownSection
             title="Employer registration — Department dropdown"
             description={'Control which options appear in the "Department" field of employer registration, their order, and how many show at once.'}
@@ -1551,21 +2551,6 @@ export default function HomePageManagement() {
             onMove={moveDepartment}
           />
 
-          {/* Bottom right - Trade / Role Category dropdown */}
-          <RegistrationDropdownSection
-            title="Employer registration — Trade / Role Category dropdown"
-            description={'Control which options appear in the "Trade / Role Category" field of employer registration, their order, and how many show at once.'}
-            icon={<Briefcase size={19} />}
-            items={tradeCategories} setItems={setTradeCategories}
-            markChanged={markChanged} idPrefix="trade" addLabel="Add trade/role" itemLabel="trade or role category"
-            onAdd={() => {
-              setTradeCategories((current) => [...current, { id: `trade-${Date.now()}`, name: 'New trade or role category', enabled: true }])
-              markChanged()
-            }}
-            onDelete={removeTradeCategory}
-            onUpdate={updateTradeCategory}
-            onMove={moveTradeCategory}
-          />
         </div>
       )}
 
@@ -1613,6 +2598,173 @@ export default function HomePageManagement() {
           background: #fff;
           transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
+.hierarchy-add-btn {
+  border: 1px solid #ffd28a;
+  border-radius: 6px;
+  padding: 6px 9px;
+  background: #fff8ea;
+  color: #ac6d00;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.hierarchy-add-btn:hover {
+  background: #fff0d2;
+  border-color: #ffa300;
+}
+
+        .registration-row-selectable {
+  cursor: pointer;
+}
+
+.registration-row-selectable:hover {
+  background: #fffaf2;
+}
+
+.registration-row-selectable:has(.reg-name-input:focus) {
+  background: transparent;
+}
+        .hierarchy-section {
+  grid-column: 1 / -1;
+}
+
+.hierarchy-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  min-height: 420px;
+}
+
+.hierarchy-column {
+  min-width: 0;
+}
+
+.hierarchy-column + .hierarchy-column {
+  border-left: 1px solid #edf1f6;
+}
+
+.hierarchy-column-header {
+  padding: 15px 18px;
+  border-bottom: 1px solid #edf1f6;
+  background: #fbfcfe;
+}
+
+.hierarchy-column-header > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.hierarchy-column-header strong {
+  color: #172b60;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.hierarchy-column-header span {
+  color: #8997b1;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.hierarchy-list {
+  padding: 8px 14px 14px;
+  max-height: 390px;
+  overflow-y: auto;
+}
+
+.hierarchy-item {
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 5px;
+  padding: 8px 10px;
+  border: 1px solid #e4eaf3;
+  border-radius: 7px;
+  background: #fff;
+  color: #263c70;
+  text-align: left;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+
+.hierarchy-item:hover {
+  border-color: #ffd28a;
+  background: #fffaf2;
+}
+
+.hierarchy-item.is-selected {
+  border-color: #ffa300;
+  background: #fff7e8;
+  box-shadow: 0 0 0 2px rgba(255, 163, 0, .08);
+}
+
+.hierarchy-item-static {
+  cursor: default;
+}
+
+.hierarchy-item-static:hover {
+  border-color: #e4eaf3;
+  background: #fff;
+}
+
+.hierarchy-index {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: #f5f7fb;
+  color: #8190aa;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.hierarchy-name {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.hierarchy-count {
+  min-width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff2dc;
+  color: #c77b00;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.hierarchy-empty {
+  padding: 30px 15px;
+  text-align: center;
+  color: #8a98b0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  .hierarchy-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .hierarchy-column + .hierarchy-column {
+    border-left: 0;
+    border-top: 1px solid #edf1f6;
+  }
+}
         input { height: 38px; }
         select {
           height: 38px;
@@ -1821,9 +2973,9 @@ function ContentImageSection({ title, description, icon, items, setItems, type, 
       <div className="image-card-grid">
         {items.map((item) => (
           <article className="image-edit-card" key={item.id}>
-            <ImageField 
-              value={item.image} 
-              onChange={(value) => update(item.id, { image: value })} 
+            <ImageField
+              value={item.image}
+              onChange={(value) => update(item.id, { image: value })}
               onFileChange={onFileChange ? (file) => onFileChange(item.id, file) : undefined}
             />
             <div className="image-card-body">
