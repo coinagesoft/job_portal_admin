@@ -33,6 +33,19 @@ export default function LegalContentPage() {
     '<h3>2. User Responsibilities</h3>' +
     '<p>Describe user obligations.</p>'
 
+
+    const DEFAULT_CANCELLATION_REFUND =
+  '<h2>Cancellation &amp; Refund Policy</h2>' +
+  '<p>Write or paste your cancellation and refund policy here.</p>' +
+  '<h3>1. Cancellation Policy</h3>' +
+  '<p>Describe the conditions under which users can cancel.</p>' +
+  '<h3>2. Refund Policy</h3>' +
+  '<p>Describe the applicable refund conditions and timelines.</p>' +
+  '<h3>3. Non-Refundable Amounts</h3>' +
+  '<p>Describe any charges or amounts that are non-refundable.</p>' +
+  '<h3>4. Refund Processing</h3>' +
+  '<p>Describe how approved refunds will be processed.</p>'
+
   const todayISO = () => new Date().toISOString().slice(0, 10)
   const formatDate = (iso) => {
     if (!iso) return '—'
@@ -77,6 +90,17 @@ export default function LegalContentPage() {
       hasUnpublishedChanges: false,
       publishedContent: '', publishedEffectiveDate: '',
     },
+    cancellationRefund: {
+  html: DEFAULT_CANCELLATION_REFUND,
+  savedHtml: DEFAULT_CANCELLATION_REFUND,
+  effectiveDate: '',
+  savedEffectiveDate: '',
+  lastSaved: 'Not yet published',
+  status: 'draft',
+  hasUnpublishedChanges: false,
+  publishedContent: '',
+  publishedEffectiveDate: '',
+},
   })
 
   const current = docs[activeTab]
@@ -111,55 +135,114 @@ export default function LegalContentPage() {
   })
 
   // ── fetch policies from backend ──
-  const fetchPolicies = async (showLoading = true) => {
-    if (showLoading) setLoading(true);
-    setError(null);
-    try {
-      const data = await legalPagesService.getLegalPages();
-      const newDocs = { ...docs };
-      data.forEach(item => {
-        if (item.type === 'privacy' || item.type === 'terms') {
-          const content = item.draftContent !== null && item.draftContent !== undefined ? item.draftContent : (item.publishedContent || '');
-          const dateVal = parseDateForInput(item.draftEffectiveDate || item.publishedEffectiveDate || todayISO());
-          
-          newDocs[item.type] = {
-            html: content,
-            savedHtml: content,
-            effectiveDate: dateVal,
-            savedEffectiveDate: dateVal,
-            lastSaved: item.publishedAt
-              ? new Date(item.publishedAt).toLocaleString('en-IN', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: true,
-                })
-              : 'Not yet published',
-            status: item.hasUnpublishedChanges ? 'draft' : 'published',
-            hasUnpublishedChanges: item.hasUnpublishedChanges,
-            publishedContent: item.publishedContent || '',
-            publishedEffectiveDate: parseDateForInput(item.publishedEffectiveDate),
-          };
+const fetchPolicies = async (showLoading = true) => {
+  if (showLoading) setLoading(true);
+  setError(null);
 
-          // Sync active editor content if needed
-          if (item.type === activeTabRef.current && editor && !editor.isDestroyed) {
-            if (editor.getHTML() !== content) {
-              editor.commands.setContent(content, { emitUpdate: false });
+  try {
+    const data = await legalPagesService.getLegalPages();
+
+    const newDocs = { ...docs };
+
+    // Map backend legal document types to frontend document keys
+    const typeToDocKey = {
+      privacy: 'privacy',
+      terms: 'terms',
+      'cancellation-refund': 'cancellationRefund',
+    };
+
+    data.forEach(item => {
+      const docKey = typeToDocKey[item.type];
+
+      // Ignore any document types that are not handled by this page
+      if (!docKey) return;
+
+      const content =
+        item.draftContent !== null &&
+        item.draftContent !== undefined
+          ? item.draftContent
+          : (item.publishedContent || '');
+
+      const dateVal = parseDateForInput(
+        item.draftEffectiveDate ||
+        item.publishedEffectiveDate ||
+        todayISO()
+      );
+
+      newDocs[docKey] = {
+        html: content,
+
+        savedHtml: content,
+
+        effectiveDate: dateVal,
+
+        savedEffectiveDate: dateVal,
+
+        lastSaved: item.publishedAt
+          ? new Date(item.publishedAt).toLocaleString('en-IN', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true,
+            })
+          : 'Not yet published',
+
+        status: item.hasUnpublishedChanges
+          ? 'draft'
+          : 'published',
+
+        hasUnpublishedChanges:
+          item.hasUnpublishedChanges,
+
+        publishedContent:
+          item.publishedContent || '',
+
+        publishedEffectiveDate:
+          parseDateForInput(
+            item.publishedEffectiveDate
+          ),
+      };
+
+      // Sync the currently active tab's editor content
+      // with the content received from the server.
+      if (
+        docKey === activeTabRef.current &&
+        editor &&
+        !editor.isDestroyed
+      ) {
+        if (editor.getHTML() !== content) {
+          editor.commands.setContent(
+            content,
+            {
+              emitUpdate: false,
             }
-          }
+          );
         }
-      });
-      setDocs(newDocs);
-      setDataLoaded(true);
-    } catch (err) {
-      console.error('Failed to fetch legal pages:', err);
-      setError('Failed to load legal pages from the server.');
-    } finally {
-      if (showLoading) setLoading(false);
+      }
+    });
+
+    setDocs(newDocs);
+
+    setDataLoaded(true);
+
+  } catch (err) {
+    console.error(
+      'Failed to fetch legal pages:',
+      err
+    );
+
+    setError(
+      'Failed to load legal pages from the server.'
+    );
+
+  } finally {
+    if (showLoading) {
+      setLoading(false);
     }
   }
+};
 
   // Fetch policies on mount
   useEffect(() => {
@@ -199,7 +282,11 @@ export default function LegalContentPage() {
     setSaving(true)
     try {
       const dateToSend = current.effectiveDate ? new Date(current.effectiveDate).toISOString() : new Date().toISOString()
-      await legalPagesService.updateDraft(activeTab, current.html, dateToSend)
+     await legalPagesService.updateDraft(
+  apiTypeMap[activeTab],
+  current.html,
+  dateToSend
+)
       await fetchPolicies(false) // reload silently
       setSuccessMessage('Draft saved successfully!')
       setTimeout(() => setSuccessMessage(''), 3000)
@@ -218,7 +305,11 @@ export default function LegalContentPage() {
     setSaving(true)
     try {
       const dateToSend = current.effectiveDate ? new Date(current.effectiveDate).toISOString() : new Date().toISOString()
-      await legalPagesService.publishDraft(activeTab, current.html, dateToSend)
+      await legalPagesService.publishDraft(
+  apiTypeMap[activeTab],
+  current.html,
+  dateToSend
+)
       await fetchPolicies(false) // reload silently
       setSuccessMessage('Published successfully!')
       setTimeout(() => setSuccessMessage(''), 3000)
@@ -245,7 +336,7 @@ export default function LegalContentPage() {
     setDiscardDraftConfirmOpen(false)
     setSaving(true)
     try {
-      await legalPagesService.discardDraft(activeTab)
+      await legalPagesService.discardDraft(apiTypeMap[activeTab])
       await fetchPolicies(true) // reload with full spinner as database values shift back
       setSuccessMessage('Server draft discarded successfully!')
       setTimeout(() => setSuccessMessage(''), 3000)
@@ -300,7 +391,17 @@ export default function LegalContentPage() {
   const tabs = [
     { key: 'privacy', label: 'Privacy Policy' },
     { key: 'terms', label: 'Terms & Conditions' },
+    {
+    key: 'cancellationRefund',
+    label: 'Cancellation & Refund Policy',
+     },
   ]
+
+  const apiTypeMap = {
+  privacy: 'privacy',
+  terms: 'terms',
+  cancellationRefund: 'cancellation-refund',
+}
 
   return (
     <>
