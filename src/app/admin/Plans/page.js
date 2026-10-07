@@ -89,18 +89,21 @@ export default function PlansPage() {
       ]);
 
       const loaded = [];
-      const mapPlan = (plan) => ({
-        id: plan.planId,
-        name: plan.planName || '',
-        description: plan.description || '',
-        price: plan.price || 0,
-        period: plan.period || 'one-time',
-        badge: plan.badge || '',
-        features: plan.features || [],
-        active: plan.isActive !== false,
-        planType: plan.planType,
-        region: getRegionName(plan.region)
-      });
+    const mapPlan = (plan) => ({
+  id: plan.planId,
+  name: plan.planName || '',
+  description: plan.description || '',
+  price: plan.price || 0,
+  period: plan.period || 'one-time',
+  badge: plan.badge || '',
+  features: plan.features || [],
+  active: plan.isActive !== false,
+  planType: plan.planType,
+  region: getRegionName(plan.region),
+
+  // Coupons assigned to this plan
+  couponCodes: plan.couponCodes || []
+});
 
       if (Array.isArray(recruiterData)) {
         loaded.push(...recruiterData.map(mapPlan));
@@ -735,6 +738,26 @@ export default function PlansPage() {
                       <label className="feature-editor">Full-access features<textarea value={featureDraft} onChange={(event) => { setFeatureDraft(event.target.value); updatePlan(plan.id, { features: event.target.value.split('\n').map((feature) => feature.trim()).filter(Boolean) }); }} /></label>
                     </div>
                   ) : <ul className="plan-features">{plan.features.map((feature) => <li key={feature}><Check size={16} />{feature}</li>)}</ul>)}
+                 
+                 {activeTab !== 'credits' && plan.couponCodes?.length > 0 && (
+  <div className="mt-3">
+    <div className="fw-semibold mb-2">
+      Assigned Coupons
+    </div>
+
+    <div className="d-flex flex-wrap gap-2">
+      {plan.couponCodes.map((code) => (
+        <span
+          key={code}
+          className="badge bg-success"
+        >
+          {code}
+        </span>
+      ))}
+    </div>
+  </div>
+)}
+                 
                   <div className="plan-footer">
                     {activeTab === 'credits' ? (
                       <button

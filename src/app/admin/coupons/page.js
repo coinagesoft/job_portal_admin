@@ -49,6 +49,14 @@ import './CouponsPage.css';
 
 const regions = [
 
+   {
+        id: 'all',
+        name: 'All Regions',
+        flag: '🌐',
+        currency: '',
+        symbol: ''
+    },
+
     { id: 'us', name: 'United States', flag: '🇺🇸', currency: 'USD', symbol: '$' },
 
     { id: 'in', name: 'India', flag: '🇮🇳', currency: 'INR', symbol: '₹' },
@@ -2270,7 +2278,7 @@ export default function CouponsPage() {
 
 
                                         {/* REGION */}
-                                        <div className="coupon-form-group">
+                                        <div className="coupon-form-group coupon-full-width">
 
                                             <label>
                                                 Region
@@ -2624,7 +2632,7 @@ export default function CouponsPage() {
 
                                         {/* MINIMUM AMOUNT */}
                                         {!form.applyToSpecificPlan && (
-                                            <div className="coupon-form-group">
+                                            <div className="coupon-form-group coupon-full-width">
 
                                                 <label>
                                                     Minimum Order Amount
@@ -2727,7 +2735,7 @@ export default function CouponsPage() {
 
                                     <div className="coupon-form-grid">
 
-                                        <div className="coupon-form-group">
+                                        <div className="coupon-form-group coupon-full-width">
 
                                             <label>
                                                 Total Usage Limit
@@ -2755,7 +2763,7 @@ export default function CouponsPage() {
                                         </div>
 
 
-                                        <div className="coupon-form-group">
+                                        {/* <div className="coupon-form-group">
 
                                             <label>
                                                 Per User Limit
@@ -2780,7 +2788,7 @@ export default function CouponsPage() {
                                                 Leave empty for unlimited usage per user.
                                             </small>
 
-                                        </div>
+                                        </div> */}
 
                                     </div>
 
