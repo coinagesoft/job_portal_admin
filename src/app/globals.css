@@ -274,13 +274,7 @@ input[type=date]:before {
 #scrollUp {
 visibility: hidden;
 }
-/* reduce main content padding */
-.box-content {
-  padding: 20px !important;
-}
-.box-padding {
-    padding: 10px !important;
-}
+
 /* card compact */
 .card-style-1,
 .card-grid-1,

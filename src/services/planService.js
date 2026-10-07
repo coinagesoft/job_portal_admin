@@ -12,6 +12,19 @@ export const planService = {
     });
   },
 
+    // GET /api/admin/membership-plans/active?planType=Recruiter&region=india
+  getActiveMembershipPlans: async (planType, region) => {
+    let url = `/api/admin/membership-plans/active?planType=${planType}`;
+
+    if (region) {
+      url += `&region=${encodeURIComponent(region.toLowerCase())}`;
+    }
+
+    return await apiRequest(url, {
+      method: 'GET',
+    });
+  },
+
   // POST /api/admin/membership-plans
   createMembershipPlan: async (data) => {
     return await apiRequest('/api/admin/membership-plans', {
