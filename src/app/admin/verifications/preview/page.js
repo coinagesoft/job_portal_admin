@@ -14,16 +14,10 @@ import {
   RefreshCw,
   AlertCircle
 } from 'lucide-react';
+import { resolveFileUrl } from '../../../../services/api';
 
 /* ─── Helper for URL formatting ─── */
-const getDocUrl = (url) => {
-  if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
-  }
-  const base = 'https://jobportal.coinage.in';
-  return url.startsWith('/') ? `${base}${url}` : `${base}/${url}`;
-};
+const getDocUrl = (url) => resolveFileUrl(url);
 
 const STATUS_STYLE = {
   'Verified': { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' },

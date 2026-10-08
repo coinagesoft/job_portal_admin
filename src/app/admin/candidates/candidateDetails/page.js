@@ -10,19 +10,13 @@ import {
 } from "lucide-react"
 import { candidateService } from "../../../../services/candidateService"
 import { createPortal } from "react-dom"
+import { resolveFileUrl } from "../../../../services/api"
 
 /* ─── Document Preview Modal (theme-matched) ─── */
 function DocumentPreviewModal({ doc, onClose }) {
   if (!doc) return null
 
-  const getDocUrl = (url) => {
-    if (!url) return "";
-    if (url.startsWith("http://") || url.startsWith("https://")) {
-      return url;
-    }
-    const base = "https://jobportal.coinage.in";
-    return url.startsWith("/") ? `${base}${url}` : `${base}/${url}`;
-  };
+  const getDocUrl = (url) => resolveFileUrl(url);
 
   const resolvedUrl = getDocUrl(doc.url);
   const isPdf = doc.url && doc.url.toLowerCase().endsWith('.pdf');

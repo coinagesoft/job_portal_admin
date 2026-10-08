@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://jobportal.coinage.in/api/:path*"
+      "destination": "http://16.4.32.157/api/:path*"
     }
   ]
 }

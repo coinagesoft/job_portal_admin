@@ -1,18 +1,25 @@
-const getBaseUrl = () => {
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    // If running locally, hit the API directly (localhost is typically permitted or bypasses browser origin restrictions)
-    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.')) {
-      // return 'https://jobportal.coinage.in';
-      return 'https://localhost:7011';
+// ─────────────────────────────────────────────────────────────────────────────
+// Backend address comes ONLY from the .env file (project root):
+//     NEXT_PUBLIC_API_URL=https://localhost:7011
+// Restart `npm run dev` (or rebuild/redeploy) after changing it.
+// ─────────────────────────────────────────────────────────────────────────────
+export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
+const BASE_URL = API_BASE_URL;
 
-    }
+/** Turn a stored file/image value ("/uploads/x.pdf" or old absolute URL) into a loadable URL. */
+export const resolveFileUrl = (url) => {
+  if (!url) return '';
+  if (/^(data|blob):/i.test(url)) return url;
+  if (/^https?:\/\//i.test(url)) {
+    try {
+      const u = new URL(url);
+      // our own uploads: always use the CURRENT base URL (fixes old IP/localhost rows)
+      if (API_BASE_URL && u.pathname.startsWith('/uploads/')) return `${API_BASE_URL}${u.pathname}${u.search}`;
+    } catch { /* invalid URL */ }
+    return url;
   }
-  // In production (Vercel), use relative pathing to proxy requests through Vercel's rewrite rule, bypassing CORS
-  return '';
+  return `${API_BASE_URL}${url.startsWith('/') ? url : `/${url}`}`;
 };
-
-const BASE_URL = getBaseUrl();
 
 export const getHeaders = () => {
   const headers = {

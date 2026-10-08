@@ -1,17 +1,6 @@
-import { apiRequest } from './api';
+import { apiRequest, API_BASE_URL } from './api';
 
-// Adjust this if your api.js exports a differently-named base URL constant.
-const getBaseUrl = () => {
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.')) {
-      return 'https://jobportal.coinage.in';
-    }
-  }
-  return process.env.NEXT_PUBLIC_API_URL || '';
-};
 
-const API_BASE_URL = getBaseUrl();
 
 export const auditLogService = {
   // GET /api/admin/audit-logs

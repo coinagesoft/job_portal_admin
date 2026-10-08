@@ -7,6 +7,7 @@ import {
   Search, Trash2, Upload, UserCog, Users, X
 } from 'lucide-react'
 import { homepageService } from '../services/homepageService'
+import { resolveFileUrl } from '../services/api'
 
 /* ---------------------------------- data ---------------------------------- */
 
@@ -168,11 +169,8 @@ const compressAndResizeImage = (file, maxWidth, maxHeight, callback) => {
 /** Prepend base API domain for relative image URLs like "/uploads/..." */
 const getImageUrl = (url) => {
   if (!url) return ''
-  if (url.startsWith('data:image/') || url.startsWith('http://') || url.startsWith('https://')) {
-    return url
-  }
-  const cleanPath = url.startsWith('/') ? url : `/${url}`
-  return `https://jobportal.coinage.in${cleanPath}`
+  if (url.startsWith('data:image/')) return url
+  return resolveFileUrl(url)
 }
 
 /** Image field with URL input + real file upload preview + broken-image fallback. Reused for hero background, locations, and roles. */

@@ -30,6 +30,7 @@ import {
   Users,
   ExternalLink
 } from "lucide-react";
+import { resolveFileUrl, API_BASE_URL } from "../../../../services/api";
 
 const formatCompanySize = (size) => {
   if (!size) return "N/A";
@@ -51,14 +52,7 @@ export default function EmployerDetailsPage({ searchParams }) {
   const resolvedSearchParams = use(searchParams);
   const id = resolvedSearchParams?.id;
 
-  const getDocUrl = (url) => {
-    if (!url) return "";
-    if (url.startsWith("http://") || url.startsWith("https://")) {
-      return url;
-    }
-    const base = "https://jobportal.coinage.in";
-    return url.startsWith("/") ? `${base}${url}` : `${base}/${url}`;
-  };
+  const getDocUrl = (url) => resolveFileUrl(url);
 
   const [recruiterData, setRecruiterData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -376,13 +370,7 @@ Thank you for your business.
 
     const token = typeof window !== 'undefined' ? localStorage.getItem('jobbox_access_token') : null;
 
-    let baseUrl = '';
-    if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname;
-      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.')) {
-        baseUrl = 'https://jobportal.coinage.in';
-      }
-    }
+    const baseUrl = API_BASE_URL;
 
     const endpoint = `${baseUrl}/api/admin/recruiters/${recId}/transactions/${txn.transactionId || txn.id}/invoice/download`;
 
