@@ -46,6 +46,11 @@ export default function LegalContentPage() {
   '<h3>4. Refund Processing</h3>' +
   '<p>Describe how approved refunds will be processed.</p>'
 
+const DEFAULT_SHIPPING_DELIVERY =
+  '<h2>Shipping &amp; Delivery Policy</h2>' +
+  '<p>Add your shipping and delivery policy here.</p>';
+
+
   const todayISO = () => new Date().toISOString().slice(0, 10)
   const formatDate = (iso) => {
     if (!iso) return '—'
@@ -101,6 +106,18 @@ export default function LegalContentPage() {
   publishedContent: '',
   publishedEffectiveDate: '',
 },
+
+shippingDelivery: {
+  html: DEFAULT_SHIPPING_DELIVERY,
+  savedHtml: DEFAULT_SHIPPING_DELIVERY,
+  effectiveDate: '',
+  savedEffectiveDate: '',
+  lastSaved: 'Not yet published',
+  status: 'draft',
+  hasUnpublishedChanges: false,
+  publishedContent: '',
+  publishedEffectiveDate: '',
+},
   })
 
   const current = docs[activeTab]
@@ -116,10 +133,25 @@ export default function LegalContentPage() {
     shouldRerenderOnTransaction: true, // needed for toolbar active-state highlighting
     content: DEFAULT_PRIVACY,
     extensions: [
-      StarterKit.configure({
-        heading: { levels: [2, 3, 4] },
-        link: false, // not needed for legal copy; avoids pulling in link UI
-      }),
+     StarterKit.configure({
+  heading: { levels: [2, 3, 4] },
+
+  bulletList: {
+    keepMarks: true,
+    keepAttributes: false,
+  },
+
+  orderedList: {
+    keepMarks: true,
+    keepAttributes: false,
+  },
+
+  listItem: {
+    HTMLAttributes: {},
+  },
+
+  link: false,
+}),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Placeholder.configure({ placeholder: 'Start writing…' }),
       Underline,
@@ -149,6 +181,7 @@ const fetchPolicies = async (showLoading = true) => {
       privacy: 'privacy',
       terms: 'terms',
       'cancellation-refund': 'cancellationRefund',
+       'shipping-delivery': 'shippingDelivery',
     };
 
     data.forEach(item => {
@@ -363,26 +396,40 @@ const fetchPolicies = async (showLoading = true) => {
   }, [anyDirty])
 
   // ── toolbar button ──
-  const ToolBtn = ({ active, onClick, title, children }) => (
-    <button
-      type="button"
-      title={title}
-      onMouseDown={e => e.preventDefault()} // keep editor selection intact
-      onClick={onClick}
-      style={{
-        width: '32px', height: '32px', borderRadius: '7px', border: 'none',
-        background: active ? amber : 'transparent',
-        color: active ? '#fff' : navy,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'pointer', fontSize: '14px', fontWeight: 700, flexShrink: 0,
-        transition: 'background .15s',
-      }}
-      onMouseOver={e => { if (!active) e.currentTarget.style.background = '#FFF4E0' }}
-      onMouseOut={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
-    >
-      {children}
-    </button>
-  )
+const ToolBtn = ({ active, onClick, title, children }) => (
+  <button
+    type="button"
+    title={title}
+    onMouseDown={(e) => {
+      e.preventDefault()
+      onClick()
+    }}
+    style={{
+      width: '32px',
+      height: '32px',
+      borderRadius: '7px',
+      border: 'none',
+      background: active ? amber : 'transparent',
+      color: active ? '#fff' : navy,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: 700,
+      flexShrink: 0,
+      transition: 'background .15s',
+    }}
+    onMouseOver={e => {
+      if (!active) e.currentTarget.style.background = '#FFF4E0'
+    }}
+    onMouseOut={e => {
+      if (!active) e.currentTarget.style.background = 'transparent'
+    }}
+  >
+    {children}
+  </button>
+)
 
   const Divider = () => (
     <div style={{ width: '1px', alignSelf: 'stretch', background: border, margin: '4px 6px' }} />
@@ -395,12 +442,17 @@ const fetchPolicies = async (showLoading = true) => {
     key: 'cancellationRefund',
     label: 'Cancellation & Refund Policy',
      },
+       {
+    key: 'shippingDelivery',
+    label: 'Shipping & Delivery Policy',
+  },
   ]
 
   const apiTypeMap = {
   privacy: 'privacy',
   terms: 'terms',
   cancellationRefund: 'cancellation-refund',
+  shippingDelivery: 'shipping-delivery',
 }
 
   return (
