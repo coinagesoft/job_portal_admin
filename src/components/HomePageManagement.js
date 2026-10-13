@@ -2,72 +2,18 @@
 
 import { useState, useRef, useEffect } from 'react'
 import {
-  AlertTriangle, BarChart3, Briefcase, BriefcaseBusiness, Building2, Check, ChevronDown, ChevronUp,
-  GraduationCap, ImageOff, ImagePlus, Lightbulb, Loader2, MapPin, MonitorCog, Plus, Save,
-  Search, Trash2, Upload, UserCog, Users, X
+  AlertTriangle, BarChart3, Briefcase, BriefcaseBusiness,
+  Building2, Check, ChevronDown, ChevronUp, GraduationCap,
+  ImageOff, ImagePlus, Lightbulb, Loader2, MapPin,
+  MonitorCog, Plus, Save, Search, Trash2, Upload,
+  UserCog, Users, X, Layers
 } from 'lucide-react'
 import { homepageService } from '../services/homepageService'
 import { resolveFileUrl } from '../services/api'
+import TradeCreditAssignment from "./TradeCreditAssignment.js";
+import TradeTierManagement from './Tradetiermanagement'
 
-/* ---------------------------------- data ---------------------------------- */
 
-const initialIndustries = [
-  { id: 'retail', name: 'Retail', jobs: '1 Jobs Available', icon: '', enabled: true, showInDropdown: true },
-  { id: 'manufacturing', name: 'Manufacturing', jobs: '6 Jobs Available', icon: '', enabled: true, showInDropdown: true },
-  { id: 'marine', name: 'Marine & Shipping', jobs: '1 Jobs Available', icon: '', enabled: true, showInDropdown: true },
-  { id: 'logistics', name: 'Logistics & Transportation', jobs: '2 Jobs Available', icon: '', enabled: true, showInDropdown: true },
-  { id: 'construction', name: 'Construction & Infrastructure', jobs: '1 Jobs Available', icon: '', enabled: true, showInDropdown: false },
-]
-
-const initialStats = [
-  { id: 'placed', value: '25K+', label: 'Candidates Placed', description: 'Skilled candidates successfully placed in domestic and overseas project opportunities' },
-  { id: 'countries', value: '22+', label: 'Countries Overseas', description: 'Active hiring network supporting international manpower deployment programs' },
-  { id: 'skilled', value: '10K+', label: 'Skilled People', description: 'Verified professionals in construction, fabrication, logistics, marine and construction' },
-  { id: 'clients', value: '65+', label: 'Happy Clients', description: 'Trusted employers and recruitment partners with repeat hiring demand' },
-]
-
-const initialLocations = [
-  { id: 'qatar', name: 'Qatar', image: '/assets/imgs/page/homepage1/location1.png', enabled: true, showInDropdown: true },
-  { id: 'london', name: 'United Kingdom', image: '/assets/imgs/page/homepage1/location2.png', enabled: true, showInDropdown: true },
-  { id: 'india', name: 'India', image: '/assets/imgs/page/homepage1/location3.png', enabled: true, showInDropdown: true },
-  { id: 'uae', name: 'United Arab Emirates', image: '/assets/imgs/page/homepage1/location4.png', enabled: true, showInDropdown: false },
-]
-
-const initialRoles = [
-  { id: 'warehouse', name: 'Warehouse', image: '/assets/imgs/page/homepage2/img1.png', enabled: true },
-  { id: 'travel', name: 'Travel & Tourism', image: '/assets/imgs/page/homepage2/img2.png', enabled: true },
-  { id: 'handling', name: 'Warehouse & Material Handling', image: '/assets/imgs/page/homepage2/img3.png', enabled: true },
-  { id: 'machining', name: 'Manufacturing & Machining', image: '/assets/imgs/page/homepage2/img4.png', enabled: true },
-]
-
-const initialRegistrationIndustries = [
-  { id: 'reg-agency', name: 'Recruitment agency', enabled: true },
-  { id: 'reg-construction', name: 'Construction & Infrastructure', enabled: true },
-  { id: 'reg-marine', name: 'Marine & Shipping', enabled: true },
-  { id: 'reg-oilgas', name: 'Oil & Gas', enabled: true },
-  { id: 'reg-manufacturing', name: 'Manufacturing', enabled: true },
-  { id: 'reg-logistics', name: 'Logistics & Transportation', enabled: true },
-  { id: 'reg-retail', name: 'Retail', enabled: false },
-  { id: 'reg-it', name: 'IT Services', enabled: false },
-  { id: 'reg-hospitality', name: 'Hospitality & Tourism', enabled: false },
-]
-
-const initialRegistrationBusinessCategories = [
-  { id: 'cat-staffing', name: 'Staffing Agency', enabled: true },
-  { id: 'cat-manpower', name: 'Manpower Supply', enabled: true },
-  { id: 'cat-consultancy', name: 'HR Consultancy', enabled: true },
-  { id: 'cat-direct', name: 'Direct Employer', enabled: true },
-  { id: 'cat-training', name: 'Training Provider', enabled: false },
-  { id: 'cat-payroll', name: 'Payroll Outsourcing', enabled: false },
-]
-
-const initialSuggestions = [
-  { id: 'sugg-1', type: 'Industry', name: 'Renewable Energy', submittedBy: 'Al Noor Recruiters', date: '2026-08-01' },
-  { id: 'sugg-2', type: 'Department', name: 'Operations', submittedBy: 'Prime HR Solutions', date: '2026-08-03' },
-  { id: 'sugg-3', type: 'Role', name: 'Site Supervisor', submittedBy: 'Al Noor Recruiters', date: '2026-08-04' },
-  { id: 'sugg-4', type: 'Industry', name: 'Renewables & Solar', submittedBy: 'GreenHire', date: '2026-08-05' },
-  { id: 'sugg-5', type: 'Department', name: 'Compliance', submittedBy: 'SafeStaff', date: '2026-08-06' },
-]
 
 /* --------------------------------- helpers --------------------------------- */
 
@@ -308,7 +254,7 @@ function DropdownItemsEditor({ label, items, onAdd, onRemove }) {
 /** Reordered, capped-list editor for a registration-time dropdown (e.g. Industry Type, Business Category). Reused across the recruiter tab. */
 function RegistrationDropdownSection({
   title, description, icon, items, setItems, markChanged, idPrefix, addLabel, itemLabel, sectionRef,
-  onAdd, onDelete, onUpdate, onMove, onSelect , selectedId
+  onAdd, onDelete, onUpdate, onMove, onSelect, selectedId
 }) {
   const enabledCount = items.filter((item) => item.enabled).length
 
@@ -379,11 +325,9 @@ function RegistrationDropdownSection({
       <div className="registration-list">
         {items.map((item, index) => (
           <div
-           className={`registration-row ${
-  onSelect ? 'registration-row-selectable' : ''
-} ${
-  selectedId === item.id ? 'registration-row-selected' : ''
-}`}
+            className={`registration-row ${onSelect ? 'registration-row-selectable' : ''
+              } ${selectedId === item.id ? 'registration-row-selected' : ''
+              }`}
             key={item.id}
             onClick={() => onSelect?.(item.id)}
           >
@@ -447,6 +391,11 @@ function RegistrationDropdownSection({
     </section>
   )
 }
+
+
+
+
+
 
 /* --------------------------------- main --------------------------------- */
 
@@ -1287,7 +1236,7 @@ export default function HomePageManagement() {
         return Promise.resolve()
       }))
 
-      
+
       const deleteRolePromises = deletedRoleIds.map(id => homepageService.deleteRole(id).catch(err => {
         const item = originalRoles.find(o => String(o.id) === String(id))
         const name = item ? item.name : id
@@ -1874,38 +1823,38 @@ export default function HomePageManagement() {
     markChanged()
   }
 
-const approveSuggestion = async (suggestion) => {
-  try {
-    setError(null);
+  const approveSuggestion = async (suggestion) => {
+    try {
+      setError(null);
 
-    await homepageService.approveSuggestion(suggestion.id, {
-      adminNote: 'Approved via Admin Panel',
-      addToList: true,
-      registrationIndustryId: suggestion.registrationIndustryId || null,
-      tradeCategoryId: suggestion.tradeCategoryId || null,
-      parentSuggestionId: suggestion.parentSuggestionId || null
-    });
+      await homepageService.approveSuggestion(suggestion.id, {
+        adminNote: 'Approved via Admin Panel',
+        addToList: true,
+        registrationIndustryId: suggestion.registrationIndustryId || null,
+        tradeCategoryId: suggestion.tradeCategoryId || null,
+        parentSuggestionId: suggestion.parentSuggestionId || null
+      });
 
-    setSuggestions((items) =>
-      items.filter((item) => item.id !== suggestion.id)
-    );
+      setSuggestions((items) =>
+        items.filter((item) => item.id !== suggestion.id)
+      );
 
-    setSuccessMessage(
-      `"${suggestion.name}" approved successfully.`
-    );
+      setSuccessMessage(
+        `"${suggestion.name}" approved successfully.`
+      );
 
-    setTimeout(() => setSuccessMessage(''), 5000);
+      setTimeout(() => setSuccessMessage(''), 5000);
 
-  } catch (err) {
-    console.error('Failed to approve suggestion:', err);
+    } catch (err) {
+      console.error('Failed to approve suggestion:', err);
 
-    const message =
-      err?.data?.message ||
-      'Failed to approve suggestion on the server.';
+      const message =
+        err?.data?.message ||
+        'Failed to approve suggestion on the server.';
 
-    setError(message);
-  }
-};
+      setError(message);
+    }
+  };
 
 
 
@@ -1996,8 +1945,21 @@ const approveSuggestion = async (suggestion) => {
 
       <div className="homepage-manager-bar">
         <div>
-          <span>{activeTab === 'candidate' ? 'Candidate website' : 'Recruiter / Employer'}</span>
-          <h4>{activeTab === 'candidate' ? 'Home Page Management' : 'Recruiter Registration Management'}</h4>
+          <span>
+            {activeTab === 'candidate'
+              ? 'Candidate website'
+              : activeTab === 'recruiter'
+                ? 'Recruiter / Employer'
+                : 'Tier Management'}
+          </span>
+
+          <h4>
+            {activeTab === 'candidate'
+              ? 'Home Page Management'
+              : activeTab === 'recruiter'
+                ? 'Recruiter Registration Management'
+                : 'Trade Tier Management'}
+          </h4>
           <p style={{ fontSize: '13px', color: '#66789c' }}>
             {activeTab === 'candidate'
               ? 'Control the content and cards shown to candidates on the public home page.'
@@ -2026,6 +1988,27 @@ const approveSuggestion = async (suggestion) => {
         <button type="button" role="tab" aria-selected={activeTab === 'recruiter'} className={activeTab === 'recruiter' ? 'is-active' : ''} onClick={() => setActiveTab('recruiter')}>
           <UserCog size={15} />Recruiter
         </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'tiers'}
+          className={activeTab === 'tiers' ? 'is-active' : ''}
+          onClick={() => setActiveTab('tiers')}
+        >
+          <Layers size={15} />
+          Tier Management
+        </button>
+
+       <button
+  type="button"
+  role="tab"
+  aria-selected={activeTab === "tradeCredits"}
+  className={activeTab === "tradeCredits" ? "is-active" : ""}
+  onClick={() => setActiveTab("tradeCredits")}
+>
+  <BriefcaseBusiness size={15} />
+  Trade Credit Assignment
+</button>
       </div>
 
       {activeTab === 'candidate' && (
@@ -2533,7 +2516,7 @@ const approveSuggestion = async (suggestion) => {
             </div>
           </section>
 
-        {/* Bottom left - Department dropdown */}
+          {/* Bottom left - Department dropdown */}
           <RegistrationDropdownSection
             title="Employer registration — Department dropdown"
             description={'Control which options appear in the "Department" field of employer registration, their order, and how many show at once.'}
@@ -2552,6 +2535,9 @@ const approveSuggestion = async (suggestion) => {
         </div>
       )}
 
+      {activeTab === 'tiers' && <TradeTierManagement />}
+
+      {activeTab === "tradeCredits" && <TradeCreditAssignment />}
       <style jsx>{`
         .homepage-manager { color: #172b60; display: grid; gap: 19px; padding-bottom: 28px; }
         .homepage-manager-bar, .home-section { border: 1px solid #e1e8f3; border-radius: 13px; background: #fff; box-shadow: 0 7px 21px rgba(27, 52, 102, .04); transition: all 0.35s ease !important; }

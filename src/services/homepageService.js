@@ -362,5 +362,55 @@ export const homepageService = {
     return await apiRequest(`/api/admin/homepage/suggestions/${id}`, {
       method: 'DELETE',
     });
-  }
+  },
+
+  // GET /api/trade-credit/mappings
+getTradeCreditMappings: async () => {
+  return await apiRequest('/api/trade-credit/mappings', {
+    method: 'GET',
+  });
+},
+
+// GET /api/trade-credit/tiers
+getTradeCreditTiers: async () => {
+  return await apiRequest('/api/trade-credit/tiers', {
+    method: 'GET',
+  });
+},
+
+// PUT /api/trade-credit/mappings/{tradeCategoryId}
+saveMainTradeCreditMapping: async (tradeCategoryId, data) => {
+  return await apiRequest(
+    `/api/trade-credit/mappings/${tradeCategoryId}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }
+  );
+},
+
+
+
+// POST /api/trade-credit/tiers
+createTradeCreditTier: async (data) => {
+  return await apiRequest('/api/trade-credit/tiers', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+},
+
+// PUT /api/trade-credit/tiers/{tierId}
+updateTradeCreditTier: async (tierId, data) => {
+  return await apiRequest(`/api/trade-credit/tiers/${tierId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+},
+
+// PATCH /api/trade-credit/tiers/{tierId}/toggle
+toggleTradeCreditTier: async (tierId) => {
+  return await apiRequest(`/api/trade-credit/tiers/${tierId}/toggle`, {
+    method: 'PATCH',
+  });
+},
 };
