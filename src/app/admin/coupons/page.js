@@ -13,6 +13,7 @@ import {
     Search,
 
     RefreshCw,
+    RotateCcw,
 
     X,
 
@@ -326,6 +327,8 @@ export default function CouponsPage() {
     const [filterRegion, setFilterRegion] = useState('');
 
     const [filterStatus, setFilterStatus] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
 
 
@@ -350,6 +353,10 @@ export default function CouponsPage() {
         text: '',
 
     });
+
+    // Save/validation errors are shown inside the popup, not on the page
+    // behind it (page-level `message` stays for success/other notices).
+    const [modalError, setModalError] = useState('');
 
 
 
@@ -598,6 +605,40 @@ export default function CouponsPage() {
 
     }, [coupons, search]);
 
+    // ---- Pagination (client-side over the filtered list) ----
+    const totalPages = Math.max(
+        1,
+        Math.ceil(filteredCoupons.length / pageSize)
+    );
+
+    const safePage = Math.min(currentPage, totalPages);
+
+    const pagedCoupons = useMemo(
+        () =>
+            filteredCoupons.slice(
+                (safePage - 1) * pageSize,
+                safePage * pageSize
+            ),
+        [filteredCoupons, safePage, pageSize]
+    );
+
+    // Go back to page 1 whenever the result set changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, filterPlanType, filterRegion, filterStatus, pageSize]);
+
+    const hasActiveFilters = Boolean(
+        search.trim() || filterPlanType || filterRegion || filterStatus
+    );
+
+    const handleResetFilters = () => {
+        setSearch('');
+        setFilterPlanType('');
+        setFilterRegion('');
+        setFilterStatus('');
+        setCurrentPage(1);
+    };
+
 
 
 
@@ -707,6 +748,7 @@ export default function CouponsPage() {
             text: '',
         });
 
+        setModalError('');
         setShowModal(true);
     };
 
@@ -790,6 +832,7 @@ export default function CouponsPage() {
             text: '',
         });
 
+        setModalError('');
         setShowModal(true);
     };
 
@@ -804,6 +847,8 @@ export default function CouponsPage() {
         if (saving) return;
 
 
+
+        setModalError('');
 
         setShowModal(false);
 
@@ -1013,13 +1058,7 @@ export default function CouponsPage() {
 
         if (validationError) {
 
-            setMessage({
-
-                type: 'error',
-
-                text: validationError,
-
-            });
+            setModalError(validationError);
 
 
 
@@ -1103,6 +1142,8 @@ export default function CouponsPage() {
 
             });
 
+            setModalError('');
+
 
 
             if (isEditMode) {
@@ -1153,13 +1194,7 @@ export default function CouponsPage() {
 
 
 
-            setMessage({
-
-                type: 'error',
-
-                text: getErrorMessage(error),
-
-            });
+            setModalError(getErrorMessage(error));
 
         } finally {
 
@@ -1501,6 +1536,17 @@ export default function CouponsPage() {
 
 
                     <button
+                        type="button"
+                        className="reset-filters-btn"
+                        onClick={handleResetFilters}
+                        disabled={!hasActiveFilters}
+                        title="Reset all filters"
+                    >
+                        <RotateCcw size={16} />
+                        Reset
+                    </button>
+
+                    <button
 
                         type="button"
 
@@ -1650,7 +1696,7 @@ export default function CouponsPage() {
 
                                 <tbody>
 
-                                    {filteredCoupons.map((coupon) => {
+                                    {pagedCoupons.map((coupon) => {
 
                                         const region = getRegion(coupon.region);
 
@@ -2122,6 +2168,62 @@ export default function CouponsPage() {
 
                     )}
 
+                
+                    {!loading && filteredCoupons.length > 0 && (
+                        <div className="coupon-pagination">
+                            <span className="coupon-pagination-info">
+                                Showing{' '}
+                                {(safePage - 1) * pageSize + 1}–
+                                {Math.min(
+                                    safePage * pageSize,
+                                    filteredCoupons.length
+                                )}{' '}
+                                of {filteredCoupons.length}
+                            </span>
+
+                            <div className="coupon-pagination-controls">
+                                <label className="coupon-pagination-size">
+                                    Rows per page
+                                    <select
+                                        value={pageSize}
+                                        onChange={(e) =>
+                                            setPageSize(Number(e.target.value))
+                                        }
+                                    >
+                                        <option value={10}>10</option>
+                                        <option value={25}>25</option>
+                                        <option value={50}>50</option>
+                                    </select>
+                                </label>
+
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setCurrentPage(Math.max(1, safePage - 1))
+                                    }
+                                    disabled={safePage === 1}
+                                >
+                                    Previous
+                                </button>
+
+                                <span className="coupon-pagination-page">
+                                    Page {safePage} of {totalPages}
+                                </span>
+
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setCurrentPage(
+                                            Math.min(totalPages, safePage + 1)
+                                        )
+                                    }
+                                    disabled={safePage === totalPages}
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
             </div>
@@ -2963,6 +3065,23 @@ export default function CouponsPage() {
                             {/* =====================================================
                     MODAL FOOTER
                 ====================================================== */}
+                            {modalError && (
+                                <div
+                                    className="coupon-modal-error"
+                                    role="alert"
+                                    aria-live="assertive"
+                                >
+                                    <AlertCircle size={18} />
+                                    <span>{modalError}</span>
+                                    <button
+                                        type="button"
+                                        aria-label="Dismiss error"
+                                        onClick={() => setModalError('')}
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                </div>
+                            )}
                             <div className="coupon-create-modal-footer">
 
                                 <button

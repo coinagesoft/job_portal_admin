@@ -463,15 +463,21 @@ export default function CandidateDetailsPage({ searchParams }) {
                         const txns = candidateData.billing || candidateData.transactions;
                         if (txns && txns.length > 0) {
                           return txns.map((txn, idx) => (
-                            <tr key={txn.id || txn.txnId || idx}>
+                            <tr key={txn.transactionId || txn.id || txn.txnId || idx}>
                               <td>
-                                <span style={{ fontWeight: 600, color: '#122359' }}>{txn.id || txn.txnId || `TXN-${idx}`}</span>
+                                <span style={{ fontWeight: 600, color: '#122359' }}>{txn.transactionId || txn.id || txn.txnId || '—'}</span>
                               </td>
                               <td>
                                 <span className="font-sm color-text-paragraph-2">{txn.date || txn.uploadedOn || '—'}</span>
                               </td>
                               <td>
                                 <span style={{ fontWeight: 700, color: '#122359' }}>{txn.amount || '—'}</span>
+                                {txn.discountAmount && (
+                                  <div className="font-xs color-text-paragraph-2" style={{ marginTop: 2 }}>
+                                    {txn.originalAmount ? `${txn.originalAmount} − ` : ''}{txn.discountAmount} discount
+                                    {txn.couponCode ? ` (${txn.couponCode})` : ''}
+                                  </div>
+                                )}
                               </td>
                               <td>
                                 <span style={{
