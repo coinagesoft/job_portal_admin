@@ -371,6 +371,7 @@ export default function LoginPage() {
                 { key: 'recruiters', path: '/admin/recruiters' },
                 { key: 'revenue', path: '/admin/revenue' },
                 { key: 'plans', path: '/admin/Plans' },
+                { key: 'coupons', path: '/admin/coupons' },
                 { key: 'home_management', path: '/admin/homepage-management' },
                 { key: 'users', path: '/admin/users' },
                 { key: 'help_support', path: '/admin/helpAndsupport' },

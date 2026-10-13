@@ -24,7 +24,8 @@ import {
   Briefcase,
   HelpCircle,
   ScrollText,
-  FileText
+  FileText,
+  Ticket
 } from "lucide-react";
 
 // ── Sidebar tabs the admin can grant access to ──
@@ -37,6 +38,7 @@ const TABS = [
   { key: 'recruiters', label: 'Recruiters', icon: Briefcase },
   { key: 'revenue', label: 'Revenue', icon: CreditCard },
   { key: 'plans', label: 'Plans', icon: CreditCard },
+  { key: 'coupons', label: 'Coupons', icon: Ticket },
   { key: 'home_management', label: 'Home Management', icon: Home },
   { key: 'users', label: 'Users', icon: Key },
   { key: 'help_support', label: 'Help & Support', icon: HelpCircle },
@@ -65,6 +67,7 @@ const LEGACY_TO_TAB = {
   employers: 'recruiters', 'recruiters.view': 'recruiters', 'employers.approve': 'recruiters', 'employers.badges': 'recruiters',
   'revenue.view': 'revenue', 'finance.view': 'revenue', 'finance.invoice': 'revenue', 'finance.refund': 'revenue', 'finance.deposit': 'revenue',
   'plans.view': 'plans', 'plans.edit': 'plans',
+  'coupons.view': 'coupons', 'coupons.edit': 'coupons',
   'verify.kyc': 'candidates', 'verify.passport': 'candidates', 'verify.iti': 'candidates', 'verify.gst': 'candidates', 'verify.poe': 'candidates', 'verify.rpsl': 'candidates', 'verify.ai': 'candidates',
   'support.view': 'help_support', 'support.reply': 'help_support',
   'legal.view': 'legal_pages', 'legal.edit': 'legal_pages',
