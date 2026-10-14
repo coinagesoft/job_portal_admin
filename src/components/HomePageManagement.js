@@ -374,6 +374,12 @@ function RegistrationDropdownSection({
         .registration-list { padding: 4px 21px 10px; max-height: 360px; overflow-y: auto; }
         .registration-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid #edf1f6; }
         .registration-row:last-child { border-bottom: 0; }
+        /* Selectable rows (Recruiter > Industry Type): bordered card with golden hover + golden selected state,
+           matching the Trade / SubTrade rows (.hierarchy-item). */
+        .registration-row-selectable { cursor: pointer; margin-bottom: 5px; padding: 7px 10px; border: 1px solid #e4eaf3; border-radius: 7px; background: #fff; transition: all .15s ease; }
+        .registration-row-selectable:last-child { border-bottom: 1px solid #e4eaf3; }
+        .registration-row-selectable:hover { border-color: #ffd28a; background: #fffaf2; }
+        .registration-row.registration-row-selected, .registration-row.registration-row-selected:hover { border-color: #ffa300; background: #fff7e8; box-shadow: 0 0 0 2px rgba(255, 163, 0, .08); }
         .reorder-controls { display: flex; flex-direction: column; gap: 1px; flex: 0 0 auto; }
         .reorder-controls button { border: 1px solid #e3eaf4; background: #f8faff; border-radius: 4px; padding: 1px; color: #5270aa; display: grid; place-items: center; }
         .reorder-controls button:disabled { opacity: .35; }
@@ -453,9 +459,11 @@ export default function HomePageManagement() {
 
   const [saved, setSaved] = useState(false)
 
-  const fetchPageData = async () => {
+  const fetchPageData = async (preferredIndustryId = null) => {
     setLoading(true)
     setError(null)
+    // Drop cached (possibly stale / temp-id) hierarchies; the server is the source of truth now
+    setIndustryHierarchyCache({})
     try {
       const [heroData, industriesData, statsData, locationsData, rolesData, regIndustriesData, departmentsData, tradeCategoriesData, suggestionsData] = await Promise.all([
         homepageService.getHero(),
@@ -536,7 +544,9 @@ export default function HomePageManagement() {
         setRegistrationIndustries(mapped)
         setOriginalRegistrationIndustries(JSON.parse(JSON.stringify(mapped)))
 
-        const firstIndustry = mapped[0]
+        // Keep the industry the admin was working on (if it still exists), else use the first
+        const firstIndustry =
+          mapped.find(item => item.id === String(preferredIndustryId)) || mapped[0]
 
         if (firstIndustry) {
           setSelectedIndustryId(firstIndustry.id)
@@ -1598,15 +1608,16 @@ export default function HomePageManagement() {
           }
 
           // 1. Create Trade under the correct Industry
+          // (industry id goes in the URL; body only needs the name)
           const payload = {
-            registrationIndustryId: industryId,
             name: trade.name
           }
 
           const response =
-            await homepageService.createTradeCategory(payload)
+            await homepageService.createTradeCategory(industryId, payload)
 
-          const realTradeId = response.id
+          // backend wraps the created item as { success, message, data }
+          const realTradeId = response?.data?.id ?? response?.id
 
           // 2. Save Trade active/hidden state
           if (!trade.isActive) {
@@ -1633,7 +1644,7 @@ export default function HomePageManagement() {
                   subTradePayload
                 )
 
-              const realSubTradeId = subTradeResponse.id
+              const realSubTradeId = subTradeResponse?.data?.id ?? subTradeResponse?.id
 
               // Save SubTrade active/hidden state
               if (!subTrade.isActive) {
@@ -1680,7 +1691,7 @@ export default function HomePageManagement() {
               payload
             )
 
-          const realSubTradeId = response.id
+          const realSubTradeId = response?.data?.id ?? response?.id
 
           // Save SubTrade active/hidden state
           if (!subTrade.isActive) {
@@ -1802,8 +1813,8 @@ export default function HomePageManagement() {
         setTimeout(() => setSuccessMessage(''), 5000)
       }
 
-      // Reload to get any updated image URLs/timestamps
-      await fetchPageData()
+      // Reload to get any updated image URLs/timestamps (stay on the same industry)
+      await fetchPageData(selectedIndustryId)
     } catch (err) {
       console.error('Failed to save homepage settings:', err)
       setError(err.message || 'Failed to save changes. Please try again.')

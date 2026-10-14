@@ -241,12 +241,16 @@ export const homepageService = {
     });
   },
 
-  // POST /api/admin/homepage/trade-categories
-  createTradeCategory: async (data) => {
-    return await apiRequest('/api/admin/homepage/trade-categories', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+  // POST /api/admin/homepage/registration-industries/{registrationIndustryId}/trade-categories
+  // (the backend has no POST on plain /trade-categories, which caused "Method Not Allowed")
+  createTradeCategory: async (registrationIndustryId, data) => {
+    return await apiRequest(
+      `/api/admin/homepage/registration-industries/${registrationIndustryId}/trade-categories`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
   },
 
   // PUT /api/admin/homepage/trade-categories/{id}
