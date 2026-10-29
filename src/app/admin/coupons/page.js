@@ -731,7 +731,7 @@ export default function CouponsPage() {
 
         const selectedFilterRegion = regions.find(
             (region) =>
-                region.name.trim().toLowerCase() ===
+                region.id.trim().toLowerCase() ===
                 String(filterRegion || '').trim().toLowerCase()
         );
 
@@ -1074,7 +1074,7 @@ export default function CouponsPage() {
 
             planType: form.planType,
 
-            region: selectedRegion.name.toLowerCase(),
+            region: selectedRegion.id,
 
             planId: form.applyToSpecificPlan
 
@@ -1493,7 +1493,7 @@ export default function CouponsPage() {
                             {regions.map((region) => (
                                 <option
                                     key={region.id}
-                                    value={region.name}
+                                    value={region.id}
                                 >
                                     {region.flag} {region.name}
                                 </option>

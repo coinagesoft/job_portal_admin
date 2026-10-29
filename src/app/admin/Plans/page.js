@@ -70,12 +70,13 @@ export default function PlansPage() {
 
   const region = useMemo(() => regions.find((item) => item.id === regionId), [regionId]);
 
-  // Helper to resolve any region code/name to a lowercase country name (e.g. "in" -> "india")
+  // Helper to resolve any region code/name to the region CODE (e.g. "india" -> "in").
+  // The API, the candidate/recruiter sites and the DB all use region codes.
   const getRegionName = (regStr) => {
-    if (!regStr) return region.name.toLowerCase();
+    if (!regStr) return region.id;
     const cleanStr = regStr.trim().toLowerCase();
     const found = regions.find(r => r.id === cleanStr || r.name.toLowerCase() === cleanStr);
-    return found ? found.name.toLowerCase() : cleanStr;
+    return found ? found.id : cleanStr;
   };
 
   // Load membership plans from API
@@ -248,7 +249,7 @@ export default function PlansPage() {
           features: ['Unlimited job posts', 'Unlimited candidate profile views', 'Unlimited recruiter seats', 'Priority support and account manager'],
           active: true,
           planType: 'Recruiter',
-          region: region.name.toLowerCase()
+          region: region.id
         }
         : {
           id: defaultId,
@@ -260,7 +261,7 @@ export default function PlansPage() {
           features: ['Professional candidate profile', 'Unlimited job applications', 'Priority applications', 'Featured profile placement'],
           active: true,
           planType: 'Candidate',
-          region: region.name.toLowerCase()
+          region: region.id
         };
       return [defaultPlan];
     }
@@ -304,7 +305,7 @@ export default function PlansPage() {
               features: ['Unlimited job posts', 'Unlimited candidate profile views', 'Unlimited recruiter seats', 'Priority support and account manager'],
               active: true,
               planType: 'Recruiter',
-              region: region.name.toLowerCase()
+              region: region.id
             }
             : {
               id: defaultId,
@@ -316,7 +317,7 @@ export default function PlansPage() {
               features: ['Professional candidate profile', 'Unlimited job applications', 'Priority applications', 'Featured profile placement'],
               active: true,
               planType: 'Candidate',
-              region: region.name.toLowerCase()
+              region: region.id
             };
           return [...current, { ...defaultPlan, ...changes }];
         }
@@ -342,7 +343,7 @@ export default function PlansPage() {
         price: '',
         validityMonths: '',
         active: true,
-        region: region.name.toLowerCase()
+        region: region.id
       };
 
       setDbCreditPlans((current) => [...current, newPlan]);
@@ -369,7 +370,7 @@ export default function PlansPage() {
           ? 'Recruiter'
           : 'Candidate',
 
-        region: region.name.toLowerCase()
+        region: region.id
       };
 
       setDbPlans((current) => [...current, newPlan]);
