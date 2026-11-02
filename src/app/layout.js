@@ -2,6 +2,16 @@
 import './globals.css';
 import Script from 'next/script';
 
+export const metadata = {
+  title: 'Jobbox - Admin Panel',
+  description: 'Jobbox Admin Panel',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning={true}>
@@ -20,7 +30,7 @@ export default function RootLayout({ children }) {
         <link
           rel="shortcut icon"
           type="image/x-icon"
-          href="/jobbox.svg"
+          href="/favicon.ico"
         />
       </head>
 
