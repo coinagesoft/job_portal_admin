@@ -611,16 +611,38 @@ Thank you for your business.
                         display: "inline-block",
                         padding: "4px 10px",
                         borderRadius: "20px",
-                        background: recruiterData.membership?.isActive ? "#e8f5e9" : "#fff7e6",
-                        color: recruiterData.membership?.isActive ? "#2e7d32" : "#b7791f",
+                        background: recruiterData.membership?.isExpired
+                          ? "#fdecea"
+                          : recruiterData.membership?.isActive
+                            ? "#e8f5e9"
+                            : "#fff7e6",
+                        color: recruiterData.membership?.isExpired
+                          ? "#c62828"
+                          : recruiterData.membership?.isActive
+                            ? "#2e7d32"
+                            : "#b7791f",
                         fontSize: "11px",
                         fontWeight: 600,
                       }}
                     >
-                      {recruiterData.membership?.expiresAt
-                        ? `Valid till: ${new Date(recruiterData.membership.expiresAt).toLocaleDateString()}`
-                        : "No expiry"}
+                      {recruiterData.membership?.isExpired
+                        ? `Expired on ${new Date(recruiterData.membership.expiresAt).toLocaleDateString()}`
+                        : recruiterData.membership?.isLifetime
+                          ? "Lifetime (no expiry)"
+                          : recruiterData.membership?.expiresAt
+                            ? `Valid till: ${new Date(recruiterData.membership.expiresAt).toLocaleDateString()}`
+                            : "No expiry"}
                     </span>
+                    {recruiterData.membership?.isExpired &&
+                      recruiterData.membership?.expiredCredits > 0 && (
+                        <p
+                          className="font-xs mb-0 mt-5"
+                          style={{ color: "#c62828" }}
+                        >
+                          {recruiterData.membership.expiredCredits} unused
+                          credits expired (forfeited on renewal)
+                        </p>
+                      )}
                   </div>
                 </div>
               </div>
