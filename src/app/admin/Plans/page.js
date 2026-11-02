@@ -96,6 +96,8 @@ export default function PlansPage() {
   description: plan.description || '',
   price: plan.price || 0,
   period: plan.period || 'one-time',
+  initialCredits: plan.initialCredits || 0,
+  validityMonths: plan.validityMonths || 0,
   badge: plan.badge || '',
   features: plan.features || [],
   active: plan.isActive !== false,
@@ -245,6 +247,8 @@ export default function PlansPage() {
           description: 'One payment for full, permanent recruiter access',
           price: 0,
           period: 'one-time',
+          initialCredits: 0,
+          validityMonths: 0,
           badge: 'Full lifetime access',
           features: ['Unlimited job posts', 'Unlimited candidate profile views', 'Unlimited recruiter seats', 'Priority support and account manager'],
           active: true,
@@ -257,6 +261,8 @@ export default function PlansPage() {
           description: 'One payment for full, permanent candidate access',
           price: 0,
           period: 'one-time',
+          initialCredits: 0,
+          validityMonths: 0,
           badge: 'Full lifetime access',
           features: ['Professional candidate profile', 'Unlimited job applications', 'Priority applications', 'Featured profile placement'],
           active: true,
@@ -301,6 +307,8 @@ export default function PlansPage() {
               description: 'One payment for full, permanent recruiter access',
               price: 0,
               period: 'one-time',
+              initialCredits: 0,
+              validityMonths: 0,
               badge: 'Full lifetime access',
               features: ['Unlimited job posts', 'Unlimited candidate profile views', 'Unlimited recruiter seats', 'Priority support and account manager'],
               active: true,
@@ -313,6 +321,8 @@ export default function PlansPage() {
               description: 'One payment for full, permanent candidate access',
               price: 0,
               period: 'one-time',
+              initialCredits: 0,
+              validityMonths: 0,
               badge: 'Full lifetime access',
               features: ['Professional candidate profile', 'Unlimited job applications', 'Priority applications', 'Featured profile placement'],
               active: true,
@@ -359,6 +369,10 @@ export default function PlansPage() {
         price: '',
 
         period: 'one-time',
+
+        initialCredits: '',
+
+        validityMonths: '',
 
         badge: '',
 
@@ -483,6 +497,20 @@ export default function PlansPage() {
           }))
         );
 
+        // Recruiter plans that include credits must say how long they last
+        const invalidPlan = dbPlans.find(
+          (plan) =>
+            plan.planType === 'Recruiter' &&
+            Number(plan.initialCredits) > 0 &&
+            !(Number(plan.validityMonths) > 0)
+        );
+        if (invalidPlan) {
+          setError(`"${invalidPlan.name}": enter the credits validity (in months) when the plan includes credits.`);
+          setTimeout(() => setError(null), 5000);
+          setLoading(false);
+          return;
+        }
+
         // 2. Save new and modified membership plans
         await Promise.all(
           dbPlans.map(async (plan) => {
@@ -493,6 +521,8 @@ export default function PlansPage() {
               description: plan.description,
               price: Number(plan.price) || 0,
               period: plan.period,
+              initialCredits: plan.planType === 'Recruiter' ? Number(plan.initialCredits) || 0 : 0,
+              validityMonths: plan.planType === 'Recruiter' ? Number(plan.validityMonths) || 0 : 0,
               badge: plan.badge,
               features: plan.features,
               isActive: plan.active
@@ -509,6 +539,8 @@ export default function PlansPage() {
                 original.description !== plan.description ||
                 Number(original.price) !== Number(plan.price) ||
                 original.period !== plan.period ||
+                Number(original.initialCredits) !== Number(plan.initialCredits) ||
+                Number(original.validityMonths) !== Number(plan.validityMonths) ||
                 original.badge !== plan.badge ||
                 original.active !== plan.active ||
                 JSON.stringify(original.features) !== JSON.stringify(plan.features);
@@ -735,10 +767,24 @@ export default function PlansPage() {
                   </div>) : (isEditing ? (
                     <div className="edit-fields">
                       <label>Billing Period<input value={plan.period} placeholder="e.g. one-time, 3 months" onChange={(event) => updatePlan(plan.id, { period: event.target.value })} /></label>
+                      {activeTab === 'recruiter' && (
+                        <>
+                          <label>Credits included<input type="number" min="0" value={plan.initialCredits === 0 ? '' : plan.initialCredits} placeholder="e.g. 100" onChange={(event) => updatePlan(plan.id, { initialCredits: event.target.value === '' ? '' : Math.max(0, Number(event.target.value)) })} /></label>
+                          <label>Credits validity (in months)<input type="number" min="0" value={plan.validityMonths === 0 ? '' : plan.validityMonths} placeholder="e.g. 3" onChange={(event) => updatePlan(plan.id, { validityMonths: event.target.value === '' ? '' : Math.max(0, Number(event.target.value)) })} /></label>
+                        </>
+                      )}
                       <label>Badge / Ribbon text<input value={plan.badge} placeholder="e.g. Popular, Best value" onChange={(event) => updatePlan(plan.id, { badge: event.target.value })} /></label>
                       <label className="feature-editor">Full-access features<textarea value={featureDraft} onChange={(event) => { setFeatureDraft(event.target.value); updatePlan(plan.id, { features: event.target.value.split('\n').map((feature) => feature.trim()).filter(Boolean) }); }} /></label>
                     </div>
-                  ) : <ul className="plan-features">{plan.features.map((feature) => <li key={feature}><Check size={16} />{feature}</li>)}</ul>)}
+                  ) : <>
+                    {activeTab === 'recruiter' && Number(plan.initialCredits) > 0 && (
+                      <div className="credit-details" style={{ marginBottom: 14 }}>
+                        <div><span>Credits included</span><b>{Number(plan.initialCredits).toLocaleString()} credits</b></div>
+                        <div><span>Credits validity</span><b>{plan.validityMonths ? `${plan.validityMonths} month${Number(plan.validityMonths) === 1 ? '' : 's'}` : '—'}</b></div>
+                      </div>
+                    )}
+                    <ul className="plan-features">{plan.features.map((feature) => <li key={feature}><Check size={16} />{feature}</li>)}</ul>
+                  </>)}
                  
                  {activeTab !== 'credits' && plan.couponCodes?.length > 0 && (
   <div className="mt-3">
