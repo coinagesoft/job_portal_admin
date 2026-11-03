@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Check, Layers, Loader2, Plus, Save, X } from "lucide-react";
 import { homepageService } from "../services/homepageService";
+import ExcelImportButton from "./TradeExcelImport";
 
 // Supports a direct array or { success, count, data: [...] } (also nested).
 const getArray = (response) => {
@@ -379,15 +380,22 @@ export default function TradeTierManagement() {
               {tiers.length} tier{tiers.length === 1 ? "" : "s"}, {activeCount} active
             </p>
           </div>
-          <button
-            type="button"
-            className="tm-ghost"
-            onClick={() => loadTiers()}
-            disabled={loadingTiers || busy}
-          >
-            <Loader2 size={14} className={loadingTiers ? "tm-spin" : "tm-idle"} />
-            Refresh
-          </button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <ExcelImportButton
+              kind="credits"
+              label="Import bands from Excel"
+              onImported={() => Promise.all([loadTiers({ silent: true }), loadTradeData()])}
+            />
+            <button
+              type="button"
+              className="tm-ghost"
+              onClick={() => loadTiers()}
+              disabled={loadingTiers || busy}
+            >
+              <Loader2 size={14} className={loadingTiers ? "tm-spin" : "tm-idle"} />
+              Refresh
+            </button>
+          </div>
         </div>
 
         {loadingTiers ? (

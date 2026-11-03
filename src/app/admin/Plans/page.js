@@ -204,9 +204,22 @@ export default function PlansPage() {
       setUnlockConfig(loaded);
       setOriginalUnlockConfig(JSON.parse(JSON.stringify(loaded)));
     } catch (err) {
-      console.error('Failed to fetch unlock pricing:', err);
-      setError('Failed to load unlock pricing from server.');
-      setTimeout(() => setError(null), 5000);
+      if (err?.status === 404) {
+        // Nothing saved yet (fresh database). Not an error: show the default
+        // values; the first Save creates the configuration row.
+        const defaults = {
+          profileUnlockCredits: 0,
+          cvDownloadCredits: 0,
+          candidateAccessDays: 0,
+          isActive: true,
+        };
+        setUnlockConfig(defaults);
+        setOriginalUnlockConfig(JSON.parse(JSON.stringify(defaults)));
+      } else {
+        console.error('Failed to fetch unlock pricing:', err);
+        setError('Failed to load unlock pricing from server.');
+        setTimeout(() => setError(null), 5000);
+      }
     } finally {
       setLoading(false);
     }

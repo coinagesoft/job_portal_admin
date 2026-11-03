@@ -12,7 +12,7 @@ import { homepageService } from '../services/homepageService'
 import { resolveFileUrl } from '../services/api'
 import TradeCreditAssignment from "./TradeCreditAssignment.js";
 import TradeTierManagement from './Tradetiermanagement'
-import TradeExcelImport from './TradeExcelImport'
+import ExcelImportButton from './TradeExcelImport'
 
 
 
@@ -460,8 +460,9 @@ export default function HomePageManagement() {
 
   const [saved, setSaved] = useState(false)
 
-  const fetchPageData = async (preferredIndustryId = null) => {
-    setLoading(true)
+  // silent: refresh data in place without swapping the page for the full-screen loader
+  const fetchPageData = async (preferredIndustryId = null, { silent = false } = {}) => {
+    if (!silent) setLoading(true)
     setError(null)
     // Drop cached (possibly stale / temp-id) hierarchies; the server is the source of truth now
     setIndustryHierarchyCache({})
@@ -1962,9 +1963,7 @@ export default function HomePageManagement() {
               ? 'Candidate website'
               : activeTab === 'recruiter'
                 ? 'Recruiter / Employer'
-                : activeTab === 'import'
-                  ? 'Excel import'
-                  : 'Tier Management'}
+                : 'Tier Management'}
           </span>
 
           <h4>
@@ -1972,9 +1971,7 @@ export default function HomePageManagement() {
               ? 'Home Page Management'
               : activeTab === 'recruiter'
                 ? 'Recruiter Registration Management'
-                : activeTab === 'import'
-                  ? 'Trade & Credit Excel Import'
-                  : 'Trade Tier Management'}
+                : 'Trade Tier Management'}
           </h4>
           <p style={{ fontSize: '13px', color: '#66789c' }}>
             {activeTab === 'candidate'
@@ -2025,17 +2022,6 @@ export default function HomePageManagement() {
   <BriefcaseBusiness size={15} />
   Trade Credit Assignment
 </button>
-
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'import'}
-          className={activeTab === 'import' ? 'is-active' : ''}
-          onClick={() => setActiveTab('import')}
-        >
-          <Upload size={15} />
-          Excel Import
-        </button>
       </div>
 
       {activeTab === 'candidate' && (
@@ -2262,6 +2248,12 @@ export default function HomePageManagement() {
                   Select an industry to manage its trade categories.
                 </p>
               </div>
+
+              <ExcelImportButton
+                kind="trades"
+                label="Import trades from Excel"
+                onImported={() => fetchPageData(selectedIndustryId, { silent: true })}
+              />
             </div>
 
             <div className="hierarchy-layout">
@@ -2566,7 +2558,6 @@ export default function HomePageManagement() {
 
       {activeTab === "tradeCredits" && <TradeCreditAssignment />}
 
-      {activeTab === 'import' && <TradeExcelImport />}
       <style jsx>{`
         .homepage-manager { color: #172b60; display: grid; gap: 19px; padding-bottom: 28px; }
         .homepage-manager-bar, .home-section { border: 1px solid #e1e8f3; border-radius: 13px; background: #fff; box-shadow: 0 7px 21px rgba(27, 52, 102, .04); transition: all 0.35s ease !important; }

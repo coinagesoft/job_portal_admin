@@ -48,8 +48,12 @@ export const apiRequest = async (endpoint, options = {}) => {
     delete headers['Content-Type'];
   }
   
+  // quietStatuses: HTTP statuses the caller handles itself (e.g. [404] for
+  // "not configured yet"). They are still thrown, just not logged.
+  const { quietStatuses, ...fetchOptions } = options;
+
   const config = {
-    ...options,
+    ...fetchOptions,
     headers,
   };
   
@@ -92,7 +96,9 @@ export const apiRequest = async (endpoint, options = {}) => {
     
     return await handleResponse(response, options.responseType);
   } catch (error) {
-    console.error('API request error:', error);
+    if (!quietStatuses?.includes(error?.status)) {
+      console.error('API request error:', error);
+    }
     throw error;
   }
 };

@@ -11,6 +11,7 @@ import {
   Search,
 } from "lucide-react";
 import { homepageService } from "../services/homepageService";
+import ExcelImportButton from "./TradeExcelImport";
 
 /* ------------------------------ pure helpers ------------------------------ */
 
@@ -81,7 +82,7 @@ export default function TradeCreditAssignment() {
 
   /* ------------------------------- data load ------------------------------- */
 
-  const loadData = useCallback(async ({ silent = false, savedGroupKey = null } = {}) => {
+  const loadData = useCallback(async ({ silent = false, savedGroupKey = null, discardEdits = false } = {}) => {
     if (!silent) setLoading(true);
 
     try {
@@ -169,6 +170,7 @@ export default function TradeCreditAssignment() {
           const was = prevSaved[key];
           const hadUnsavedEdit =
             silent &&
+            !discardEdits &&
             key !== savedGroupKey &&
             old &&
             was &&
@@ -389,6 +391,11 @@ export default function TradeCreditAssignment() {
             </p>
           </div>
           <div className="tca-heading-actions">
+            <ExcelImportButton
+              kind="credits"
+              label="Import from Excel"
+              onImported={() => loadData({ silent: true, discardEdits: true })}
+            />
             <button type="button" className="tca-ghost" onClick={refresh} disabled={busy}>
               <RefreshCw size={14} />
               Refresh

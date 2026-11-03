@@ -5,6 +5,7 @@ export const creditConfigService = {
   getConfiguration: async () => {
     return await apiRequest('/api/admin/credit-plans/configuration', {
       method: 'GET',
+      quietStatuses: [404], // 404 = not configured yet; the Plans page handles it
     });
   },
 
