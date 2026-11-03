@@ -12,6 +12,7 @@ import { homepageService } from '../services/homepageService'
 import { resolveFileUrl } from '../services/api'
 import TradeCreditAssignment from "./TradeCreditAssignment.js";
 import TradeTierManagement from './Tradetiermanagement'
+import TradeExcelImport from './TradeExcelImport'
 
 
 
@@ -1961,7 +1962,9 @@ export default function HomePageManagement() {
               ? 'Candidate website'
               : activeTab === 'recruiter'
                 ? 'Recruiter / Employer'
-                : 'Tier Management'}
+                : activeTab === 'import'
+                  ? 'Excel import'
+                  : 'Tier Management'}
           </span>
 
           <h4>
@@ -1969,7 +1972,9 @@ export default function HomePageManagement() {
               ? 'Home Page Management'
               : activeTab === 'recruiter'
                 ? 'Recruiter Registration Management'
-                : 'Trade Tier Management'}
+                : activeTab === 'import'
+                  ? 'Trade & Credit Excel Import'
+                  : 'Trade Tier Management'}
           </h4>
           <p style={{ fontSize: '13px', color: '#66789c' }}>
             {activeTab === 'candidate'
@@ -2020,6 +2025,17 @@ export default function HomePageManagement() {
   <BriefcaseBusiness size={15} />
   Trade Credit Assignment
 </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'import'}
+          className={activeTab === 'import' ? 'is-active' : ''}
+          onClick={() => setActiveTab('import')}
+        >
+          <Upload size={15} />
+          Excel Import
+        </button>
       </div>
 
       {activeTab === 'candidate' && (
@@ -2549,6 +2565,8 @@ export default function HomePageManagement() {
       {activeTab === 'tiers' && <TradeTierManagement />}
 
       {activeTab === "tradeCredits" && <TradeCreditAssignment />}
+
+      {activeTab === 'import' && <TradeExcelImport />}
       <style jsx>{`
         .homepage-manager { color: #172b60; display: grid; gap: 19px; padding-bottom: 28px; }
         .homepage-manager-bar, .home-section { border: 1px solid #e1e8f3; border-radius: 13px; background: #fff; box-shadow: 0 7px 21px rgba(27, 52, 102, .04); transition: all 0.35s ease !important; }

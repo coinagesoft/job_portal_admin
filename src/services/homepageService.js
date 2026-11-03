@@ -417,4 +417,27 @@ toggleTradeCreditTier: async (tierId) => {
     method: 'PATCH',
   });
 },
+
+// POST /api/admin/trade-hierarchy/import  (multipart, field "file", .xlsx)
+// Sheet "ALL TRADES": SECTOR | TRADE | CATEGORIES / SUB-TRADES. Adds missing rows only.
+importTradeHierarchy: async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return await apiRequest('/api/admin/trade-hierarchy/import', {
+    method: 'POST',
+    body: formData,
+  });
+},
+
+// POST /api/trade-credit/import-excel  (multipart, field "file", .xlsx)
+// Sheet "ALL TRADES": TRADE | CATEGORIES / SUB-TRADES | TIER | CREDITS.
+// REPLACES all existing bands (tiers) and trade-to-band assignments.
+importTradeCreditExcel: async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return await apiRequest('/api/trade-credit/import-excel', {
+    method: 'POST',
+    body: formData,
+  });
+},
 };

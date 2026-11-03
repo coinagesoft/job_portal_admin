@@ -1,12 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Check, Layers, Loader2, Plus, Save, X } from "lucide-react";
 import { homepageService } from "../services/homepageService";
 
-// Supports a direct array or { success, count, data: [...] }.
-const getArray = (response) =>
-  Array.isArray(response) ? response : Array.isArray(response?.data) ? response.data : [];
+// Supports a direct array or { success, count, data: [...] } (also nested).
+const getArray = (response) => {
+  let result = response;
+  let depth = 0;
+  while (
+    result &&
+    !Array.isArray(result) &&
+    typeof result === "object" &&
+    result.data !== undefined &&
+    depth < 5
+  ) {
+    result = result.data;
+    depth++;
+  }
+  return Array.isArray(result) ? result : [];
+};
+
+// Same trade name (ignoring case and extra spaces) = same trade.
+const norm = (value) => String(value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
 
 export default function TradeTierManagement() {
   const [tiers, setTiers] = useState([]);
@@ -21,6 +37,12 @@ export default function TradeTierManagement() {
   const [successMessage, setSuccessMessage] = useState("");
 
   const nameInputRef = useRef(null);
+
+  // Band -> trades view
+  const [trades, setTrades] = useState([]); // [{ key, name, id }]
+  const [mappings, setMappings] = useState([]); // main-trade mappings only
+  const [pick, setPick] = useState({}); // tierId -> selected trade key
+  const [assigningTierId, setAssigningTierId] = useState(null);
 
   const loadTiers = useCallback(async ({ silent = false } = {}) => {
     if (!silent) setLoadingTiers(true);
@@ -38,9 +60,50 @@ export default function TradeTierManagement() {
     }
   }, []);
 
+  const loadTradeData = useCallback(async () => {
+    try {
+      const [tradeRes, mappingRes] = await Promise.all([
+        homepageService.getTradeCategories(),
+        homepageService.getTradeCreditMappings(),
+      ]);
+
+      // One entry per trade name (duplicate categories share a name).
+      const byKey = new Map();
+      getArray(tradeRes)
+        .filter((t) => t?.isActive !== false && t?.IsActive !== false)
+        .forEach((t) => {
+          const name = String(t?.name ?? t?.Name ?? "").trim();
+          const id = t?.id ?? t?.Id ?? t?.tradeCategoryId ?? t?.TradeCategoryId;
+          const key = norm(name);
+          if (key && id && !byKey.has(key)) byKey.set(key, { key, name, id });
+        });
+
+      setTrades([...byKey.values()].sort((a, b) => a.name.localeCompare(b.name)));
+      setMappings(
+        getArray(mappingRes).filter(
+          (m) => (m?.subTradeId ?? m?.SubTradeId ?? null) == null && m?.isActive !== false
+        )
+      );
+    } catch (error) {
+      console.error("Failed to load trades:", error);
+      setErrorMessage("Could not load trades. Try refreshing.");
+    }
+  }, []);
+
   useEffect(() => {
     loadTiers();
-  }, [loadTiers]);
+    loadTradeData();
+  }, [loadTiers, loadTradeData]);
+
+  // trade key -> tierId it currently belongs to
+  const tierByTrade = useMemo(() => {
+    const map = new Map();
+    mappings.forEach((m) => map.set(norm(m.tradeName ?? m.TradeName), m.tierId ?? m.TierId));
+    return map;
+  }, [mappings]);
+
+  const tradesInTier = (tierId) => trades.filter((t) => tierByTrade.get(t.key) === tierId);
+  const unassignedCount = trades.filter((t) => !tierByTrade.get(t.key)).length;
 
   useEffect(() => {
     if (!successMessage) return;
@@ -133,14 +196,51 @@ export default function TradeTierManagement() {
     nameInputRef.current?.focus({ preventScroll: true });
   };
 
+  const handleAddTrade = async (tier) => {
+    const trade = trades.find((t) => t.key === pick[tier.tierId]);
+    if (!trade) return;
+
+    const currentTierId = tierByTrade.get(trade.key);
+    const currentTier = tiers.find((t) => t.tierId === currentTierId);
+
+    if (
+      currentTier &&
+      !window.confirm(
+        `${trade.name} is currently in ${currentTier.tierName} (${currentTier.unlockCredits} credits). Move it to ${tier.tierName} (${tier.unlockCredits} credits)?`
+      )
+    ) {
+      return;
+    }
+
+    setErrorMessage("");
+    setSuccessMessage("");
+    setAssigningTierId(tier.tierId);
+
+    try {
+      await homepageService.saveMainTradeCreditMapping(trade.id, { tierId: tier.tierId });
+      setSuccessMessage(`${trade.name} added to ${tier.tierName}.`);
+      setPick((current) => ({ ...current, [tier.tierId]: "" }));
+      await loadTradeData();
+    } catch (error) {
+      console.error("Failed to assign trade:", error);
+      setErrorMessage(error?.message || "Could not add the trade to this band. Try again.");
+    } finally {
+      setAssigningTierId(null);
+    }
+  };
+
   const handleToggle = async (tier) => {
     setErrorMessage("");
     setSuccessMessage("");
 
+    const affected = tradesInTier(tier.tierId).length;
+
     if (
       tier.isActive &&
       !window.confirm(
-        `Deactivate ${tier.tierName}? It will no longer appear when assigning credits to trades.`
+        affected > 0
+          ? `Deactivate ${tier.tierName}? ${affected} trade${affected === 1 ? " is" : "s are"} in this band, and recruiters will not be able to unlock those candidates until the trades are moved to another band.`
+          : `Deactivate ${tier.tierName}? It will no longer appear when assigning credits to trades.`
       )
     ) {
       return;
@@ -175,7 +275,7 @@ export default function TradeTierManagement() {
             <p>
               {editingTierId
                 ? "Change the name, position or credits. Trades already using this tier keep it and get the new credits."
-                : "Each tier has one credit cost. You pick a tier for each main trade in Trade Credits."}
+                : "Each band (tier) has one credit cost. Add trades to a band below; unlocking a candidate in those trades deducts the band's credits."}
             </p>
           </div>
         </div>
@@ -188,7 +288,7 @@ export default function TradeTierManagement() {
                 ref={nameInputRef}
                 value={tierName}
                 onChange={(event) => setTierName(event.target.value)}
-                placeholder="e.g. Tier 1"
+                placeholder="e.g. Band A"
                 maxLength={100}
                 disabled={savingTier}
               />
@@ -358,7 +458,107 @@ export default function TradeTierManagement() {
         )}
       </section>
 
+      {/* --------------------------- trades per band --------------------------- */}
+      <section className="tm-card">
+        <div className="tm-heading">
+          <span className="tm-icon">
+            <Layers size={19} />
+          </span>
+          <div>
+            <h4>Trades in each band</h4>
+            <p>
+              {unassignedCount > 0
+                ? `${unassignedCount} trade${unassignedCount === 1 ? " has" : "s have"} no band yet, so recruiters cannot unlock those candidates.`
+                : "Every trade has a band."}
+            </p>
+          </div>
+        </div>
+
+        {tiers.length === 0 ? (
+          <div className="tm-empty">Create a band above to start adding trades.</div>
+        ) : (
+          <div className="tm-bands">
+            {tiers.map((tier) => {
+              const inTier = tradesInTier(tier.tierId);
+              const selected = pick[tier.tierId] || "";
+              const assigning = assigningTierId === tier.tierId;
+
+              return (
+                <div key={tier.tierId} className={`tm-band ${tier.isActive ? "" : "is-inactive"}`}>
+                  <div className="tm-band-head">
+                    <strong>{tier.tierName}</strong>
+                    <span className="tm-credit-pill">{tier.unlockCredits} credits</span>
+                    <span className="tm-band-count">
+                      {inTier.length} trade{inTier.length === 1 ? "" : "s"}
+                      {tier.isActive ? "" : " · inactive"}
+                    </span>
+                  </div>
+
+                  <div className="tm-chips">
+                    {inTier.length === 0 ? (
+                      <span className="tm-muted">No trades in this band yet.</span>
+                    ) : (
+                      inTier.map((t) => (
+                        <span key={t.key} className="tm-chip">
+                          {t.name}
+                        </span>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="tm-add">
+                    <select
+                      value={selected}
+                      onChange={(e) =>
+                        setPick((current) => ({ ...current, [tier.tierId]: e.target.value }))
+                      }
+                      disabled={!tier.isActive || assigning || busy}
+                      aria-label={`Add a trade to ${tier.tierName}`}
+                    >
+                      <option value="">Select a trade to add…</option>
+                      {trades
+                        .filter((t) => tierByTrade.get(t.key) !== tier.tierId)
+                        .map((t) => {
+                          const owner = tiers.find((x) => x.tierId === tierByTrade.get(t.key));
+                          return (
+                            <option key={t.key} value={t.key}>
+                              {t.name}
+                              {owner ? ` (now in ${owner.tierName})` : " (no band)"}
+                            </option>
+                          );
+                        })}
+                    </select>
+                    <button
+                      type="button"
+                      className="tm-primary tm-small"
+                      onClick={() => handleAddTrade(tier)}
+                      disabled={!selected || !tier.isActive || assigning || busy}
+                    >
+                      {assigning ? <Loader2 size={12} className="tm-spin" /> : <Plus size={12} />}
+                      Add trade
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
       <style jsx>{`
+        .tm-bands { padding: 17px 21px 21px; display: grid; gap: 13px; }
+        .tm-band { border: 1px solid #e1e8f3; border-radius: 11px; padding: 14px 16px; display: grid; gap: 11px; background: #fcfdff; }
+        .tm-band.is-inactive { opacity: .65; }
+        .tm-band-head { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; color: #172b60; font-size: 15px; }
+        .tm-credit-pill { padding: 4px 10px; border-radius: 20px; background: #fff2dc; color: #b86f00; font-size: 11px; font-weight: 800; }
+        .tm-band-count { margin-left: auto; color: #66789c; font-size: 12px; }
+        .tm-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+        .tm-chip { padding: 5px 11px; border-radius: 20px; border: 1px solid #d6e0ee; background: #fff; color: #31456f; font-size: 12px; font-weight: 600; }
+        .tm-muted { color: #8a98b0; font-size: 12px; }
+        .tm-add { display: flex; gap: 9px; flex-wrap: wrap; }
+        .tm-add select { flex: 1; min-width: 200px; height: 36px; border: 1px solid #d6e0ee; border-radius: 8px; padding: 0 10px; font-size: 13px; color: #1e293b; background: #fff; }
+        .tm-add select:focus { outline: none; border-color: #ffa300; box-shadow: 0 0 0 3px rgba(255, 163, 0, .09); }
+
         .tm { display: grid; gap: 19px; color: #172b60; }
         .tm-card { overflow: hidden; border: 1px solid #e1e8f3; border-radius: 13px; background: #fff; box-shadow: 0 7px 21px rgba(27, 52, 102, .04); transition: border-color .2s ease, box-shadow .2s ease; }
         .tm-card.is-editing { border-color: #ffa300; box-shadow: 0 0 0 3px rgba(255, 163, 0, .1), 0 7px 21px rgba(27, 52, 102, .04); }
