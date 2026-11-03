@@ -36,6 +36,15 @@ const regions = [
   { id: 'tr', name: 'Turkey', flag: '🇹🇷', currency: 'TRY', symbol: '₺', group: 'Middle East' },
 ];
 
+// Pre-filled "Full-access features" for a recruiter membership tier. The admin
+// can edit or replace any of these in the editor.
+const DEFAULT_RECRUITER_FEATURES = [
+  'Unlimited job posts',
+  'Unlimited candidate profile views',
+  'Unlimited recruiter seats',
+  'Priority support and account manager',
+];
+
 export default function PlansPage() {
   const [activeTab, setActiveTab] = useState('recruiter');
   const [regionId, setRegionId] = useState('us');
@@ -361,7 +370,7 @@ export default function PlansPage() {
       const newPlan = {
         id,
         name: type === 'recruiter'
-          ? 'New Recruiter Plan'
+          ? ''
           : 'New Candidate Plan',
 
         description: '',
@@ -376,7 +385,8 @@ export default function PlansPage() {
 
         badge: '',
 
-        features: [],
+        // Recruiter tiers start with the standard feature list (editable).
+        features: type === 'recruiter' ? [...DEFAULT_RECRUITER_FEATURES] : [],
 
         active: true,
 
@@ -391,7 +401,7 @@ export default function PlansPage() {
     }
 
     setEditingId(id);
-    setFeatureDraft('');
+    setFeatureDraft(type === 'recruiter' ? DEFAULT_RECRUITER_FEATURES.join('\n') : '');
     setSaved(false);
   };
 
@@ -497,15 +507,37 @@ export default function PlansPage() {
           }))
         );
 
-        // Recruiter plans that include credits must say how long they last
+        const isNewPlanId = (id) => id.startsWith('recruiter-') || id.startsWith('candidate-');
+        const planChanged = (plan) => {
+          if (isNewPlanId(plan.id)) return true;
+          const original = originalDbPlans.find(o => o.id === plan.id);
+          return !original ||
+            original.name !== plan.name ||
+            original.description !== plan.description ||
+            Number(original.price) !== Number(plan.price) ||
+            original.period !== plan.period ||
+            Number(original.initialCredits) !== Number(plan.initialCredits) ||
+            Number(original.validityMonths) !== Number(plan.validityMonths) ||
+            original.badge !== plan.badge ||
+            original.active !== plan.active ||
+            JSON.stringify(original.features) !== JSON.stringify(plan.features) ||
+            // Recruiter tiers no longer use a description / ribbon: clear any old ones
+            (plan.planType === 'Recruiter' && Boolean(original.description || original.badge));
+        };
+
+        // Every new or edited recruiter tier needs a name, a price, a validity
+        // and credits.
         const invalidPlan = dbPlans.find(
           (plan) =>
             plan.planType === 'Recruiter' &&
-            Number(plan.initialCredits) > 0 &&
-            !(Number(plan.validityMonths) > 0)
+            planChanged(plan) &&
+            (!String(plan.name || '').trim() ||
+              !(Number(plan.price) > 0) ||
+              !(Number(plan.validityMonths) > 0) ||
+              !(Number(plan.initialCredits) > 0))
         );
         if (invalidPlan) {
-          setError(`"${invalidPlan.name}": enter the credits validity (in months) when the plan includes credits.`);
+          setError(`${invalidPlan.name ? `"${invalidPlan.name}"` : 'New tier'}: enter the tier name, price, validity (in months) and credits.`);
           setTimeout(() => setError(null), 5000);
           setLoading(false);
           return;
@@ -518,39 +550,25 @@ export default function PlansPage() {
               planType: plan.planType,
               region: getRegionName(plan.region),
               planName: plan.name,
-              description: plan.description,
+              // Recruiter tiers only carry tier, price, validity, credits and
+              // features: no description, ribbon or custom billing period.
+              description: plan.planType === 'Recruiter' ? '' : plan.description,
               price: Number(plan.price) || 0,
-              period: plan.period,
+              period: plan.planType === 'Recruiter' ? 'one-time' : plan.period,
               initialCredits: plan.planType === 'Recruiter' ? Number(plan.initialCredits) || 0 : 0,
               validityMonths: plan.planType === 'Recruiter' ? Number(plan.validityMonths) || 0 : 0,
-              badge: plan.badge,
+              badge: plan.planType === 'Recruiter' ? '' : plan.badge,
               features: plan.features,
               isActive: plan.active
             };
 
-            const isNew = plan.id.startsWith('recruiter-') || plan.id.startsWith('candidate-');
-            if (isNew) {
+            if (isNewPlanId(plan.id)) {
               await planService.createMembershipPlan(payload);
-            } else {
-              // Check if modified
-              const original = originalDbPlans.find(o => o.id === plan.id);
-              const isModified = !original ||
-                original.name !== plan.name ||
-                original.description !== plan.description ||
-                Number(original.price) !== Number(plan.price) ||
-                original.period !== plan.period ||
-                Number(original.initialCredits) !== Number(plan.initialCredits) ||
-                Number(original.validityMonths) !== Number(plan.validityMonths) ||
-                original.badge !== plan.badge ||
-                original.active !== plan.active ||
-                JSON.stringify(original.features) !== JSON.stringify(plan.features);
-
-              if (isModified) {
-                await planService.updateMembershipPlan({
-                  planId: plan.id,
-                  ...payload
-                });
-              }
+            } else if (planChanged(plan)) {
+              await planService.updateMembershipPlan({
+                planId: plan.id,
+                ...payload
+              });
             }
           })
         );
@@ -574,7 +592,13 @@ export default function PlansPage() {
       return;
     }
     if (activeTab !== 'credits') {
-      setFeatureDraft(plan.features?.join('\n') ?? '');
+      // A recruiter tier with no features yet gets the standard list pre-filled.
+      if (activeTab === 'recruiter' && !(plan.features?.length > 0)) {
+        updatePlan(plan.id, { features: [...DEFAULT_RECRUITER_FEATURES] });
+        setFeatureDraft(DEFAULT_RECRUITER_FEATURES.join('\n'));
+      } else {
+        setFeatureDraft(plan.features?.join('\n') ?? '');
+      }
     }
     setEditingId(plan.id);
   };
@@ -740,20 +764,26 @@ export default function PlansPage() {
             {plans.map((plan) => {
               const isEditing = editingId === plan.id;
               return (
-                <article className={`plan-card ${plan.badge ? 'featured' : ''}`} key={plan.id}>
-                  {plan.badge && <span className="plan-badge">{plan.badge}</span>}
+                <article className={`plan-card ${plan.badge && activeTab !== 'recruiter' ? 'featured' : ''}`} key={plan.id}>
+                  {plan.badge && activeTab !== 'recruiter' && <span className="plan-badge">{plan.badge}</span>}
                   <div className="plan-card-top">
                     <div>
-                      {isEditing ? <input className="edit-name" autoFocus value={plan.name} onChange={(event) => updatePlan(plan.id, { name: event.target.value })} aria-label="Plan name" /> : <h4>{plan.name}</h4>}
-                      {isEditing && activeTab !== 'credits' ? <input className="edit-description" value={plan.description} onChange={(event) => updatePlan(plan.id, { description: event.target.value })} aria-label="Plan description" /> : <p>{activeTab === 'credits' ? `${plan.credits.toLocaleString()} credits for recruiters` : plan.description}</p>}
+                      {isEditing && activeTab === 'recruiter' && <small className="tier-label">Tier</small>}
+                      {isEditing ? <input className="edit-name" autoFocus value={plan.name} placeholder={activeTab === 'recruiter' ? 'e.g. Gold, Silver, Tier 1' : undefined} onChange={(event) => updatePlan(plan.id, { name: event.target.value })} aria-label={activeTab === 'recruiter' ? 'Tier name' : 'Plan name'} /> : <h4>{plan.name}</h4>}
+                      {activeTab === 'recruiter' ? null : (isEditing && activeTab !== 'credits' ? <input className="edit-description" value={plan.description} onChange={(event) => updatePlan(plan.id, { description: event.target.value })} aria-label="Plan description" /> : <p>{activeTab === 'credits' ? `${plan.credits.toLocaleString()} credits for recruiters` : plan.description}</p>)}
                     </div>
                     <button className="plan-edit" onClick={() => togglePlanEditor(plan)} aria-label={`Edit ${plan.name}`}><Edit3 size={16} /></button>
                   </div>
                   <div className="plan-price">
                     <span className="currency">{region.symbol}</span>
                     {isEditing ? <input type="number" min="0" step="0.01" value={plan.price} onChange={(event) => updatePlan(plan.id, { price: event.target.value === '' ? '' : Number(event.target.value) })} aria-label={`${plan.name} price`} /> : <strong>{Number(plan.price).toLocaleString(undefined, { minimumFractionDigits: Number(plan.price) % 1 ? 2 : 0, maximumFractionDigits: 2 })}</strong>}
-                    <span className="price-period">{activeTab === 'credits' ? 'one-time' : plan.period}</span>
+                    <span className="price-period">{activeTab === 'credits' ? 'one-time' : activeTab === 'recruiter' ? 'one-time' : plan.period}</span>
                   </div>
+                  {activeTab === 'recruiter' && Number(plan.price) > 0 && Number(plan.validityMonths) > 0 && (
+                    <div className="plan-monthly">
+                      ≈ {region.symbol}{(Number(plan.price) / Number(plan.validityMonths)).toLocaleString(undefined, { maximumFractionDigits: 2 })} / month for {plan.validityMonths} month{Number(plan.validityMonths) === 1 ? '' : 's'}
+                    </div>
+                  )}
                   {activeTab === 'credits' ? (isEditing ? (
                     <div className="edit-fields">
                       <label>Credit quantity<input type="number" min="1" value={plan.credits} onChange={(event) => updatePlan(plan.id, { credits: event.target.value === '' ? '' : Math.max(1, Number(event.target.value)) })} /></label>
@@ -766,15 +796,19 @@ export default function PlansPage() {
                     {/* {plan.bonus ? <span className="credit-bonus">+ {plan.bonus}</span> : <span className="credit-bonus muted">No bonus credits</span>} */}
                   </div>) : (isEditing ? (
                     <div className="edit-fields">
-                      <label>Billing Period<input value={plan.period} placeholder="e.g. one-time, 3 months" onChange={(event) => updatePlan(plan.id, { period: event.target.value })} /></label>
+                      {activeTab !== 'recruiter' && (
+                        <label>Billing Period<input value={plan.period} placeholder="e.g. one-time, 3 months" onChange={(event) => updatePlan(plan.id, { period: event.target.value })} /></label>
+                      )}
                       {activeTab === 'recruiter' && (
                         <>
-                          <label>Credits included<input type="number" min="0" value={plan.initialCredits === 0 ? '' : plan.initialCredits} placeholder="e.g. 100" onChange={(event) => updatePlan(plan.id, { initialCredits: event.target.value === '' ? '' : Math.max(0, Number(event.target.value)) })} /></label>
-                          <label>Credits validity (in months)<input type="number" min="0" value={plan.validityMonths === 0 ? '' : plan.validityMonths} placeholder="e.g. 3" onChange={(event) => updatePlan(plan.id, { validityMonths: event.target.value === '' ? '' : Math.max(0, Number(event.target.value)) })} /></label>
+                          <label>Validity (in months)<input type="number" min="1" value={plan.validityMonths === 0 ? '' : plan.validityMonths} placeholder="e.g. 3" onChange={(event) => updatePlan(plan.id, { validityMonths: event.target.value === '' ? '' : Math.max(0, Number(event.target.value)) })} /></label>
+                          <label>Credits<input type="number" min="1" value={plan.initialCredits === 0 ? '' : plan.initialCredits} placeholder="e.g. 100" onChange={(event) => updatePlan(plan.id, { initialCredits: event.target.value === '' ? '' : Math.max(0, Number(event.target.value)) })} /></label>
                         </>
                       )}
-                      <label>Badge / Ribbon text<input value={plan.badge} placeholder="e.g. Popular, Best value" onChange={(event) => updatePlan(plan.id, { badge: event.target.value })} /></label>
-                      <label className="feature-editor">Full-access features<textarea value={featureDraft} onChange={(event) => { setFeatureDraft(event.target.value); updatePlan(plan.id, { features: event.target.value.split('\n').map((feature) => feature.trim()).filter(Boolean) }); }} /></label>
+                      {activeTab !== 'recruiter' && (
+                        <label>Badge / Ribbon text<input value={plan.badge} placeholder="e.g. Popular, Best value" onChange={(event) => updatePlan(plan.id, { badge: event.target.value })} /></label>
+                      )}
+                      <label className="feature-editor">{activeTab === 'recruiter' ? 'Features (one per line)' : 'Full-access features'}<textarea value={featureDraft} onChange={(event) => { setFeatureDraft(event.target.value); updatePlan(plan.id, { features: event.target.value.split('\n').map((feature) => feature.trim()).filter(Boolean) }); }} /></label>
                     </div>
                   ) : <>
                     {activeTab === 'recruiter' && Number(plan.initialCredits) > 0 && (
@@ -900,6 +934,8 @@ export default function PlansPage() {
         .plan-price .currency { font-size: 20px; font-weight: 800; margin-right: 3px; } .plan-price strong { font-size: 37px; line-height: 1; letter-spacing: -1px; } .price-period { margin-left: 7px; color: #7d8ba7; font-size: 12px; font-weight: 600; }
         .plan-price input { width: 130px; height: 46px; border: 1px solid #ffa300; border-radius: 6px; color: #172b60; font-size: 25px; font-weight: 800; padding: 0 8px; outline: none; }
         .edit-name, .edit-description, .edit-fields input, .feature-editor textarea { width: 100%; border: 1px solid #d5deec; border-radius: 6px; background: #fff; color: #172b60; outline: none; } .edit-name:focus, .edit-description:focus, .edit-fields input:focus, .feature-editor textarea:focus { border-color: #ffa300; }
+        .tier-label { display: block; font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #7d8ba7; margin-bottom: 3px; }
+        .plan-monthly { margin: -4px 0 14px; font-size: 12px; font-weight: 700; color: #1f9d6b; }
         .edit-name { height: 34px; padding: 0 8px; font-weight: 800; font-size: 16px; margin-bottom: 6px; } .edit-description { height: 30px; padding: 0 8px; font-size: 12px; color: #526686; }
         .edit-fields { display: grid; gap: 10px; } .edit-fields label, .feature-editor { display: grid; gap: 5px; color: #71809f; font-size: 11px; font-weight: 700; } .edit-fields input { height: 34px; padding: 0 8px; font-size: 13px; font-weight: 500; } .feature-editor textarea { min-height: 106px; resize: vertical; padding: 8px; font: 12px/1.5 inherit; }
         .plan-features { list-style: none; margin: 0; padding: 0; display: grid; gap: 11px; } .plan-features li { color: #526686; display: flex; align-items: center; gap: 8px; font-size: 12px; } .plan-features svg { color: #32b884; flex: 0 0 auto; }
