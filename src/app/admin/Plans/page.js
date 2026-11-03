@@ -455,6 +455,14 @@ export default function PlansPage() {
     setError(null);
     try {
       if (activeTab === 'unlock') {
+        // Recruiters can't unlock profiles without a positive access period;
+        // 0 days would make every unlock expire immediately.
+        if ((Number(unlockConfig.candidateAccessDays) || 0) < 1) {
+          setError('Set the access validity to at least 1 day before saving.');
+          setTimeout(() => setError(null), 5000);
+          setLoading(false);
+          return;
+        }
         await creditConfigService.updateConfiguration({
           profileUnlockCredits: Number(unlockConfig.profileUnlockCredits) || 0,
           cvDownloadCredits: Number(unlockConfig.cvDownloadCredits) || 0,
